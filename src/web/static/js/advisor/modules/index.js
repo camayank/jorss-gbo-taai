@@ -82,7 +82,12 @@ import {
   dismissLeadCapture,
   unlockAllCards,
   toggleQuickEdit,
-  editField
+  editField,
+  showShimmerLoading,
+  hideShimmerLoading,
+  triggerConfetti,
+  updateJourneyStepperForHybrid,
+  addManyOptionsClass
 } from './advisor-display.js';
 
 
@@ -101,9 +106,28 @@ window.handleKeyDown       = handleKeyDown;
 
 // Flow
 window.handleQuickAction   = handleQuickAction;
+window.__handleQuickAction = handleQuickAction;  // For hybrid flow components
 window.captureName         = captureName;
 window.captureEmail        = captureEmail;
 window.captureIncome       = captureIncome;
+
+// Hybrid flow: free-form submit handler
+window.__submitFreeForm = function() {
+    const textarea = document.getElementById('freeform-textarea');
+    if (!textarea || !textarea.value.trim()) return;
+    const text = textarea.value.trim();
+    const wrapper = textarea.closest('.freeform-wrapper');
+    if (wrapper) wrapper.remove();
+    showShimmerLoading();
+    updateJourneyStepperForHybrid('details');
+    const input = document.getElementById('user-input') || document.getElementById('userInput');
+    if (input) {
+        input.value = text;
+        sendMessage();
+    }
+};
+window.__showShimmerLoading = showShimmerLoading;
+window.__hideShimmerLoading = hideShimmerLoading;
 
 // Data / Session
 window.restoreSession      = restoreSession;

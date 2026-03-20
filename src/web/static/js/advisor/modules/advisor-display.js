@@ -341,10 +341,10 @@ export const SmartNudgeSystem = {
   startIdleCheck() {
     setInterval(() => {
       const idleTime = Date.now() - this.lastActivityTime;
-      if (idleTime > 30000 && !this.currentNudge) {
+      if (idleTime > 90000 && !this.currentNudge) {  // 90s idle, not 30s
         this.showIdleNudge();
       }
-    }, 10000);
+    }, 15000);
   },
 
   showIdleNudge() {
@@ -426,7 +426,10 @@ export const SmartNudgeSystem = {
     const input = document.getElementById('userInput');
     if (input) {
       input.value = message;
-      import('./advisor-chat.js').then(mod => mod.sendMessage());
+      // Use global sendMessage (exposed on window by index.js)
+      if (typeof window.sendMessage === 'function') {
+        window.sendMessage();
+      }
     }
   }
 };
@@ -2281,4 +2284,250 @@ export function initUXEnhancements() {
   });
 
   DevLogger.log('UX enhancements initialized');
+}
+
+// ======================== HYBRID FLOW COMPONENTS ========================
+
+// ── Visual polish utilities ─────────────────────────────────────
+
+export function showShimmerLoading() {
+    const chatArea = document.getElementById('chat-messages') || document.getElementById('messages');
+    if (!chatArea) return;
+    const s = document.createElement('div');
+    s.id = 'shimmer-loading';
+    s.className = 'shimmer-loading';
+    s.innerHTML = '<div class="shimmer-line"></div><div class="shimmer-line"></div><div class="shimmer-line"></div><div class="shimmer-line"></div>';
+    chatArea.appendChild(s);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+export function hideShimmerLoading() {
+    const el = document.getElementById('shimmer-loading');
+    if (el) el.remove();
+}
+
+export function triggerConfetti() {
+    const c = document.createElement('div');
+    c.className = 'confetti-burst';
+    const colors = ['#c4975a','#4ade80','#60a5fa','#f87171','#fbbf24','#a78bfa'];
+    for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'confetti-particle';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.setProperty('--tx', (Math.random()-0.5)*300+'px');
+        p.style.setProperty('--ty', (Math.random()-0.5)*300+'px');
+        p.style.left = (Math.random()-0.5)*40+'px';
+        p.style.top = (Math.random()-0.5)*40+'px';
+        c.appendChild(p);
+    }
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 2000);
+}
+
+export function updateJourneyStepperForHybrid(mode) {
+    const steps = ['phase1','intake','details','analysis','report'];
+    const labels = ['Profile','Intake','Details','Analysis','Report'];
+    let stepper = document.getElementById('journey-stepper-hybrid');
+    if (!stepper) {
+        stepper = document.createElement('div');
+        stepper.id = 'journey-stepper-hybrid';
+        stepper.className = 'journey-stepper';
+        const header = document.querySelector('.advisor-header');
+        if (header) header.after(stepper);
+    }
+    const idx = steps.indexOf(mode);
+    stepper.innerHTML = steps.map((s, i) => {
+        const cls = i < idx ? 'completed' : i === idx ? 'active' : '';
+        return `<div class="journey-step ${cls}"><span class="step-dot"></span>${labels[i]}</div>`;
+    }).join('');
+}
+
+export function addManyOptionsClass() {
+    document.querySelectorAll('.quick-actions').forEach(el => {
+        if (el.children.length > 6) el.classList.add('many-options');
+    });
+}
+
+let _lastTopicNumber = 0;
+
+export function renderTopicHeader(topicName, topicNumber, topicTotal) {
+    if (topicNumber === _lastTopicNumber) return;
+    _lastTopicNumber = topicNumber;
+    const chatArea = document.getElementById('chat-messages');
+    if (!chatArea) return;
+    const div = document.createElement('div');
+    div.className = 'topic-header';
+    div.innerHTML = `
+        <div class="topic-divider"></div>
+        <div class="topic-label">
+            <span class="topic-name">${topicName}</span>
+            <span class="topic-count">${topicNumber} / ${topicTotal}</span>
+        </div>
+    `;
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+export function renderTransitionCards(data) {
+    const chatArea = document.getElementById('chat-messages');
+    if (!chatArea) return;
+    const ps = data.profile_summary || {};
+    const container = document.createElement('div');
+    container.className = 'transition-wrapper';
+    container.innerHTML = `
+        <div class="profile-summary-banner">
+            <div class="summary-items">
+                ${ps.filing_status ? `<span>${_fmtFS(ps.filing_status)}</span>` : ''}
+                ${ps.total_income ? `<span>$${Number(ps.total_income).toLocaleString()}</span>` : ''}
+                ${ps.state ? `<span>${ps.state}</span>` : ''}
+                <span>${ps.dependents || 0} dependent(s)</span>
+                ${ps.income_type ? `<span>${_fmtIT(ps.income_type)}</span>` : ''}
+            </div>
+        </div>
+        <div class="transition-container">
+            <p class="transition-intro">${data.response || ''}</p>
+            <div class="mode-cards">
+                <div class="mode-card" onclick="window.__handleQuickAction && window.__handleQuickAction('mode_freeform')">
+                    <div class="mode-card-icon">\u{1F4DD}</div>
+                    <h3>Tell Me Everything</h3>
+                    <p>Describe your full tax situation in your own words. I'll extract every detail and only follow up on what I need.</p>
+                    <p class="mode-card-hint">Fastest if you know your numbers</p>
+                    <button class="mode-card-btn">Choose this</button>
+                </div>
+                <div class="mode-card" onclick="window.__handleQuickAction && window.__handleQuickAction('mode_guided')">
+                    <div class="mode-card-icon">\u{1F4AC}</div>
+                    <h3>Guide Me Step by Step</h3>
+                    <p>I'll ask one question at a time, grouped by topic. Perfect if you're not sure what's relevant.</p>
+                    <p class="mode-card-hint">~5-15 minutes</p>
+                    <button class="mode-card-btn">Choose this</button>
+                </div>
+            </div>
+        </div>
+    `;
+    chatArea.appendChild(container);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+export function renderFreeFormIntake(data) {
+    const chatArea = document.getElementById('chat-messages');
+    if (!chatArea) return;
+    const container = document.createElement('div');
+    container.className = 'freeform-wrapper';
+    container.innerHTML = `
+        <div class="freeform-container">
+            <p class="freeform-intro">${data.response || 'Tell me about your tax situation.'}</p>
+            <div class="freeform-hints">
+                <span class="hints-label">\u{1F4A1} Things to mention:</span>
+                <ul>
+                    <li>Income sources (W-2, business, investments, rental)</li>
+                    <li>Major deductions (mortgage, charity, medical)</li>
+                    <li>Life changes (married, kids, bought/sold home)</li>
+                    <li>Retirement accounts (401k, IRA, HSA)</li>
+                    <li>Anything unusual (crypto, foreign income, divorce)</li>
+                </ul>
+            </div>
+            <textarea id="freeform-textarea" class="freeform-textarea" rows="8"
+                placeholder="Example: I make $120k as a W-2 employee, my wife is self-employed making about $80k. We have 2 kids in daycare. We pay $15k in mortgage interest..."></textarea>
+            <div class="freeform-actions">
+                <button class="btn-amber" onclick="window.__submitFreeForm && window.__submitFreeForm()">Submit</button>
+                <button class="btn-ghost" onclick="window.__handleQuickAction && window.__handleQuickAction('mode_guided')">Switch to guided mode</button>
+            </div>
+        </div>
+    `;
+    chatArea.appendChild(container);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    setTimeout(() => { const ta = document.getElementById('freeform-textarea'); if (ta) ta.focus(); }, 100);
+    updateJourneyStepperForHybrid('intake');
+}
+
+export function renderParsedSummary(data) {
+    const chatArea = document.getElementById('chat-messages');
+    if (!chatArea) return;
+    const fields = data.parsed_fields || {};
+    const cats = {
+        'Income': ['total_income','business_income','investment_income','rental_income','k1_ordinary_income','side_income','farm_income'],
+        'Family': ['dependents','childcare_costs','education_status'],
+        'Deductions': ['mortgage_interest','property_taxes','charitable_donations','medical_expenses','student_loan_interest'],
+        'Retirement': ['retirement_401k','retirement_ira','hsa_contributions'],
+    };
+    let html = '';
+    for (const [cat, keys] of Object.entries(cats)) {
+        const items = keys.filter(k => fields[k] != null && fields[k] !== 0 && fields[k] !== false);
+        if (!items.length) continue;
+        html += `<div class="summary-category"><h4>${cat}</h4>`;
+        for (const key of items) {
+            const v = fields[key];
+            const d = typeof v === 'number' ? `$${v.toLocaleString()}` : String(v).replace(/_/g,' ');
+            html += `<div class="summary-item">\u2705 ${_fmtFN(key)}: <strong>${d}</strong></div>`;
+        }
+        html += '</div>';
+    }
+    const container = document.createElement('div');
+    container.className = 'parsed-summary';
+    container.innerHTML = `
+        <h3>Here's what I captured:</h3>
+        ${html}
+        <div class="summary-footer">
+            <p class="summary-gaps">${data.remaining_gaps || 0} follow-up questions remaining</p>
+            <div class="summary-actions">
+                <button class="btn-amber" onclick="window.__handleQuickAction && window.__handleQuickAction('confirm_summary')">\u2713 Looks right!</button>
+                <button class="btn-ghost" onclick="window.__handleQuickAction && window.__handleQuickAction('fix_summary')">\u270E Let me fix something</button>
+            </div>
+        </div>
+    `;
+    chatArea.appendChild(container);
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+export function renderProfileConfirmation(data) {
+    const chatArea = document.getElementById('chat-messages');
+    if (!chatArea) return;
+    const s = data.full_profile_summary || {};
+    function sec(title, obj) {
+        if (!obj || !Object.keys(obj).length) return '';
+        let rows = '';
+        for (const [k,v] of Object.entries(obj)) {
+            if (v == null || v === 0 || v === false || v === 'none') continue;
+            const d = typeof v === 'number' ? `$${v.toLocaleString()}` : String(v).replace(/_/g,' ');
+            rows += `<div class="conf-row"><span class="conf-label">${_fmtFN(k)}</span><span class="conf-value">${d}</span></div>`;
+        }
+        return rows ? `<div class="conf-section"><h4>${title}</h4>${rows}</div>` : '';
+    }
+    const container = document.createElement('div');
+    container.className = 'profile-confirmation';
+    container.innerHTML = `
+        <h2>Your Tax Profile Summary</h2>
+        <div class="conf-basics">
+            <span>${_fmtFS(s.basics?.filing_status)}</span>
+            <span>${s.basics?.state || ''}</span>
+            <span>${s.basics?.dependents || 0} dependents</span>
+            <span>${_fmtIT(s.basics?.income_type)}</span>
+        </div>
+        ${sec('Income', s.income)}
+        ${sec('Deductions', s.deductions)}
+        ${sec('Credits', s.credits)}
+        ${sec('Retirement & Savings', s.retirement)}
+        ${sec('Tax Payments', s.payments)}
+        <div class="conf-actions">
+            <button class="btn-amber btn-large" onclick="window.__handleQuickAction && window.__handleQuickAction('confirm_and_calculate')">
+                \u2713 Looks right \u2014 run the numbers!
+            </button>
+            <button class="btn-ghost" onclick="window.__handleQuickAction && window.__handleQuickAction('edit_profile')">
+                \u270E I need to change something
+            </button>
+        </div>
+    `;
+    chatArea.appendChild(container);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    updateJourneyStepperForHybrid('analysis');
+}
+
+function _fmtFS(s) {
+    return {'single':'Single','married_joint':'Married Filing Jointly','married_separate':'Married Filing Separately','head_of_household':'Head of Household','qualifying_widow':'Qualifying Surviving Spouse'}[s]||s||'';
+}
+function _fmtIT(t) {
+    return {'w2_employee':'W-2 Employee','multiple_w2':'Multiple W-2','w2_plus_side':'W-2 + Side Hustle','self_employed':'Self-Employed','business_owner':'Business Owner','retired':'Retired','investor':'Investor','military':'Military','gig_worker':'Gig Worker','farmer':'Farmer','clergy':'Clergy','no_income':'No Income'}[t]||t||'';
+}
+function _fmtFN(k) {
+    return k.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
 }

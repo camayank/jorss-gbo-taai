@@ -185,102 +185,51 @@ export async function handleQuickAction(value, displayLabel = null) {
   DevLogger.log('Quick action clicked:', value);
   DevLogger.log('Display label:', displayLabel);
 
-  // Intercept Phase 1 actions — handle locally, don't send to API
-  // This prevents the server from returning its own 4-state question
-  // instead of the client's full 50-state searchable dropdown
-  const phase1Values = new Set([
-    'no_manual', 'start_estimate', 'continue_assessment',
-    // Filing status
-    'filing_single', 'filing_married', 'filing_mfs', 'filing_hoh', 'filing_qss',
-    // Income ranges
-    'income_under30k', 'income_30_50k', 'income_50_100k', 'income_100_200k',
-    'income_200_500k', 'income_500k_plus', 'income_custom',
-    // Income sources
-    'source_w2', 'source_self_employed', 'source_business',
-    'source_investments', 'source_multiple',
-    // Dependents
-    'deps_0', 'deps_1', 'deps_2', 'deps_3plus',
-  ]);
+  // ═══════════════════════════════════════════════════════════════════
+  // ALL answers go to the backend. No client-side Phase 1 anymore.
+  // The backend handles everything: Phase 1, transition, Phase 2, etc.
+  // ═══════════════════════════════════════════════════════════════════
 
-  if (phase1Values.has(value)) {
-    // Update local profile from the action
-    const profileUpdates = {
-      'filing_single': { filing_status: 'single' },
-      'filing_married': { filing_status: 'married_joint' },
-      'filing_mfs': { filing_status: 'married_separate' },
-      'filing_hoh': { filing_status: 'head_of_household' },
-      'filing_qss': { filing_status: 'qualifying_widow' },
-      'income_under30k': { total_income: 15000 },
-      'income_30_50k': { total_income: 40000 },
-      'income_50_100k': { total_income: 75000 },
-      'income_100_200k': { total_income: 150000 },
-      'income_200_500k': { total_income: 350000 },
-      'income_500k_plus': { total_income: 750000 },
-      'source_w2': { income_source: 'W-2 Employee', income_type: 'w2', is_self_employed: false },
-      'source_self_employed': { income_source: 'Self-Employed / 1099', income_type: 'self_employed', is_self_employed: true },
-      'source_business': { income_source: 'Business Owner', income_type: 'business', is_self_employed: true },
-      'source_investments': { income_source: 'Investments / Retirement', income_type: 'retired' },
-      'source_multiple': { income_source: 'Multiple sources' },
-      'deps_0': { dependents: 0 },
-      'deps_1': { dependents: 1 },
-      'deps_2': { dependents: 2 },
-      'deps_3plus': { dependents: 3 },
-    };
-
-    const updates = profileUpdates[value];
-    if (updates) {
-      Object.assign(extractedData.tax_profile, updates);
-      if (updates.total_income) {
-        extractedData.tax_profile.w2_income = updates.total_income;
-      }
-    }
-
-    // Show user's selection as a message
-    if (displayLabel || value !== 'no_manual') {
-      const displayText = displayLabel || value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      addMessage('user', displayText);
-    }
-
-    // Continue to next question locally
-    startIntelligentQuestioning();
+  // "Start my estimate" / "no_manual" — just trigger the first backend question
+  if (value === 'no_manual' || value === 'start_estimate' || value === 'continue_assessment') {
+    // Send a greeting to the backend to get the first question
+    await processAIResponse('start');
     return;
   }
 
-  // State selections (from the dropdown)
+  // "Edit my information" — tell backend to allow edits
+  if (value === 'edit_profile') {
+    addMessage('user', 'Edit my information');
+    await processAIResponse('edit_profile');
+    return;
+  }
+
+  // Upload actions — trigger file picker
+  if (value === 'yes_upload' || value === 'upload_w2' || value === 'upload_1099') {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.click();
+    }
+    return;
+  }
+
+  // State selections from dropdown — send state code to backend
   if (value.startsWith('state_')) {
-    extractedData.tax_profile.state = value.replace('state_', '');
-    addMessage('user', displayLabel || value.replace('state_', ''));
-    startIntelligentQuestioning();
+    const stateCode = value.replace('state_', '');
+    const displayText = displayLabel || stateCode;
+    addMessage('user', displayText);
+    await processAIResponse(stateCode);
     return;
   }
 
-  // "Run Full Analysis" — send to API (this is the FIRST API call)
+  // "Run Full Analysis" — now just sends to backend (transition will fire)
   if (value === 'run_full_analysis') {
     addMessage('user', 'Run Full Analysis');
     await processAIResponse(value);
     return;
   }
 
-  // "Edit my information" — restart Phase 1
-  if (value === 'edit_profile') {
-    extractedData.tax_profile = {};
-    addMessage('user', 'Edit my information');
-    startIntelligentQuestioning();
-    return;
-  }
-
-  // Intercept upload action — trigger file picker directly
-  if (value === 'yes_upload') {
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-      fileInput.click();
-    } else {
-      addMessage('ai', 'You can upload documents by clicking the attachment icon in the input area below.', [
-        { label: 'Start my estimate instead', value: 'no_manual' }
-      ]);
-    }
-    return;
-  }
+  // (edit_profile and yes_upload handled above)
 
   // Intercept "how does this work" / "what docs" actions
   if (value === 'what_docs') {
@@ -331,8 +280,16 @@ export async function handleQuickAction(value, displayLabel = null) {
 }
 
 // ======================== INTELLIGENT QUESTIONING ENGINE ========================
+// DEPRECATED: All questions now come from the backend via processAIResponse.
+// This function is kept as a fallback redirect to the backend.
 
 export async function startIntelligentQuestioning() {
+  // Route everything to the backend — no more client-side Phase 1
+  DevLogger.log('startIntelligentQuestioning called — routing to backend');
+  await processAIResponse('continue');
+  return;
+
+  // ═══ OLD CLIENT-SIDE FLOW BELOW (disabled) ═══
   questioningState.callCount++;
 
   if (questioningState.callCount > questioningState.maxCalls) {

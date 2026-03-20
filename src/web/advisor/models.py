@@ -274,13 +274,14 @@ class ChatResponse(BaseModel):
     """Response from intelligent chat."""
     session_id: str
     response: str
-    response_type: str  # "greeting", "question", "calculation", "strategy", "report"
+    response_type: str  # "greeting", "question", "transition", "summary", "confirmation", "calculation", "strategy", "report"
 
     # Dynamic content
     tax_calculation: Optional[TaxCalculationResult] = None
     strategies: Optional[List[StrategyRecommendation]] = []
     next_questions: Optional[List[Dict[str, Any]]] = []
     quick_actions: Optional[List[Dict[str, Any]]] = []
+    multi_select: bool = False  # If True, user can select multiple quick_actions
 
     # Progress
     profile_completeness: float = 0.0
@@ -327,6 +328,34 @@ class ChatResponse(BaseModel):
 
     # Session lifecycle — true when session was not found and was recreated fresh
     session_renewed: bool = False
+
+    # ── Hybrid conversation flow ─────────────────────────────────────────
+    # Mode: "guided" (Phase 1 sequential), "freeform" (user typing paragraph),
+    #        "followup" (targeted gaps after freeform), "confirmation" (before calc)
+    conversation_mode: str = "guided"
+
+    # Transition screen (shown once after Phase 1 completes)
+    show_transition: bool = False
+    profile_summary: Optional[Dict[str, Any]] = None
+
+    # Parsed summary (after free-form intake)
+    parsed_fields: Optional[Dict[str, Any]] = None
+    parsed_count: int = 0
+    remaining_gaps: int = 0
+
+    # Topic grouping (guided mode — question-by-question with section headers)
+    topic_name: Optional[str] = None  # "Income Details", "Your Family", etc.
+    topic_number: Optional[int] = None  # 1-6
+    topic_total: int = 6
+
+    # Confirmation screen (before running calculation)
+    show_confirmation: bool = False
+    full_profile_summary: Optional[Dict[str, Any]] = None
+
+    # Live tax estimate (updates with every answer — Feature 1)
+    live_tax_estimate: Optional[float] = None  # Positive = refund, negative = owed
+    live_estimate_confidence: str = "none"  # "none", "low", "medium", "high"
+    live_estimate_label: Optional[str] = None  # "Estimated refund: ~$3,247"
 
 
 class FullAnalysisRequest(BaseModel):

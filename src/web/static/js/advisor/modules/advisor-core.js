@@ -604,14 +604,18 @@ export function showToast(message, type = 'info') {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   `;
 
+  // More subtle toast styling
+  toast.style.fontSize = '0.85rem';
+  toast.style.padding = '10px 20px';
+
   if (type === 'error') {
-    toast.style.background = '#ef4444';
+    toast.style.background = '#c43e3e';
     toast.setAttribute('role', 'alert');
   } else if (type === 'warning') {
-    toast.style.background = '#f59e0b';
+    toast.style.background = '#b8893f';
     toast.setAttribute('role', 'status');
   } else if (type === 'success') {
-    toast.style.background = '#10b981';
+    toast.style.background = '#2d8a4e';
     toast.setAttribute('role', 'status');
   } else {
     toast.style.background = '#2098d4';
@@ -621,10 +625,12 @@ export function showToast(message, type = 'info') {
   toast.textContent = message;
   document.body.appendChild(toast);
 
+  // Success toasts dismiss faster (2s), errors stay longer (5s)
+  const duration = type === 'success' ? 2000 : type === 'error' ? 5000 : 3000;
   setTimeout(() => {
     toast.style.animation = 'slideDown 0.3s ease';
     setTimeout(() => toast.remove(), 300);
-  }, 4000);
+  }, duration);
 }
 
 // ======================== SESSION MANAGEMENT ========================
@@ -663,11 +669,13 @@ export function clearConversation() {
   questionNumber = 0;
   updateQuestionCounter();
 
-  sessionStorage.removeItem('tax_session_id');
-  sessionStorage.removeItem('tax_data_consent');
-  sessionStorage.removeItem('tax_consent_timestamp');
+  // Clear ALL session data — both frontend and backend session references
+  sessionStorage.clear();
+  localStorage.removeItem('tax_advisor_session');
+  localStorage.removeItem('advisor_auto_save');
 
-  window.location.reload();
+  // Force clean reload
+  window.location.href = window.location.pathname + '?fresh=' + Date.now();
 }
 
 // ======================== QUESTION COUNTER ========================

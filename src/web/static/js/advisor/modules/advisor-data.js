@@ -236,7 +236,7 @@ export async function attemptSessionRecovery() {
           setExtractedData(safeDeepMerge(extractedData, savedData.extractedData));
         }
 
-        showToast('Previous session restored', 'success');
+        showToast('Session restored', 'info');
         return true;
       }
     } catch (error) {

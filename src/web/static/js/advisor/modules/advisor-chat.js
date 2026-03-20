@@ -30,7 +30,10 @@ import {
   renderStrategyCard, renderSafetySummary, renderConfidenceBadge,
   updateSavingsEstimate, LiveSavingsDisplay, showLoadingOverlay, hideLoadingOverlay,
   showErrorBanner, clearErrorBanner, updateProgress, updatePhaseFromData,
-  updateInsights, updateStats, CelebrationSystem, checkForCelebration
+  updateInsights, updateStats, CelebrationSystem, checkForCelebration,
+  renderTransitionCards, renderFreeFormIntake, renderParsedSummary,
+  renderProfileConfirmation, renderTopicHeader,
+  showShimmerLoading, hideShimmerLoading, triggerConfetti, updateJourneyStepperForHybrid, addManyOptionsClass
 } from './advisor-display.js';
 
 // ======================== FALLBACK RESPONSES ========================
@@ -699,7 +702,33 @@ export function addMessage(type, text, quickActions = [], options = {}) {
           btn.textContent = action.label;
         }
         btn.setAttribute('aria-label', action.label.replace(/[^\w\s]/g, '').trim());
-        btn.onclick = () => handleQuickAction(action.value);
+        btn.onclick = () => {
+          // 1. Visual feedback: highlight selected, disable others
+          actionsDiv.querySelectorAll('.quick-action').forEach(b => {
+            b.disabled = true;
+            b.style.opacity = '0.4';
+            b.style.pointerEvents = 'none';
+          });
+          btn.style.opacity = '1';
+          btn.classList.add('selected');
+          btn.style.background = 'var(--amber)';
+          btn.style.color = 'var(--white)';
+          btn.style.borderColor = 'var(--amber)';
+
+          // 2. Collapse previous actions after brief delay
+          setTimeout(() => {
+            actionsDiv.style.maxHeight = actionsDiv.scrollHeight + 'px';
+            actionsDiv.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+            requestAnimationFrame(() => {
+              actionsDiv.style.maxHeight = '0';
+              actionsDiv.style.opacity = '0';
+              actionsDiv.style.overflow = 'hidden';
+            });
+          }, 400);
+
+          // 3. Process the action
+          handleQuickAction(action.value, action.label);
+        };
         actionsDiv.appendChild(btn);
       });
       bubble.appendChild(actionsDiv);
@@ -712,6 +741,8 @@ export function addMessage(type, text, quickActions = [], options = {}) {
 
   DevLogger.log('Message added successfully. Total messages now:', messages.children.length);
 
+  // Smooth scroll to new message + focus
+  messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
   messages.scrollTop = messages.scrollHeight;
   return messageDiv;
 }
@@ -894,6 +925,87 @@ export async function processAIResponse(userMessage) {
     let aiResponse = data.response || "I'm here to help. Could you please clarify?";
     const quickActions = data.quick_actions || generateSmartQuickActions();
 
+    // ── Hybrid flow: handle new response types ──────────────────────
+    if (data.response_type === 'transition') {
+      renderTransitionCards(data);
+      return;
+    }
+    if (data.response_type === 'freeform_intake') {
+      renderFreeFormIntake(data);
+      return;
+    }
+    if (data.response_type === 'summary') {
+      hideShimmerLoading();
+      renderParsedSummary(data);
+      return;
+    }
+    if (data.response_type === 'confirmation') {
+      renderProfileConfirmation(data);
+      return;
+    }
+    // Topic headers for guided mode questions
+    if (data.response_type === 'question' && data.topic_name && data.topic_number) {
+      renderTopicHeader(data.topic_name, data.topic_number, data.topic_total || 6);
+    }
+
+    // ── Live tax estimate banner (Feature 1) ──────────────────────────
+    if (data.live_tax_estimate != null && data.live_estimate_confidence !== 'none') {
+      const isRefund = data.live_tax_estimate >= 0;
+      const amount = Math.abs(data.live_tax_estimate).toLocaleString();
+      const cls = isRefund ? 'refund' : 'owed';
+      let banner = document.getElementById('live-estimate-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'live-estimate-banner';
+        banner.className = 'live-estimate-banner';
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) chatContainer.parentElement.insertBefore(banner, chatContainer);
+      }
+      banner.innerHTML = `
+        <div class="live-estimate-left">
+          <span class="live-estimate-amount ${cls}">${isRefund ? '+' : '-'}$${amount}</span>
+          <span class="live-estimate-type">${isRefund ? 'Estimated Refund' : 'Estimated Owed'}</span>
+        </div>
+        <span class="live-estimate-confidence">${data.live_estimate_confidence} confidence</span>
+      `;
+      banner.style.display = 'flex';
+      // Animate the amount change
+      const amtEl = banner.querySelector('.live-estimate-amount');
+      if (amtEl) { amtEl.classList.remove('updating'); void amtEl.offsetWidth; amtEl.classList.add('updating'); }
+    }
+
+    // Confetti on positive moments (CTC, credits, savings)
+    if (data.response && (data.response.includes('qualify for $') || data.response.includes('credit —') || data.response.includes('off your tax bill'))) {
+      setTimeout(triggerConfetti, 300);
+    }
+
+    // Apply grid layout for 7+ buttons after render
+    setTimeout(addManyOptionsClass, 100);
+
+    // Journey stepper update based on topic
+    if (data.topic_number) {
+      if (data.topic_number <= 2) updateJourneyStepperForHybrid('details');
+      else if (data.topic_number <= 5) updateJourneyStepperForHybrid('details');
+      else updateJourneyStepperForHybrid('details');
+    }
+
+    // ── Progress confidence hint ────────────────────────────────────────
+    if (data.completion_hint) {
+      const hint = document.getElementById('completion-hint');
+      if (hint) {
+        hint.textContent = data.completion_hint;
+      } else {
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+          const h = document.createElement('div');
+          h.id = 'completion-hint';
+          h.className = 'completion-hint';
+          h.textContent = data.completion_hint;
+          chatContainer.parentElement.insertBefore(h, chatContainer);
+        }
+      }
+    }
+
     if (data.response_type === 'calculation' || data.response_type === 'strategy' || data.response_type === 'report') {
       aiResponse += renderConfidenceBadge(data.response_confidence, data.confidence_reason);
     }
@@ -975,7 +1087,7 @@ export async function processAIResponse(userMessage) {
       aiResponse += '<p class="circular230-disclaimer">Any tax advice contained in this communication was not intended or written to be used, and cannot be used, for the purpose of avoiding penalties under the Internal Revenue Code.</p>';
     }
 
-    addMessage('ai', aiResponse, quickActions);
+    addMessage('ai', aiResponse, quickActions, { multiSelect: data.multi_select || false });
 
     if (data.profile_completeness !== undefined) {
       updateProgress(
