@@ -5734,60 +5734,66 @@ To get started, what's your filing status?"""
         if extra_info:
             extra_display = "\n\n**Profile Details:** " + " | ".join(extra_info)
 
-        # Build response — lead with the emotional answer
+        # ================================================================
+        # UNIFIED ADVISORY REPORT — One clean, premium output
+        # ================================================================
+
+        refund_owed_amount = abs(tax_calculation.refund_or_owed)
+        se_tax = tax_calculation.self_employment_tax or 0
+        withholding = profile.get("federal_withholding", 0) or 0
+        est_payments = profile.get("estimated_payments", 0) or 0
+        total_payments = withholding + est_payments
+
         if tax_calculation.is_refund:
-            headline = f"## \U0001f389 Estimated Refund: ${abs(tax_calculation.refund_or_owed):,.0f}\n"
+            headline = f"## Estimated Refund: ${refund_owed_amount:,.0f}"
         else:
-            headline = f"## \U0001f4b0 Estimated Tax Owed: ${abs(tax_calculation.refund_or_owed):,.0f}\n"
+            headline = f"## Estimated Tax Owed: ${refund_owed_amount:,.0f}"
 
-        headline += f"*Based on your {filing_display} filing in {profile.get('state', 'your state')}*\n\n"
+        # Tax breakdown
+        breakdown = f"| Federal Income Tax | ${tax_calculation.federal_tax:,.0f} |"
+        if tax_calculation.state_tax > 0:
+            breakdown += f"\n| State Tax ({profile.get('state', '')}) | ${tax_calculation.state_tax:,.0f} |"
+        if se_tax > 0:
+            breakdown += f"\n| Self-Employment Tax | ${se_tax:,.0f} |"
+        breakdown += f"\n| **Total Tax** | **${tax_calculation.total_tax:,.0f}** |"
+        if total_payments > 0:
+            breakdown += f"\n| Withholding & Payments | -${total_payments:,.0f} |"
+            label = "**Refund**" if tax_calculation.is_refund else "**Balance Due**"
+            breakdown += f"\n| {label} | **${refund_owed_amount:,.0f}** |"
 
-        response_text = f"""{correction_prefix}{headline}Based on your profile ({filing_display}, {income_display}{state_display}{dependents_display}):{extra_display}
+        # Credits
+        credits_info = ""
+        ctc = tax_calculation.child_tax_credit or 0
+        if ctc > 0:
+            credits_info += f"\nChild Tax Credit: ${ctc:,.0f}"
+        if tax_calculation.total_tax < 0:
+            credits_info += "\nEarned Income Credit applied"
 
-**Your Tax Position:**
-• Federal Tax: **${tax_calculation.federal_tax:,.0f}**
-• State Tax: **${tax_calculation.state_tax:,.0f}**
-• Total Tax: **${tax_calculation.total_tax:,.0f}**
-• Effective Rate: **{tax_calculation.effective_rate:.1f}%**
-
-**I found ${total_savings:,.0f} in potential savings across {len(strategies)} strategies!**"""
-
+        # Top recommendation
+        top_rec = ""
         if strategies:
-            response_text += f"\n\nYour top opportunity: **{strategies[0].title}** could save you **${strategies[0].estimated_savings:,.0f}**."
+            s = strategies[0]
+            top_rec = f"\n\n---\n\n### Top Recommendation: {s.title}\n\n**Potential savings: ${s.estimated_savings:,.0f}**\n\n{s.summary or s.detailed_explanation or ''}\n\n*{s.irs_reference or ''}*"
+            if len(strategies) > 1:
+                other_savings = sum(st.estimated_savings for st in strategies[1:])
+                top_rec += f"\n\n*{len(strategies) - 1} additional strategies identified (${other_savings:,.0f} more in potential savings)*"
 
-        response_text += f"\n\n---\n\nI found **{len(strategies)} strategies** that could save you **${total_savings:,.0f}**. Want me to compile everything into a comprehensive advisory report?"
+        response_text = f"""{correction_prefix}{headline}
+*{filing_display} | {profile.get('state', '')} | Tax Year 2025*
 
-        # Report is the natural next step — make it primary
+| | |
+|---|---:|
+{breakdown}
+
+Effective Rate: **{tax_calculation.effective_rate:.1f}%** | Marginal Rate: **{tax_calculation.marginal_rate}%**
+
+Deduction: **{(tax_calculation.deduction_type or 'standard').title()}** (${tax_calculation.deductions or 0:,.0f}){credits_info}{top_rec}"""
+
         quick_actions = [
-            {"label": "\U0001f4c4 Generate My Advisory Report", "value": "generate_report", "primary": True},
-            {"label": "Show All Strategies", "value": "show_strategies"},
-            {"label": "What-If: Max 401(k)", "value": "whatif_max_401k"},
-            {"label": "Update My Info", "value": "edit_profile"},
+            {"label": "Generate Full Report", "value": "generate_report"},
+            {"label": "Ask a question", "value": "ask_question"},
+            {"label": "Update my info", "value": "edit_profile"},
         ]
-
-        # Prepend quick wins (immediately actionable strategies) before other actions
-        if strategies:
-            quick_wins = _identify_quick_wins(strategies)
-            quick_actions = quick_wins + quick_actions
-
-        # Add deep analysis buttons when AI is enabled (Round 10.4)
-        if AI_CHAT_ENABLED:
-            deep_actions = [
-                {"label": "Deduction Optimization", "value": "deep_deduction_analysis"},
-            ]
-            if profile.get("is_self_employed") or profile.get("business_income"):
-                deep_actions.insert(0, {"label": "Business Structure Analysis", "value": "deep_entity_analysis"})
-            if profile.get("retirement_401k") or profile.get("retirement_ira") or (profile.get("total_income", 0) or 0) > 100000:
-                deep_actions.append({"label": "Roth Conversion Analysis", "value": "deep_roth_analysis"})
-            quick_actions.extend(deep_actions)
-
-        # Add per-strategy drill-down quick actions
-        if strategies:
-            for i, strat in enumerate(strategies[:3]):
-                quick_actions.append({
-                    "label": f"Details: {strat.title[:35]}",
-                    "value": f"strategy_detail_{strat.id}",
-                })
 
         key_insights = [
             f"Your marginal tax rate is {tax_calculation.marginal_rate}%",
