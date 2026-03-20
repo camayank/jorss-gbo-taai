@@ -314,17 +314,18 @@ def _build_tax_return_from_profile(profile: Dict[str, Any]):
 
     if num_dependents > 0:
         from models.taxpayer import Dependent
+        child_names = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Avery", "Parker", "Sage"]
         for i in range(deps_under_17):
             tax_return.taxpayer.dependents.append(Dependent(
-                name=f"Child {i+1}",
+                name=child_names[i % len(child_names)],
                 relationship="son" if i % 2 == 0 else "daughter",
-                age=10,  # under 17 for CTC
+                age=10,
             ))
         for i in range(deps_over_17):
             tax_return.taxpayer.dependents.append(Dependent(
-                name=f"Dependent {deps_under_17 + i + 1}",
+                name=child_names[(deps_under_17 + i) % len(child_names)],
                 relationship="son" if i % 2 == 0 else "daughter",
-                age=19,  # over 17 for ODC
+                age=19,
                 is_student=True,
             ))
 

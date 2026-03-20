@@ -5459,15 +5459,20 @@ To get started, what's your filing status?"""
             "detected_savings": total_detected_savings,
         })
 
-        # Run safety checks inline with timeout (results needed for this response)
+        # Run safety checks (non-blocking — skip if unavailable)
         if tax_calculation:
             try:
+                from web.advisor.safety_checks import run_safety_checks as _run_safety_checks_fn
                 safety_data = await asyncio.wait_for(
-                    _run_safety_checks(request.session_id, profile, tax_calculation),
+                    _run_safety_checks_fn(request.session_id, profile, tax_calculation),
                     timeout=5.0,
                 )
+            except (ImportError, NameError):
+                safety_data = None  # Safety check module not available
             except asyncio.TimeoutError:
                 logger.warning("Safety checks timed out — will show on next response")
+                safety_data = None
+            except Exception:
                 safety_data = None
 
         # Bridge: Also save to session_tax_returns so advisory report API can find it
