@@ -242,16 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 11. Check consent and initialize session
+  // 11. Initialize session (backend is source of truth — no client-side restore banner)
   if (checkAdvisorConsent()) {
-    checkForExistingSession().then(sessionData => {
-      if (sessionData) {
-        setSessionId(sessionData.session_id);
-        showResumeBanner(sessionData);
-      }
-      initializeSession();
-      startAutoSave();
-    });
+    initializeSession();
+    startAutoSave();
   }
 
   // 12. Focus input
