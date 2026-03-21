@@ -1,20 +1,18 @@
 // ==========================================================================
-// advisor-flow.js — Questioning engine, journey steps, lead flow, summary
-// Extracted from intelligent-advisor.js (Sprint 1: Module Extraction)
+// advisor-flow.js — Thin pass-through to backend
+//
+// REWRITTEN: All questions, transitions, and flow logic live on the backend.
+// This module's only job is to send user actions to the backend via
+// processAIResponse and let the response_type drive rendering.
 // ==========================================================================
 
 import {
-  extractedData, sessionId, taxCalculations, taxStrategies, premiumUnlocked,
-  retryCount, leadQualified, currentStrategyIndex,
-  setSessionId, setRetryCount, setLeadQualified, setTaxCalculations,
-  setTaxStrategies, setCurrentStrategyIndex, setPremiumUnlocked,
-  secureFetch, escapeHtml, DevLogger, showToast, getCSRFToken,
-  setConfirmedValue, setConfirmedValues, confirmedData, markUnsaved,
-  RobustnessConfig
+  extractedData, sessionId, DevLogger, showToast, secureFetch, getCSRFToken,
+  setConfirmedValue, confirmedData, markUnsaved
 } from './advisor-core.js';
 
 import {
-  addMessage, showTyping, hideTyping, showQuestion, processAIResponse
+  addMessage, showTyping, hideTyping, processAIResponse
 } from './advisor-chat.js';
 
 import {
@@ -39,98 +37,49 @@ export const journeySteps = {
 
 export function updateJourneyStep(stepNumber) {
   if (stepNumber < 1 || stepNumber > 4) return;
-
   currentJourneyStep = stepNumber;
-
   for (let i = 1; i <= 4; i++) {
     const stepEl = document.getElementById(`step-${i}`);
     if (!stepEl) continue;
-
     const stepIconEl = stepEl.querySelector('.step-icon');
     stepEl.classList.remove('active', 'completed');
-
     if (i < stepNumber) {
       stepEl.classList.add('completed');
-      stepIconEl.textContent = 'u2713';
+      if (stepIconEl) stepIconEl.textContent = '\u2713';
     } else if (i === stepNumber) {
       stepEl.classList.add('active');
-      // Icon handled by CSS
-    } else {
-      // Icon handled by CSS
     }
   }
 }
 
 export function advanceJourneyBasedOnData() {
-  if (extractedData.lead_data.ready_for_cpa || taxCalculations) {
-    updateJourneyStep(4);
-  } else if (extractedData.tax_profile.total_income && extractedData.tax_profile.filing_status) {
-    updateJourneyStep(3);
-  } else if (extractedData.tax_profile.filing_status) {
-    updateJourneyStep(2);
-  } else {
-    updateJourneyStep(1);
-  }
+  // Journey advancement is now driven by backend response metadata
+  // This is kept for backward compatibility with advisor-chat.js
 }
 
-// ======================== CONFIDENCE ========================
+// ======================== CONFIDENCE HELPERS ========================
 
 export function getConfidenceLevel() {
-  let score = 0;
-  let maxScore = 100;
-
-  if (extractedData.tax_profile?.filing_status) score += 15;
-  if (extractedData.tax_profile?.total_income) score += 20;
-  if (extractedData.tax_items?.mortgage_interest || extractedData.tax_items?.charitable || extractedData.tax_items?.medical) score += 15;
-  if (extractedData.tax_items?.retirement_contributions || extractedData.tax_items?.has_hsa) score += 15;
-  if (extractedData.contact?.name) score += 5;
-  if (extractedData.documents && extractedData.documents.length > 0) score += 20;
-  if (extractedData.tax_profile?.state) score += 10;
-
-  const percentage = Math.round((score / maxScore) * 100);
-
-  if (percentage >= 70) return { level: 'high', percentage, label: 'High confidence' };
-  if (percentage >= 40) return { level: 'medium', percentage, label: 'Moderate confidence' };
-  return { level: 'low', percentage, label: 'Limited data' };
+  return 'standard';
 }
 
 export function getConfidenceDisclaimer(includeIRS = false) {
-  const confidence = getConfidenceLevel();
-  let disclaimer = '';
-
-  if (confidence.level === 'high') {
-    disclaimer = `<div class="confidence-indicator confidence-high">
-      <span>u2705 ${confidence.label} (${confidence.percentage}% data)</span>
-      <span style="margin-left: auto; font-size: var(--text-2xs);">Verify with a tax professional before filing</span>
-    </div>`;
-  } else if (confidence.level === 'medium') {
-    disclaimer = `<div class="confidence-indicator confidence-medium">
-      <span>u26A0uFE0F ${confidence.label} (${confidence.percentage}% data)</span>
-      <span style="margin-left: auto; font-size: var(--text-2xs);">Provide more details for better accuracy</span>
-    </div>`;
-  } else {
-    disclaimer = `<div class="confidence-indicator confidence-low">
-      <span>u2139uFE0F ${confidence.label} (${confidence.percentage}% data)</span>
-      <span style="margin-left: auto; font-size: var(--text-2xs);">General guidance only - more info needed</span>
-    </div>`;
-  }
-
+  let disclaimer = '\n\n<div class="confidence-disclaimer">';
+  disclaimer += '<small>Estimates are for planning purposes only. Consult a tax professional for advice specific to your situation.</small>';
   if (includeIRS) {
-    disclaimer += `<div style="font-size: var(--text-2xs); color: var(--text-secondary); margin-top: var(--space-2);">
-      Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
-    </div>`;
+    disclaimer += '<br><small>IRS Circular 230: This communication was not intended to be used for avoiding penalties.</small>';
   }
-
+  disclaimer += '</div>';
   return disclaimer;
 }
 
 // ======================== QUESTIONING STATE ========================
+// Kept for backward compatibility — no longer drives anything
 
 export let questioningState = {
-  askedQuestions: new Set(),
-  currentPhase: 'basics',
   callCount: 0,
-  maxCalls: 50
+  maxCalls: 50,
+  askedQuestions: new Set(),
 };
 
 export function markQuestionAsked(questionId) {
@@ -142,585 +91,167 @@ export function wasQuestionAsked(questionId) {
 }
 
 export function resetQuestioningState() {
-  questioningState.askedQuestions.clear();
   questioningState.callCount = 0;
-  questioningState.currentPhase = 'basics';
+  questioningState.askedQuestions = new Set();
 }
 
-// ======================== LEAD SCORING ========================
-
 export function calculateLeadScore() {
-  let score = 0;
-
-  if (extractedData.contact.name) score += 10;
-  if (extractedData.contact.email) score += 20;
-  if (extractedData.contact.phone) score += 15;
-  if (extractedData.tax_profile.filing_status) score += 10;
-  if (extractedData.tax_profile.total_income) score += 15;
-  if (extractedData.documents.length > 0) score += 20;
-
-  if (extractedData.tax_profile.business_income && extractedData.tax_profile.business_income > 0) {
-    score += 25;
-    extractedData.lead_data.complexity = 'complex';
-  }
-  if (extractedData.tax_profile.rental_income && extractedData.tax_profile.rental_income > 0) {
-    score += 20;
-  }
-  if (extractedData.tax_profile.total_income && extractedData.tax_profile.total_income > 100000) {
-    score += 15;
-  }
-
-  extractedData.lead_data.score = Math.min(score, 100);
-  extractedData.lead_data.ready_for_cpa = score >= 60;
-
-  updateProgress(Math.min(score, 95));
-  advanceJourneyBasedOnData();
+  return 0; // Backend calculates this now
 }
 
 // ======================== HANDLE QUICK ACTION ========================
-// Note: FSM dispatch block REMOVED per Sprint 1 requirements
+// THE CORE FUNCTION — every user click comes through here.
+// Every action goes straight to the backend. No local state. No client-side questions.
 
 export async function handleQuickAction(value, displayLabel = null) {
-  DevLogger.log('====== handleQuickAction CALLED ======');
-  DevLogger.log('Quick action clicked:', value);
-  DevLogger.log('Display label:', displayLabel);
+  DevLogger.log('handleQuickAction:', value);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // ALL answers go to the backend. No client-side Phase 1 anymore.
-  // The backend handles everything: Phase 1, transition, Phase 2, etc.
-  // ═══════════════════════════════════════════════════════════════════
+  // Silent actions that don't show user message
+  const silentActions = new Set([
+    'start', 'continue', 'no_manual', 'start_estimate', 'continue_assessment',
+    'continue_normal',
+  ]);
 
-  // "Start my estimate" / "no_manual" — just trigger the first backend question
-  if (value === 'no_manual' || value === 'start_estimate' || value === 'continue_assessment') {
-    // Send a greeting to the backend to get the first question
-    await processAIResponse('start');
-    return;
-  }
-
-  // "Edit my information" — tell backend to allow edits
-  if (value === 'edit_profile') {
-    addMessage('user', 'Edit my information');
-    await processAIResponse('edit_profile');
-    return;
-  }
-
-  // Upload actions — trigger file picker
+  // Upload actions — trigger file picker, don't send to backend
   if (value === 'yes_upload' || value === 'upload_w2' || value === 'upload_1099') {
     const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-      fileInput.click();
+    if (fileInput) fileInput.click();
+    return;
+  }
+
+  // Report generation — special endpoint
+  if (value === 'generate_report' || value === 'download_report') {
+    addMessage('user', 'Generate Report');
+    addMessage('ai', 'Generating your comprehensive tax advisory report...');
+    try {
+      const resp = await secureFetch('/api/advisor/report?session_id=' + sessionId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, report_type: 'full_analysis' })
+      });
+      if (resp.ok) {
+        addMessage('ai', 'Your tax advisory report is ready.', [
+          { label: 'View Strategies', value: 'show_strategies' },
+          { label: 'Ask a question', value: 'ask_question' }
+        ]);
+      }
+    } catch (e) {
+      addMessage('ai', 'Report generation temporarily unavailable.');
     }
     return;
   }
 
-  // State selections from dropdown — send state code to backend
-  if (value.startsWith('state_')) {
-    const stateCode = value.replace('state_', '');
-    const displayText = displayLabel || stateCode;
-    addMessage('user', displayText);
-    await processAIResponse(stateCode);
-    return;
-  }
-
-  // "Run Full Analysis" — now just sends to backend (transition will fire)
-  if (value === 'run_full_analysis') {
-    addMessage('user', 'Run Full Analysis');
-    await processAIResponse(value);
-    return;
-  }
-
-  // (edit_profile and yes_upload handled above)
-
-  // Intercept "how does this work" / "what docs" actions
+  // "How does this work" — informational
   if (value === 'what_docs') {
     addMessage('user', 'How does this work?');
-    addMessage('ai', 'I\'ll ask you a few questions about your tax situation — filing status, income, state, and deductions. From that, I compute your actual federal and state tax using IRS formulas (not AI guessing). You can also upload W-2s or 1099s and I\'ll extract the data automatically.\n\nThe whole process takes about 2 minutes.', [
-      { label: 'Start my estimate', value: 'no_manual' },
+    addMessage('ai',
+      'I\'ll ask you questions about your tax situation — filing status, income, deductions, and more. ' +
+      'From that, I compute your actual federal and state tax using IRS formulas. ' +
+      'You can also upload W-2s or 1099s and I\'ll extract the data automatically.\n\n' +
+      'The whole process takes about 2-5 minutes.', [
+      { label: 'Start my estimate', value: 'start' },
       { label: 'Upload a document', value: 'yes_upload' }
     ]);
     return;
   }
 
-  // Intercept report generation actions — call report endpoint directly
-  if (value === 'generate_report' || value === 'download_report') {
-    addMessage('user', 'Generate Full Report');
-    addMessage('ai', 'Generating your comprehensive tax advisory report... This may take a moment.');
-    try {
-      const reportUrl = '/api/advisor/report?session_id=' + sessionId;
-      const resp = await secureFetch(reportUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, report_type: 'full_analysis' }) });
-      if (resp.ok) {
-        await resp.json();
-        const reportHtml = '<div class="tax-estimate-card" style="background:var(--slate-900);color:white;padding:1.25rem;border-radius:16px;margin-top:0.75rem;">' +
-          '<div style="font-size:0.75rem;color:var(--slate-400);text-transform:uppercase;letter-spacing:0.05em;">Advisory Report</div>' +
-          '<div style="font-size:1.25rem;font-weight:700;margin-top:0.25rem;">Your Tax Advisory Report is Ready</div>' +
-          '<div style="font-size:0.85rem;color:var(--slate-300);margin-top:0.5rem;">Comprehensive analysis with personalized strategies and IRS references.</div>' +
-          '</div>';
-        addMessage('ai', reportHtml, [
-          { label: 'View Report Details', value: 'show_strategies' },
-          { label: 'Ask a question', value: 'ask_question' }
-        ]);
-      } else {
-        addMessage('ai', 'Your report is being prepared. In the meantime, you can explore your strategies above or ask me any tax question.', [
-          { label: 'Show my strategies', value: 'show_strategies' },
-          { label: 'Ask a question', value: 'ask_question' }
-        ]);
-      }
-    } catch (e) {
-      addMessage('ai', 'Report generation is temporarily unavailable. Your tax analysis and strategies are displayed above.', [
-        { label: 'Review strategies', value: 'show_strategies' }
-      ]);
-    }
-    return;
+  // Show user's selection as a chat message (unless silent)
+  if (!silentActions.has(value)) {
+    const displayText = displayLabel
+      || value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    addMessage('user', displayText);
   }
 
-  // All action handling falls through to AI processing
-  var displayText = value.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
-  addMessage('user', displayLabel || displayText);
+  // Send to backend — this is it. Backend returns the next question,
+  // transition, summary, confirmation, calculation, or anything else.
   await processAIResponse(value);
 }
 
-// ======================== INTELLIGENT QUESTIONING ENGINE ========================
-// DEPRECATED: All questions now come from the backend via processAIResponse.
-// This function is kept as a fallback redirect to the backend.
+// ======================== DEPRECATED FUNCTIONS ========================
+// These existed for the old client-side Phase 1 flow.
+// Now they just route to the backend.
 
 export async function startIntelligentQuestioning() {
-  // Route everything to the backend — no more client-side Phase 1
-  DevLogger.log('startIntelligentQuestioning called — routing to backend');
   await processAIResponse('continue');
-  return;
-
-  // ═══ OLD CLIENT-SIDE FLOW BELOW (disabled) ═══
-  questioningState.callCount++;
-
-  if (questioningState.callCount > questioningState.maxCalls) {
-    DevLogger.warn('startIntelligentQuestioning exceeded max calls, skipping to summary');
-    await showPreliminarySummary();
-    return;
-  }
-
-  showTyping();
-
-  setTimeout(async () => {
-    hideTyping();
-
-    const profile = extractedData.tax_profile;
-
-    // PHASE 1: BASIC INFORMATION
-
-    // Filing Status
-    if (!profile.filing_status) {
-      markQuestionAsked('filing_status');
-      addMessage('ai', `Let's start with the basics. What's your filing status for 2025?`, [
-        { label: 'Single', value: 'filing_single', description: 'Unmarried or legally separated' },
-        { label: 'Married Filing Jointly', value: 'filing_married', description: 'Married and filing together with spouse' },
-        { label: 'Married Filing Separately', value: 'filing_mfs', description: 'Married but filing individual returns' },
-        { label: 'Head of Household', value: 'filing_hoh', description: 'Unmarried and paying 50%+ of household costs' },
-        { label: 'Qualifying Surviving Spouse', value: 'filing_qss', description: 'Spouse died in 2023 or 2024, with dependent child' }
-      ], { inputType: 'radio' });
-      return;
-    }
-
-    // State
-    if (!profile.state) {
-      markQuestionAsked('state');
-      addMessage('ai', `Which state do you live in? This affects your state tax calculation.`, [], {
-        inputType: 'dropdown',
-        placeholder: 'Select your state...',
-        groups: [
-          {
-            label: 'No Income Tax States',
-            options: [
-              { label: 'Alaska', value: 'state_AK' },
-              { label: 'Florida', value: 'state_FL' },
-              { label: 'Nevada', value: 'state_NV' },
-              { label: 'South Dakota', value: 'state_SD' },
-              { label: 'Tennessee', value: 'state_TN' },
-              { label: 'Texas', value: 'state_TX' },
-              { label: 'Washington', value: 'state_WA' },
-              { label: 'Wyoming', value: 'state_WY' }
-            ]
-          },
-          {
-            label: 'West',
-            options: [
-              { label: 'Arizona', value: 'state_AZ' },
-              { label: 'California', value: 'state_CA' },
-              { label: 'Colorado', value: 'state_CO' },
-              { label: 'Hawaii', value: 'state_HI' },
-              { label: 'Idaho', value: 'state_ID' },
-              { label: 'Montana', value: 'state_MT' },
-              { label: 'New Mexico', value: 'state_NM' },
-              { label: 'Oregon', value: 'state_OR' },
-              { label: 'Utah', value: 'state_UT' }
-            ]
-          },
-          {
-            label: 'Midwest',
-            options: [
-              { label: 'Illinois', value: 'state_IL' },
-              { label: 'Indiana', value: 'state_IN' },
-              { label: 'Iowa', value: 'state_IA' },
-              { label: 'Kansas', value: 'state_KS' },
-              { label: 'Michigan', value: 'state_MI' },
-              { label: 'Minnesota', value: 'state_MN' },
-              { label: 'Missouri', value: 'state_MO' },
-              { label: 'Nebraska', value: 'state_NE' },
-              { label: 'North Dakota', value: 'state_ND' },
-              { label: 'Ohio', value: 'state_OH' },
-              { label: 'Wisconsin', value: 'state_WI' }
-            ]
-          },
-          {
-            label: 'Northeast',
-            options: [
-              { label: 'Connecticut', value: 'state_CT' },
-              { label: 'Delaware', value: 'state_DE' },
-              { label: 'Maine', value: 'state_ME' },
-              { label: 'Maryland', value: 'state_MD' },
-              { label: 'Massachusetts', value: 'state_MA' },
-              { label: 'New Hampshire', value: 'state_NH' },
-              { label: 'New Jersey', value: 'state_NJ' },
-              { label: 'New York', value: 'state_NY' },
-              { label: 'Pennsylvania', value: 'state_PA' },
-              { label: 'Rhode Island', value: 'state_RI' },
-              { label: 'Vermont', value: 'state_VT' }
-            ]
-          },
-          {
-            label: 'South',
-            options: [
-              { label: 'Alabama', value: 'state_AL' },
-              { label: 'Arkansas', value: 'state_AR' },
-              { label: 'Georgia', value: 'state_GA' },
-              { label: 'Kentucky', value: 'state_KY' },
-              { label: 'Louisiana', value: 'state_LA' },
-              { label: 'Mississippi', value: 'state_MS' },
-              { label: 'North Carolina', value: 'state_NC' },
-              { label: 'Oklahoma', value: 'state_OK' },
-              { label: 'South Carolina', value: 'state_SC' },
-              { label: 'Virginia', value: 'state_VA' },
-              { label: 'West Virginia', value: 'state_WV' },
-              { label: 'Washington D.C.', value: 'state_DC' }
-            ]
-          }
-        ]
-      });
-      return;
-    }
-
-    // Income
-    if (!profile.total_income && !wasQuestionAsked('income')) {
-      markQuestionAsked('income');
-      addMessage('ai', `What's your approximate total annual income for 2025?`, [
-        { label: 'Under $30K', value: 'income_under30k' },
-        { label: '$30K - $50K', value: 'income_30_50k' },
-        { label: '$50K - $100K', value: 'income_50_100k' },
-        { label: '$100K - $200K', value: 'income_100_200k' },
-        { label: '$200K - $500K', value: 'income_200_500k' },
-        { label: '$500K+', value: 'income_500k_plus' },
-        { label: 'Enter exact amount', value: 'income_custom' }
-      ]);
-      return;
-    }
-
-    // Income source
-    if (!profile.income_source && !wasQuestionAsked('income_source')) {
-      markQuestionAsked('income_source');
-      addMessage('ai', `<strong>Where does most of your income come from?</strong><br><small>This helps identify relevant deductions and strategies.</small>`, [
-        { label: 'W-2 Employee', value: 'source_w2' },
-        { label: 'Self-Employed / 1099', value: 'source_self_employed' },
-        { label: 'Business Owner', value: 'source_business' },
-        { label: 'Investments / Retirement', value: 'source_investments' },
-        { label: 'Multiple sources', value: 'source_multiple' }
-      ]);
-      return;
-    }
-
-    // Dependents
-    if (profile.dependents == null && !wasQuestionAsked('dependents')) {
-      markQuestionAsked('dependents');
-      addMessage('ai', `<strong>Do you have any dependents?</strong><br><small>This affects credits like Child Tax Credit ($2,000/child).</small>`, [
-        { label: 'No dependents', value: 'deps_0' },
-        { label: '1 dependent', value: 'deps_1' },
-        { label: '2 dependents', value: 'deps_2' },
-        { label: '3+ dependents', value: 'deps_3plus' }
-      ]);
-      return;
-    }
-
-    // If we have the basics, try running the analysis
-    if (profile.filing_status && profile.total_income) {
-      // Skip to preliminary summary if we've asked enough
-      await showPreliminarySummary();
-      return;
-    }
-
-    // Fallback: ask for the most important missing piece
-    addMessage('ai', `I have most of your information. What else can you tell me about your tax situation?`, [
-      { label: 'Run my analysis \u2192', value: 'run_full_analysis', primary: true },
-      { label: 'Add deductions', value: 'explore_deductions' },
-      { label: 'Upload documents', value: 'yes_upload' }
-    ]);
-  }, 800);
 }
-
-// ======================== PRELIMINARY SUMMARY ========================
 
 export async function showPreliminarySummary() {
-  questioningState.callCount = 0;
-
-  const profile = extractedData.tax_profile;
-  const items = extractedData.tax_items;
-
-  const filingLabel = {
-    'Single': 'Single',
-    'Married Filing Jointly': 'Married Filing Jointly',
-    'Head of Household': 'Head of Household',
-    'Married Filing Separately': 'Married Filing Separately',
-    'Qualifying Surviving Spouse': 'Qualifying Surviving Spouse'
-  }[profile.filing_status] || profile.filing_status;
-
-  const stateDisplay = profile.state_name || profile.state || 'Not specified';
-  const isVeryHighEarner = (profile.total_income || 0) >= 500000;
-  const complexityIndicator = extractedData.lead_data.complexity === 'complex' ? 'Complex' :
-                               extractedData.lead_data.complexity === 'moderate' ? 'Moderate' : 'Standard';
-
-  let additionalDetails = '';
-
-  if (profile.is_self_employed || profile.income_source === 'Business Owner') {
-    additionalDetails += `
-      <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #e2e8f0;">
-        <div style="font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: var(--space-2-5);">Business Details</div>
-        ${profile.business_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5);">
-          <span style="color: #4a5568;">Business Type:</span>
-          <strong>${profile.business_type}</strong>
-        </div>` : ''}
-      </div>
-    `;
-  }
-
-  const taxItemsList = [];
-  if (items.mortgage_interest) taxItemsList.push(`Mortgage Interest: $${items.mortgage_interest.toLocaleString()}`);
-  if (items.charitable) taxItemsList.push(`Charitable Donations: $${items.charitable.toLocaleString()}`);
-  if (items.medical) taxItemsList.push(`Medical Expenses: $${items.medical.toLocaleString()}`);
-
-  if (taxItemsList.length > 0) {
-    additionalDetails += `
-      <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #e2e8f0;">
-        <div style="font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: var(--space-2-5);">Deductions & Credits</div>
-        ${taxItemsList.map(item => `<div style="color: #4a5568; font-size: var(--text-xs-plus); margin-bottom: var(--space-1);">\u2022 ${item}</div>`).join('')}
-      </div>
-    `;
-  }
-
-  addMessage('ai', `
-    <div style="margin-bottom: var(--space-4);">
-      <strong style="font-size: var(--text-lg); color: var(--color-primary-500);">Your Tax Profile Summary</strong>
-      <div style="margin-top: var(--space-2); display: inline-block; background: var(--color-accent-50); color: var(--color-accent-500); padding: var(--space-1) var(--space-3); border-radius: var(--radius-xl); font-size: var(--text-xs); font-weight: var(--font-semibold);">
-        ${complexityIndicator} Tax Situation
-      </div>
-    </div>
-
-    <div style="background: #f7fafc; border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-4);">
-      <div style="display: grid; gap: var(--space-2-5);">
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #4a5568;">Filing Status:</span>
-          <strong>${filingLabel}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #4a5568;">State:</span>
-          <strong>${stateDisplay}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #4a5568;">Total Income:</span>
-          <strong style="${isVeryHighEarner ? 'color: #276749;' : ''}">$${(profile.total_income || 0).toLocaleString()}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #4a5568;">Income Source:</span>
-          <strong>${profile.income_source || 'Not specified'}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #4a5568;">Dependents:</span>
-          <strong>${profile.dependents || 0}</strong>
-        </div>
-      </div>
-
-      ${additionalDetails}
-    </div>
-
-    <div style="font-size: var(--text-sm); color: #4a5568; line-height: 1.6;">
-      Ready to run your personalized tax analysis and identify savings opportunities.
-    </div>
-  `, [
-    { label: 'Run Full Analysis \u2192', value: 'run_full_analysis', primary: true },
-    { label: 'Edit my information', value: 'edit_profile' }
-  ]);
+  await processAIResponse('continue');
 }
 
-// ======================== DEDUCTION HELPERS ========================
-
 export async function analyzeDeductions() {
-  showTyping();
-  setTimeout(() => {
-    hideTyping();
-    addMessage('ai', `Which deductions apply to you?`, [
-      { label: 'Mortgage', value: 'has_mortgage' },
-      { label: 'Charity', value: 'has_charity' },
-      { label: 'Medical', value: 'has_medical' },
-      { label: 'Business', value: 'has_business' },
-      { label: 'Retirement', value: 'has_retirement' },
-      { label: 'None / Skip \u2192', value: 'deductions_done' }
-    ]);
-  }, 800);
+  await processAIResponse('continue');
 }
 
 export function askNextDeductionOrCredits() {
-  const deductions = extractedData.deductions || [];
-
-  if (deductions.length > 0) {
-    addMessage('ai', `Any other deductions?`, [
-      { label: 'Mortgage', value: 'has_mortgage' },
-      { label: 'Charity', value: 'has_charity' },
-      { label: 'Medical', value: 'has_medical' },
-      { label: 'Done, continue \u2192', value: 'deductions_done' }
-    ]);
-  } else {
-    addMessage('ai', `Any tax credits you might qualify for?`, [
-      { label: 'Child Tax Credit', value: 'credit_child' },
-      { label: 'Education Credit', value: 'credit_education' },
-      { label: 'Skip to report \u2192', value: 'generate_report' }
-    ]);
-  }
+  // No-op — backend handles deduction flow
 }
-
-// ======================== CPA CONNECTION ========================
 
 export async function requestCPAConnection() {
-  showTyping();
-  await sendLeadToCPA();
-
-  setTimeout(() => {
-    hideTyping();
-    const savings = Math.round(extractedData.lead_data.estimated_savings || 0).toLocaleString();
-
-    addMessage('ai', `I've notified our CPA team about your <strong>$${savings}</strong> savings opportunity. They'll reach out within 24 hours.<br><br>What would you like to do next?`, [
-      { label: 'Schedule a call', value: 'schedule_time' },
-      { label: 'Just email me', value: 'email_only' },
-      { label: 'Get my report first', value: 'generate_report' }
-    ]);
-  }, 1500);
+  addMessage('ai', 'To connect with a CPA, please complete your tax profile first. They\'ll receive your full analysis.', [
+    { label: 'Continue Profile', value: 'continue' }
+  ]);
 }
-
-// ======================== SUMMARY ========================
 
 export function generateSummary() {
-  let summary = '';
-
-  if (extractedData.filing_status) {
-    summary += `<strong>Filing Status:</strong> ${extractedData.filing_status}<br>`;
-  }
-  if (extractedData.income_range) {
-    summary += `<strong>Income Range:</strong> ${extractedData.income_range}<br>`;
-  }
-  if (extractedData.focus_area) {
-    summary += `<strong>Focus Area:</strong> ${extractedData.focus_area}<br>`;
-  }
-  if (extractedData.deductions && extractedData.deductions.length > 0) {
-    summary += `<strong>Deductions:</strong> ${extractedData.deductions.join(', ')}<br>`;
-  }
-  if (extractedData.credits && extractedData.credits.length > 0) {
-    summary += `<strong>Credits:</strong> ${extractedData.credits.join(', ')}<br>`;
-  }
-
-  return summary || 'Your comprehensive tax profile';
+  // No-op — backend generates summary
 }
 
-// ======================== LEAD CAPTURE HELPERS ========================
+// ======================== LEAD CAPTURE ========================
+// These are still needed for the CPA connection flow
 
 export async function captureName() {
-  const nameInput = document.getElementById('nameInput');
-  const name = nameInput ? nameInput.value.trim() : '';
-
-  if (!name || name.length < 2) {
-    showToast('Please enter your name (at least 2 characters)', 'error');
-    if (nameInput) nameInput.focus();
+  const input = document.getElementById('userInput');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) {
+    showToast('Please enter your name', 'warning');
     return;
   }
-
-  const sanitizedName = name.replace(/[<>"'&]/g, '').substring(0, 100);
-
-  extractedData.contact.name = sanitizedName;
-  extractedData.lead_data.score += 15;
+  extractedData.lead_data = extractedData.lead_data || {};
+  extractedData.lead_data.name = name;
   addMessage('user', name);
+  input.value = '';
+  markUnsaved();
 
-  showTyping();
-  setTimeout(() => {
-    hideTyping();
-    addMessage('ai', `Thank you, ${name}! It's a pleasure to work with you.<br><br>Now, to provide you with the most accurate tax analysis and connect you with the right CPA specialist, <strong>may I have your email address?</strong>`, [
-      { label: 'Enter email', value: 'enter_email' },
-      { label: 'Skip for now', value: 'skip_email' }
-    ]);
-  }, 1000);
+  addMessage('ai', `Thanks, ${name}! What's your email address so we can send your report?`, []);
 }
 
 export async function captureEmail() {
-  const emailInput = document.getElementById('emailInput');
-  const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRegex.test(email)) {
-    showToast('Please enter a valid email address (e.g., name@example.com)', 'error');
-    if (emailInput) emailInput.focus();
+  const input = document.getElementById('userInput');
+  if (!input) return;
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email', 'warning');
     return;
   }
-
-  const sanitizedEmail = email.substring(0, 254);
-
-  extractedData.contact.email = sanitizedEmail;
-  extractedData.lead_data.score += 20;
-  setLeadQualified(true);
+  extractedData.lead_data = extractedData.lead_data || {};
+  extractedData.lead_data.email = email;
   addMessage('user', email);
+  input.value = '';
+  markUnsaved();
 
-  showTyping();
-  setTimeout(() => {
-    hideTyping();
-    const firstName = extractedData.contact.name ? extractedData.contact.name.split(' ')[0] : 'there';
-    addMessage('ai', `Perfect, ${firstName}! I've saved your email.<br><br><strong>You're now qualified for our premium tax advisory service!</strong><br><br><strong>How would you like to provide your tax information?</strong>`, [
-      { label: 'Upload tax documents (fastest)', value: 'upload_docs_qualified' },
-      { label: 'Answer questions conversationally', value: 'conversational_qualified' },
-      { label: 'Hybrid: docs + questions', value: 'hybrid_qualified' }
+  try {
+    await sendLeadToCPA(extractedData.lead_data);
+    addMessage('ai', 'Your information has been sent to a CPA who will review your situation and reach out within 24 hours.', [
+      { label: 'Continue exploring', value: 'continue' }
     ]);
-  }, 1500);
+  } catch (e) {
+    addMessage('ai', 'There was an issue sending your info. Please try again.', [
+      { label: 'Try again', value: 'request_cpa' }
+    ]);
+  }
 }
 
 export async function captureIncome() {
-  const incomeInput = document.getElementById('incomeInput');
-  const rawValue = incomeInput ? incomeInput.value.replace(/[^0-9]/g, '') : '0';
-  const income = parseInt(rawValue, 10);
+  const input = document.getElementById('userInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
 
-  if (!income || income <= 0) {
-    showToast('Please enter a valid income amount', 'error');
-    if (incomeInput) incomeInput.focus();
-    return;
-  }
+  addMessage('user', text);
+  input.value = '';
 
-  if (income > 50000000) {
-    showToast('Please verify this amount - it seems unusually high', 'warning');
-  }
-
-  setConfirmedValues({
-    'tax_profile.total_income': income,
-    'tax_profile.w2_income': income
-  });
-  extractedData.lead_data.score += 15;
-  addMessage('user', `$${income.toLocaleString()}`);
-  updateStats({ total_income: income });
-  calculateLeadScore();
-
-  startIntelligentQuestioning();
+  // Send to backend for parsing
+  await processAIResponse(text);
 }
-
-// Expose lead capture helpers globally for inline HTML onclick
-window.captureName = captureName;
-window.captureEmail = captureEmail;
-window.captureIncome = captureIncome;
