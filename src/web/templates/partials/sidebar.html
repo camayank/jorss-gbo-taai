@@ -139,6 +139,12 @@
       <span class="sidebar-brand-text">{{ brand_name | default('Tax Platform') }}</span>
     </a>
 
+    {# Notification bell #}
+    <button onclick="toggleNotifications()" class="sidebar-notif-btn" aria-label="Notifications" style="background:none; border:none; cursor:pointer; position:relative; padding:6px; margin-left:auto; color:var(--sidebar-text, #6b7280);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span id="notif-badge" style="display:none; position:absolute; top:0; right:0; background:#ef4444; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; line-height:16px; text-align:center;">0</span>
+    </button>
+
     {# Desktop collapse toggle #}
     <button class="sidebar-toggle md:block hidden"
             @click="$store.sidebar.toggleCollapsed()"
@@ -260,3 +266,21 @@
     </div>
   </div>
 </aside>
+
+<script>
+function toggleNotifications() { /* TODO: open notification drawer */ }
+(function() {
+    async function loadNotifCount() {
+        try {
+            var resp = await fetch('/api/notifications/unread-count', { credentials: 'same-origin' });
+            if (resp.ok) {
+                var data = await resp.json();
+                var badge = document.getElementById('notif-badge');
+                if (badge && data.count > 0) { badge.textContent = data.count; badge.style.display = 'flex'; }
+                else if (badge) { badge.style.display = 'none'; }
+            }
+        } catch (e) { /* silent */ }
+    }
+    if (document.getElementById('notif-badge')) { loadNotifCount(); setInterval(loadNotifCount, 60000); }
+})();
+</script>

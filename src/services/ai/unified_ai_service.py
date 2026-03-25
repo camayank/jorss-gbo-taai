@@ -47,6 +47,12 @@ from config.ai_providers import (
 )
 from services.ai.rate_limiter import get_ai_rate_limiter, RateLimitExceededError
 
+try:
+    from advisory.pii_scrubber import scrub_for_ai
+    _PII_SCRUBBER_AVAILABLE = True
+except ImportError:
+    _PII_SCRUBBER_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
@@ -787,6 +793,12 @@ class UnifiedAIService:
             AIResponse with completion
         """
         provider, model = get_model_for_capability(capability, preferred_provider)
+
+        # Scrub PII from prompt context before sending to external AI provider
+        if _PII_SCRUBBER_AVAILABLE and kwargs.get("context"):
+            ctx = kwargs.get("context")
+            if isinstance(ctx, dict):
+                kwargs["context"] = scrub_for_ai(ctx)
 
         messages = []
         if system_prompt:

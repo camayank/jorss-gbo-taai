@@ -130,6 +130,11 @@ class CalculationBreakdown:
     form_5329_rmd_penalty: float = 0.0
     form_5329_total_additional_tax: float = 0.0
 
+    # NOL Carryforward (IRC Section 172)
+    nol_carryforward_applied: float = 0.0  # NOL deduction applied this year
+    nol_carryforward_remaining: float = 0.0  # NOL remaining for future years
+    nol_generated_this_year: float = 0.0  # New NOL if taxable income < 0
+
     # Form 4797 Sales of Business Property
     form_4797_ordinary_income: float = 0.0
     form_4797_section_1231_gain: float = 0.0
@@ -522,6 +527,17 @@ class FederalTaxEngine:
 
         # Adjust taxable income for QBI deduction
         breakdown.taxable_income = max(0, breakdown.taxable_income - breakdown.qbi_deduction)
+
+        # Apply NOL carryforward (IRC Section 172)
+        # Post-TCJA: carryforward only, limited to 80% of taxable income
+        nol_available = getattr(tax_return, 'nol_carryforward', 0) or 0
+        if nol_available > 0 and breakdown.taxable_income > 0:
+            # 80% limitation per IRC 172(a)(2) (post-2020 NOLs)
+            max_nol_deduction = breakdown.taxable_income * 0.80
+            nol_applied = min(nol_available, max_nol_deduction)
+            breakdown.taxable_income = max(0, breakdown.taxable_income - nol_applied)
+            breakdown.nol_carryforward_applied = nol_applied
+            breakdown.nol_carryforward_remaining = nol_available - nol_applied
 
         # Split income into ordinary and preferential
         breakdown.ordinary_income, breakdown.preferential_income = self._split_taxable_income(tax_return)

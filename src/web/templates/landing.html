@@ -61,6 +61,13 @@
 
         .landing-nav-logo img { height: 36px; }
 
+        .landing-mobile-toggle { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: inherit; }
+        @media (max-width: 768px) {
+            .landing-mobile-toggle { display: block; }
+            .landing-nav-links { display: none !important; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-primary, #fff); padding: 16px; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; }
+            .landing-nav-links.open { display: flex !important; }
+        }
+
         .landing-nav-links {
             display: flex;
             align-items: center;
@@ -806,6 +813,9 @@
                 {{ branding.company_name }}
                 {% endif %}
             </a>
+            <button class="landing-mobile-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.setAttribute('aria-expanded', this.nextElementSibling.classList.contains('open'))" aria-label="Toggle navigation" aria-expanded="false">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
             <div class="landing-nav-links">
                 <a href="#how-it-works" class="landing-nav-link">How It Works</a>
                 <a href="#what-we-analyze" class="landing-nav-link">What We Analyze</a>

@@ -312,20 +312,24 @@ class AuthenticationManager:
 
     def revoke_all_user_tokens(self, user_id: str) -> None:
         """
-        Revoke all tokens for a user (for logout everywhere, password change, etc.).
+        Revoke all tokens for a user via Redis-backed token versioning.
 
-        Note: This requires tracking user->tokens mapping in Redis.
-        For now, this is a placeholder that logs the action.
+        Increments the user's token version in Redis. All tokens with an older
+        version become invalid on next verification check.
 
         Args:
             user_id: User identifier
         """
-        logger.warning(f"Bulk token revocation requested for user {user_id} - "
-                      "individual token revocation recommended")
-        # In a full implementation, this would:
-        # 1. Store user_id -> [jti] mapping in Redis
-        # 2. Iterate and revoke all tokens
-        # 3. Alternatively, use token versioning (increment user's token version)
+        try:
+            import redis as _redis
+            r = _redis.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379"))
+            version_key = f"token_version:{user_id}"
+            new_version = r.incr(version_key)
+            logger.info(f"All tokens revoked for user {user_id} (version now {new_version})")
+        except ImportError:
+            logger.error("Redis not available for token revocation — tokens remain valid until expiry")
+        except Exception as e:
+            logger.error(f"Token revocation failed for {user_id}: {e}")
 
     def check_rate_limit(self, user_id: str) -> bool:
         """

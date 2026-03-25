@@ -55,6 +55,26 @@ IRS_REFERENCE_PATTERNS = [
     r"Schedule\s+[A-Z]",
 ]
 
+# Content validation — catch hallucinated references
+_VALID_IRC_RANGE = range(1, 9835)  # IRC sections 1-9834 as of 2025
+_VALID_PUBLICATIONS = {
+    1, 15, 17, 334, 463, 501, 502, 503, 504, 505, 523, 525, 527, 529,
+    535, 536, 544, 550, 551, 554, 559, 560, 570, 575, 587, 590, 596,
+    915, 925, 926, 929, 936, 946, 970, 972,
+}
+
+
+def validate_irs_reference_content(ref: str) -> bool:
+    """Validate IRS reference is plausible (not just format, but content)."""
+    import re
+    irc_match = re.search(r'IRC\s+Section\s+(\d+)', ref)
+    if irc_match and int(irc_match.group(1)) not in _VALID_IRC_RANGE:
+        return False
+    pub_match = re.search(r'Publication\s+(\d+)', ref)
+    if pub_match and int(pub_match.group(1)) not in _VALID_PUBLICATIONS:
+        return False
+    return True
+
 
 # =============================================================================
 # REQUIRED FIELDS DEFINITION
@@ -654,4 +674,13 @@ def validate_before_surface(
         List of valid recommendations only
     """
     validator = get_validator()
-    return validator.filter_valid(recommendations, recommendation_type)
+    valid = validator.filter_valid(recommendations, recommendation_type)
+    # Additional content validation: reject hallucinated IRS references
+    result = []
+    for rec in valid:
+        ref = getattr(rec, 'irs_reference', None) or ''
+        if ref and not validate_irs_reference_content(ref):
+            logger.warning(f"Rejected recommendation with invalid IRS reference: {ref}")
+            continue
+        result.append(rec)
+    return result

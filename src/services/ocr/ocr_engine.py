@@ -371,10 +371,40 @@ class AWSTextractEngine(BaseOCREngine):
             return self._create_fallback_result(f"Textract error: {str(e)}")
 
     def process_pdf(self, pdf_path: str) -> OCRResult:
-        """Process PDF with AWS Textract (async operation for multi-page)."""
-        # For simplicity, use synchronous operation with first page
-        # Production would use start_document_text_detection for async
-        return self.process_image(pdf_path)
+        """Process multi-page PDF with AWS Textract via page-by-page conversion."""
+        try:
+            from pdf2image import convert_from_path
+        except ImportError:
+            logger.warning("pdf2image not installed — processing first page only")
+            return self.process_image(pdf_path)
+
+        try:
+            pages = convert_from_path(pdf_path, dpi=300)
+        except Exception as e:
+            logger.error(f"PDF page conversion failed: {e}")
+            return self._create_fallback_result(f"PDF conversion error: {e}")
+
+        all_text = []
+        total_confidence = 0.0
+        all_words = []
+
+        import tempfile
+        for i, page_img in enumerate(pages):
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=True) as tmp:
+                page_img.save(tmp.name, 'PNG')
+                page_result = self.process_image(tmp.name)
+                all_text.append(page_result.text)
+                total_confidence += page_result.confidence
+                all_words.extend(page_result.words)
+
+        combined_text = "\n--- PAGE BREAK ---\n".join(all_text)
+        avg_confidence = total_confidence / len(pages) if pages else 0
+
+        return OCRResult(
+            text=combined_text,
+            confidence=avg_confidence,
+            words=all_words,
+        )
 
     def process_bytes(self, data: bytes, mime_type: str) -> OCRResult:
         """Process from bytes."""
