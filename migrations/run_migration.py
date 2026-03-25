@@ -95,7 +95,9 @@ def apply_migration(conn, migration_file):
         return True
 
     except sqlite3.Error as e:
-        # Record failed migration
+        # Rollback partial changes before recording failure
+        conn.rollback()
+
         error_msg = str(e)
         print(f"\n❌ Migration failed: {error_msg}")
 
@@ -110,7 +112,7 @@ def apply_migration(conn, migration_file):
 
 def get_pending_migrations(conn):
     """Get list of pending migration files."""
-    all_migrations = sorted([f for f in os.listdir(MIGRATIONS_DIR) if f.endswith('.sql')])
+    all_migrations = sorted([f for f in os.listdir(MIGRATIONS_DIR) if f.endswith('.py') and f != '__init__.py'])
 
     pending = []
     for migration in all_migrations:

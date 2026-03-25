@@ -387,12 +387,12 @@ export const SmartNudgeSystem = {
     nudge.id = 'smartNudge';
     nudge.innerHTML = `
       <button class="smart-nudge-close" onclick="SmartNudgeSystem.dismissNudge()">&times;</button>
-      <div class="smart-nudge-icon">${config.icon}</div>
-      <div class="smart-nudge-title">${config.title}</div>
-      <div class="smart-nudge-message">${config.message}</div>
+      <div class="smart-nudge-icon">${escapeHtml(config.icon)}</div>
+      <div class="smart-nudge-title">${escapeHtml(config.title)}</div>
+      <div class="smart-nudge-message">${escapeHtml(config.message)}</div>
       <div class="smart-nudge-actions">
-        <button class="smart-nudge-btn primary" onclick="SmartNudgeSystem.handleNudgeAction('${config.primaryAction.value}')">${config.primaryAction.label}</button>
-        <button class="smart-nudge-btn secondary" onclick="SmartNudgeSystem.handleNudgeAction('${config.secondaryAction.value}')">${config.secondaryAction.label}</button>
+        <button class="smart-nudge-btn primary" onclick="SmartNudgeSystem.handleNudgeAction('${escapeHtml(config.primaryAction.value)}')">${escapeHtml(config.primaryAction.label)}</button>
+        <button class="smart-nudge-btn secondary" onclick="SmartNudgeSystem.handleNudgeAction('${escapeHtml(config.secondaryAction.value)}')">${escapeHtml(config.secondaryAction.label)}</button>
       </div>
     `;
 
@@ -1087,7 +1087,7 @@ export function showSuccessBanner(message) {
 
   const successDiv = document.createElement('div');
   successDiv.className = 'success-banner';
-  successDiv.innerHTML = `<span>\u2705</span> <span>${message}</span>`;
+  successDiv.innerHTML = `<span>\u2705</span> <span>${escapeHtml(message)}</span>`;
 
   messages.appendChild(successDiv);
   messages.scrollTop = messages.scrollHeight;
@@ -1146,9 +1146,9 @@ export function updateProgress(percentage, missingFields, completionHint) {
   }
 
   if (missingFields && missingFields.length > 0 && percentage < 100) {
-    missingEl.innerHTML = '<strong>Still needed:</strong> ' + missingFields.join(' \u00b7 ');
+    missingEl.innerHTML = '<strong>Still needed:</strong> ' + missingFields.map(f => escapeHtml(f)).join(' \u00b7 ');
     if (completionHint) {
-      missingEl.innerHTML += '<br><em style="color:var(--accent-gold,#d4a843);">' + completionHint + '</em>';
+      missingEl.innerHTML += '<br><em style="color:var(--accent-gold,#d4a843);">' + escapeHtml(completionHint) + '</em>';
     }
     missingEl.style.display = 'block';
   } else {
@@ -1256,11 +1256,11 @@ export function updateInsights(insights) {
   container.innerHTML = insights.map(insight => `
     <div class="insight-card">
       <div class="insight-header">
-        <span>${insight.icon}</span>
-        <span>${insight.title}</span>
+        <span>${escapeHtml(insight.icon)}</span>
+        <span>${escapeHtml(insight.title)}</span>
       </div>
       <div style="font-size: var(--text-xs-plus); color: var(--text-secondary);">
-        ${insight.text}
+        ${escapeHtml(insight.text)}
       </div>
     </div>
   `).join('');
@@ -1278,8 +1278,8 @@ export function updateStats(summary) {
   if (stats.length > 0) {
     grid.innerHTML = stats.map(stat => `
       <div class="stat-item">
-        <span class="stat-label">${stat.label}</span>
-        <span class="stat-value">${stat.value}</span>
+        <span class="stat-label">${escapeHtml(stat.label)}</span>
+        <span class="stat-value">${escapeHtml(stat.value)}</span>
       </div>
     `).join('');
   }
@@ -1512,10 +1512,10 @@ export function createQuickEditPanel() {
 
   items.forEach(item => {
     html += `
-      <div class="quick-edit-item" onclick="editField('${item.field}')">
-        <span class="quick-edit-label">${item.label}</span>
+      <div class="quick-edit-item" onclick="editField('${escapeHtml(item.field)}')">
+        <span class="quick-edit-label">${escapeHtml(item.label)}</span>
         <span class="quick-edit-value">
-          ${item.value}
+          ${escapeHtml(String(item.value))}
           <span class="edit-icon">\u270F\uFE0F</span>
         </span>
       </div>

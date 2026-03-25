@@ -224,8 +224,8 @@ def decode_token(token: str, verify_type: Optional[TokenType] = None) -> TokenPa
             role=payload.get("role"),
             permissions=payload.get("permissions"),
             is_platform_admin=payload.get("is_platform_admin", False),
-            exp=datetime.fromtimestamp(payload.get("exp")) if payload.get("exp") else None,
-            iat=datetime.fromtimestamp(payload.get("iat")) if payload.get("iat") else None,
+            exp=datetime.fromtimestamp(payload.get("exp"), tz=timezone.utc) if payload.get("exp") else None,
+            iat=datetime.fromtimestamp(payload.get("iat"), tz=timezone.utc) if payload.get("iat") else None,
             jti=payload.get("jti"),
         )
 
@@ -268,7 +268,7 @@ def get_token_expiry(token: str) -> Optional[datetime]:
         # Decode without verification to read expiry only (not for auth decisions)
         payload = jwt.decode(token, options={"verify_signature": False}, algorithms=[JWT_ALGORITHM])
         exp = payload.get("exp")
-        return datetime.fromtimestamp(exp) if exp else None
+        return datetime.fromtimestamp(exp, tz=timezone.utc) if exp else None
     except (jwt.DecodeError, jwt.InvalidTokenError, ValueError, TypeError):
         return None
 

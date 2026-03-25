@@ -136,11 +136,21 @@ class EventBus:
         event_type = type(event)
         handlers = self._handlers.get(event_type, []) + self._global_handlers
 
+        failed_handlers = 0
         for handler in handlers:
             try:
                 handler(event)
             except Exception as e:
-                logger.error(f"Error in event handler: {e}", exc_info=True)
+                failed_handlers += 1
+                logger.error(
+                    f"Event handler {getattr(handler, '__name__', handler)} failed for "
+                    f"{event.event_type.value}: {e}",
+                    exc_info=True,
+                )
+        if failed_handlers:
+            logger.error(
+                f"{failed_handlers}/{len(handlers)} handler(s) failed for event {event.event_type.value}"
+            )
 
     async def publish_async(self, event: DomainEvent) -> None:
         """
@@ -224,7 +234,8 @@ class SQLiteEventStore(IEventStore):
                     metadata JSON,
                     version INTEGER NOT NULL,
                     occurred_at TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(stream_id, version)
                 )
             """)
             cursor.execute(
@@ -239,23 +250,8 @@ class SQLiteEventStore(IEventStore):
             conn.commit()
 
     def _serialize_event(self, event: DomainEvent) -> Dict[str, Any]:
-        """Serialize event to storable format."""
-        # Convert to dict, handling special types
-        data = event.model_dump()
-
-        # Convert UUIDs to strings
-        for key, value in data.items():
-            if isinstance(value, UUID):
-                data[key] = str(value)
-            elif isinstance(value, datetime):
-                data[key] = value.isoformat()
-            elif isinstance(value, list):
-                data[key] = [
-                    str(v) if isinstance(v, UUID) else v
-                    for v in value
-                ]
-
-        return data
+        """Serialize event to storable format, handling nested types recursively."""
+        return event.model_dump(mode='json')
 
     def _deserialize_event(self, row: tuple) -> DomainEvent:
         """Deserialize event from stored format."""
@@ -299,15 +295,25 @@ class SQLiteEventStore(IEventStore):
         """
         Append an event to a stream.
 
+        Uses BEGIN IMMEDIATE for atomic version read + insert within a single connection.
+
         Args:
             stream_id: Stream identifier
             event: Event to append
         """
-        version = await self.get_stream_version(stream_id) + 1
         event_data = self._serialize_event(event)
 
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             cursor = conn.cursor()
+            cursor.execute("BEGIN IMMEDIATE")
+            cursor.execute(
+                "SELECT MAX(version) FROM events WHERE stream_id = ?",
+                (stream_id,)
+            )
+            result = cursor.fetchone()
+            version = (result[0] if result[0] is not None else 0) + 1
+
             cursor.execute("""
                 INSERT INTO events (
                     event_id, stream_id, stream_type, event_type,
@@ -324,6 +330,11 @@ class SQLiteEventStore(IEventStore):
                 event.occurred_at.isoformat()
             ))
             conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
         logger.debug(f"Appended event {event.event_type.value} to stream {stream_id}")
 

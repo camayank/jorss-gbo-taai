@@ -302,18 +302,26 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             logger.warning(f"Redis unavailable ({e}), using in-memory rate limiter")
 
+    # Trusted reverse proxy IPs — only trust X-Forwarded-For from these
+    _TRUSTED_PROXIES = set(
+        os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",")
+    )
+
     def _default_get_identifier(self, request: Request) -> str:
         """Get client identifier from request."""
-        # Check for forwarded headers (behind proxy)
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
+        client_ip = request.client.host if request.client else "unknown"
 
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
+        # Only trust forwarded headers if request comes from a trusted proxy
+        if client_ip in self._TRUSTED_PROXIES:
+            forwarded = request.headers.get("X-Forwarded-For")
+            if forwarded:
+                return forwarded.split(",")[0].strip()
 
-        return request.client.host if request.client else "unknown"
+            real_ip = request.headers.get("X-Real-IP")
+            if real_ip:
+                return real_ip
+
+        return client_ip
 
     def _is_exempt(self, path: str) -> bool:
         """Check if path is exempt from rate limiting."""

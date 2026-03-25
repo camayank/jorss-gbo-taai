@@ -419,7 +419,7 @@ async def _update_login_success(session: AsyncSession, user: dict, ip_address: s
 
     if user.get("user_type") == "platform_admin":
         query = text("""
-            UPDATE platform_admins SET last_login_at = :now
+            UPDATE platform_admins SET last_login_at = :now, failed_login_attempts = 0, locked_until = NULL
             WHERE admin_id = :user_id
         """)
     else:
@@ -792,7 +792,7 @@ async def setup_mfa(
     mfa_secret = base64.b32encode(secret_bytes).decode('utf-8').rstrip('=')
 
     # Generate backup codes
-    backup_codes = [secrets.token_hex(4).upper() for _ in range(10)]
+    backup_codes = [secrets.token_hex(8).upper() for _ in range(10)]
 
     # Store secret temporarily (user must verify before it's activated)
     _store_token(f"mfa_setup_{user.user_id}", {

@@ -375,6 +375,12 @@ def calculate_progressive_tax(
 
         prev_threshold = threshold_d
 
+    # Tax any income above the last bracket's threshold at the last bracket's rate
+    if brackets and income_d > prev_threshold:
+        last_rate = to_decimal(brackets[-1][1])
+        excess = income_d - prev_threshold
+        total_tax += multiply(excess, last_rate)
+
     return money(total_tax)
 
 
@@ -495,11 +501,11 @@ def calculate_self_employment_tax(net_self_employment: Numeric) -> dict:
     se_deduction = money(divide(total_se_tax, 2))
 
     return {
-        "net_self_employment": to_float(net_se),
-        "se_earnings": to_float(se_earnings),
-        "ss_taxable": to_float(ss_taxable),
-        "ss_tax": to_float(ss_tax),
-        "medicare_tax": to_float(medicare_tax),
-        "total_se_tax": to_float(total_se_tax),
-        "se_deduction": to_float(se_deduction),
+        "net_self_employment": money(net_se),
+        "se_earnings": money(se_earnings),
+        "ss_taxable": money(ss_taxable),
+        "ss_tax": money(ss_tax),
+        "medicare_tax": money(medicare_tax),
+        "total_se_tax": money(total_se_tax),
+        "se_deduction": money(se_deduction),
     }

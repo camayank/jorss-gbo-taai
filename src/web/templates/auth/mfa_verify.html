@@ -827,7 +827,8 @@
 
                             // Determine redirect target from ?next= query param
                             const params = new URLSearchParams(window.location.search);
-                            const next = params.get('next') || '/intelligent-advisor';
+                            const rawNext = params.get('next');
+                            const next = (rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//')) ? rawNext : '/intelligent-advisor';
                             window.location.href = next;
                         } else {
                             this.errorMessage = result.detail || result.message || 'Invalid code. Please try again.';

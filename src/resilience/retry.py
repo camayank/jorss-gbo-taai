@@ -348,7 +348,7 @@ class RetryContext:
 
         if not self.config.should_retry(exception):
             self._exhausted = True
-            raise
+            raise exception
 
         if self.attempt >= self.config.max_attempts:
             self._exhausted = True

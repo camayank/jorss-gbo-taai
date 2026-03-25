@@ -82,6 +82,7 @@ class TransactionManager:
 
         if self._session is not None:
             await self._session.commit()
+            self._is_active = False
             logger.debug("Transaction committed")
 
     async def rollback(self) -> None:

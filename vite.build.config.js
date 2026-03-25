@@ -23,6 +23,8 @@
 
 import { defineConfig } from 'vite';
 import path from 'path';
+import autoprefixer from 'autoprefixer';
+import cssnano from 'cssnano';
 
 export default defineConfig({
   // Build configuration
@@ -108,11 +110,11 @@ export default defineConfig({
     postcss: {
       plugins: [
         // Autoprefixer for browser compatibility
-        require('autoprefixer'),
+        autoprefixer,
 
         // CSS Nano for minification (production only)
         ...(process.env.NODE_ENV === 'production'
-          ? [require('cssnano')({
+          ? [cssnano({
               preset: ['default', {
                 discardComments: { removeAll: true },
                 normalizeWhitespace: true,

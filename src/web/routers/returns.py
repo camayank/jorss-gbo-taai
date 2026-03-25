@@ -42,6 +42,21 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/returns", tags=["Tax Returns"])
 
+
+def _ownership_scope(ctx: AuthContext) -> dict:
+    """Extract ownership scoping params from auth context.
+
+    Platform admins see everything (no filter).
+    Firm users (PARTNER/STAFF) see their firm's returns.
+    Clients see only their own returns.
+    """
+    if ctx.is_platform:
+        return {}
+    if ctx.is_firm:
+        return {"firm_id": str(ctx.firm_id)} if ctx.firm_id else {}
+    # Client — scope to their own user_id
+    return {"user_id": str(ctx.user_id)}
+
 # Dependencies will be injected
 _persistence = None
 _session_persistence = None
@@ -97,12 +112,14 @@ async def save_return(request: Request, ctx: AuthContext = Depends(require_auth)
         tax_return_data["session_id"] = session_id
         tax_return_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-        # Save to database
+        # Save to database with ownership tracking
         persistence = _get_persistence()
         saved_id = persistence.save_return(
             session_id=session_id,
             tax_return_data=tax_return_data,
             return_id=return_id,
+            user_id=str(ctx.user_id),
+            firm_id=str(ctx.firm_id) if ctx.firm_id else None,
         )
 
         # Also save to session persistence
@@ -144,10 +161,11 @@ async def save_return(request: Request, ctx: AuthContext = Depends(require_auth)
 
 @router.get("/{return_id}")
 async def get_return(return_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
-    """Get a tax return by ID."""
+    """Get a tax return by ID (scoped to user/firm ownership)."""
     try:
         persistence = _get_persistence()
-        tax_return = persistence.load_return(return_id)
+        scope = _ownership_scope(ctx)
+        tax_return = persistence.load_return(return_id, **scope)
 
         if not tax_return:
             raise HTTPException(status_code=404, detail="Return not found")
@@ -176,14 +194,16 @@ async def list_returns(
     offset: int = Query(0, ge=0),
     ctx: AuthContext = Depends(require_auth),
 ):
-    """List tax returns with optional filters."""
+    """List tax returns with optional filters (scoped to user/firm ownership)."""
     try:
         persistence = _get_persistence()
+        scope = _ownership_scope(ctx)
         returns = persistence.list_returns(
             tax_year=tax_year,
             status=status,
             limit=limit,
             offset=offset,
+            **scope,
         )
 
         from dataclasses import asdict
@@ -205,17 +225,18 @@ async def list_returns(
 
 @router.delete("/{return_id}")
 async def delete_return(return_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
-    """Delete a tax return."""
+    """Delete a tax return (scoped to user/firm ownership)."""
     try:
         persistence = _get_persistence()
+        scope = _ownership_scope(ctx)
 
-        # Verify return exists
-        tax_return = persistence.load_return(return_id)
+        # Verify return exists and user owns it
+        tax_return = persistence.load_return(return_id, **scope)
         if not tax_return:
             raise HTTPException(status_code=404, detail="Return not found")
 
-        # Delete
-        persistence.delete_return(return_id)
+        # Delete (with same ownership scope)
+        persistence.delete_return(return_id, **scope)
 
         return JSONResponse({
             "status": "success",
@@ -377,8 +398,8 @@ async def approve_return(session_id: str, request: Request, ctx: AuthContext = D
 
 
 @router.post("/{session_id}/revert-to-draft")
-async def revert_to_draft(session_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
-    """Revert a return back to draft status."""
+async def revert_to_draft(session_id: str, request: Request, ctx: AuthContext = Depends(require_role({Role.PARTNER, Role.STAFF}))):
+    """Revert a return back to draft status (CPA role required)."""
     try:
         body = await request.json() if request.headers.get("content-type") == "application/json" else {}
         reason = body.get("reason", "Reverted to draft for edits")

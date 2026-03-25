@@ -223,7 +223,7 @@ def get_token_expiry(token: str) -> Optional[datetime]:
     """Get the expiration time of a token."""
     payload = decode_token_safe(token)
     if payload and "exp" in payload:
-        return datetime.fromtimestamp(payload["exp"])
+        return datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
     return None
 
 

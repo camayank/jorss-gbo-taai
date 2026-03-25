@@ -88,55 +88,12 @@ def _safe_parse_fallback(
     """
     Fallback safe XML parsing when defusedxml is not available.
 
-    Performs basic security checks before parsing.
+    Refuses to parse — defusedxml is required for safe XML handling.
     """
-    # Convert to string for inspection
-    if isinstance(source, bytes):
-        content = source.decode("utf-8", errors="replace")
-    elif isinstance(source, (StringIO, BytesIO)):
-        content = source.read()
-        if isinstance(content, bytes):
-            content = content.decode("utf-8", errors="replace")
-        # Reset file pointer
-        source.seek(0)
-    else:
-        content = source
-
-    # Security checks
-    content_lower = content.lower()
-
-    # Check for DTD
-    if forbid_dtd and "<!doctype" in content_lower:
-        raise XMLSecurityError("DTD declarations are forbidden")
-
-    # Check for entity definitions
-    if forbid_entities and "<!entity" in content_lower:
-        raise XMLSecurityError("Entity definitions are forbidden")
-
-    # Check for external references
-    if forbid_external:
-        dangerous_patterns = [
-            "system",
-            "public",
-            "file:",
-            "http:",
-            "https:",
-            "ftp:",
-            "data:",
-        ]
-        for pattern in dangerous_patterns:
-            if pattern in content_lower:
-                # More specific check to avoid false positives
-                if f'"{pattern}' in content_lower or f"'{pattern}" in content_lower:
-                    raise XMLSecurityError(f"External references ({pattern}) are forbidden")
-
-    # Parse with standard library
-    if isinstance(source, str):
-        return ET.fromstring(source)
-    elif isinstance(source, bytes):
-        return ET.fromstring(source)
-    else:
-        return ET.parse(source).getroot()
+    raise XMLSecurityError(
+        "defusedxml is required for safe XML parsing. "
+        "Install with: pip install defusedxml"
+    )
 
 
 def safe_iterparse(

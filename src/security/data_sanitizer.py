@@ -16,8 +16,8 @@ PATTERNS = {
     "ssn": re.compile(r"\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b"),
     "ein": re.compile(r"\b\d{2}[-\s]?\d{7}\b"),
     "credit_card": re.compile(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b"),
-    "bank_account": re.compile(r"\b\d{8,17}\b"),  # Bank account numbers
-    "routing_number": re.compile(r"\b\d{9}\b"),  # Routing numbers
+    "bank_account": re.compile(r"\baccount[:\s#]*\d{8,17}\b", re.IGNORECASE),
+    "routing_number": re.compile(r"\brouting[:\s#]*\d{9}\b", re.IGNORECASE),
     "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
     "phone": re.compile(r"\b\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
     "ip_address": re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"),
@@ -312,11 +312,13 @@ class DataSanitizer:
         return context
 
     def _is_sensitive_field(self, field_name: str) -> bool:
-        """Check if a field name indicates sensitive data."""
-        return (
-            field_name in self.sensitive_fields or
-            any(sensitive in field_name for sensitive in self.sensitive_fields)
-        )
+        """Check if a field name indicates sensitive data (word-boundary matching)."""
+        field_lower = field_name.lower()
+        if field_lower in self.sensitive_fields:
+            return True
+        # Split on underscores/hyphens and check individual words
+        parts = set(re.split(r'[_\-]', field_lower))
+        return bool(parts & self.sensitive_fields)
 
     def _redact_email(self, match: re.Match) -> str:
         """Partially redact email addresses."""

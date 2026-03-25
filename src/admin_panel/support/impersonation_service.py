@@ -37,7 +37,9 @@ class ImpersonationService:
     """
 
     def __init__(self):
-        # In-memory storage (replace with database in production)
+        # WARNING: In-memory storage is not shared across workers.
+        # For production, replace with database-backed storage.
+        # See also: src/web/routers/admin_impersonation_api.py (separate store).
         self._sessions: Dict[UUID, ImpersonationSession] = {}
         self._sessions_by_token: Dict[str, UUID] = {}
         self._actions: Dict[UUID, List[ImpersonationAction]] = {}

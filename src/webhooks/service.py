@@ -49,7 +49,8 @@ class MockSession:
     In production, this would be replaced with a sync SQLAlchemy session
     or deliveries would be queued via Celery for async processing.
     """
-    _records = []  # In-memory storage for mock
+    def __init__(self):
+        self._records = []  # Per-instance storage
 
     def add(self, obj):
         self._records.append(obj)
@@ -943,8 +944,10 @@ class WebhookService:
             metadata=request_body.get("metadata", {}),
         )
 
-        # Queue for delivery
-        self.queue_event(event)
+        # Queue for delivery (queue_event is async, schedule it properly)
+        import asyncio
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.queue_event(event))
         return True
 
     # =========================================================================

@@ -361,14 +361,18 @@ class DependentValidator:
         results = []
 
         # Test 1: Not a Qualifying Child (BR3-0206)
-        # The person must not be anyone's qualifying child
+        # The person must not be anyone's qualifying child.
+        # NOTE: This is a simplified check. Full IRS determination per Pub 501
+        # requires evaluating whether the person is a qualifying child of ANY
+        # taxpayer (age, residency, support tests), which requires data about
+        # all potential claimants. Using is_claimed_by_another as a proxy.
         not_qc = not dependent.is_claimed_by_another
         results.append(QualificationTestResult(
             test_name="Not a Qualifying Child Test",
             passed=not_qc,
             reason="Not claimed as qualifying child by another taxpayer" if not_qc
                    else "Is claimed as qualifying child by another taxpayer",
-            details="Cannot be qualifying child of another taxpayer",
+            details="Cannot be qualifying child of another taxpayer (simplified check)",
             rule_reference="BR3-0206"
         ))
 
@@ -476,12 +480,21 @@ class DependentValidator:
                     details="Between parents, higher AGI wins",
                     rule_reference="BR3-0211"
                 )
-            else:
+            elif taxpayer_agi < other_agi:
                 return QualificationTestResult(
                     test_name="Tiebreaker Rule",
                     passed=False,
                     reason=f"Other parent wins: Higher AGI (${other_agi:,.0f} vs ${taxpayer_agi:,.0f})",
                     details="Between parents, higher AGI wins",
+                    rule_reference="BR3-0211"
+                )
+            else:
+                # Equal AGI — per IRS Pub 501, neither parent wins automatically
+                return QualificationTestResult(
+                    test_name="Tiebreaker Rule",
+                    passed=False,
+                    reason="Equal AGI between parents — written consent (Form 8332) required",
+                    details="When both parents have equal AGI, neither may claim without the other's consent",
                     rule_reference="BR3-0211"
                 )
 

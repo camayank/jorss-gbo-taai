@@ -93,6 +93,13 @@ async def upload_document(
         logger.warning(f"Failed to read uploaded file: {e}")
         raise HTTPException(status_code=400, detail="Failed to read the uploaded file. Please try again with a different file.")
 
+    # Validate file content (magic bytes) — not just the client-supplied MIME type
+    try:
+        from web.utils.file_validation import validate_upload, FileValidationError
+        validate_upload(content, file.filename or "upload")
+    except FileValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     try:
         result = deps["_document_processor"].process_bytes(
             data=content,

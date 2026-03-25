@@ -544,6 +544,14 @@
     </div>
 
     <form class="form-card" id="support-form" action="/support/create" method="POST" enctype="multipart/form-data" novalidate>
+        <input type="hidden" name="csrf_token" id="csrf_token_field">
+        <script>
+            // Populate CSRF token from cookie
+            (function() {
+                var match = document.cookie.match(/csrf_token=([^;]+)/);
+                if (match) document.getElementById('csrf_token_field').value = match[1];
+            })();
+        </script>
         <!-- Alert Messages -->
         <div class="form-section" style="border-bottom: none; padding-bottom: 0;">
             <div class="form-alert form-alert-error" id="form-error" role="alert">

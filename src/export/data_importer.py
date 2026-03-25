@@ -286,8 +286,12 @@ class DataImporter:
 
         # Handle both single return and list of returns
         if isinstance(data, list):
-            data = data[0]  # Take first return
-            result.warnings.append("Multiple returns found, importing first only")
+            if len(data) > 1:
+                raise ValueError(
+                    f"JSON contains {len(data)} returns. Use import_batch() for "
+                    f"multi-return files, or provide a single return object."
+                )
+            data = data[0]
 
         mappings = self.field_mappings.get(ImportFormat.JSON, {})
 
@@ -684,9 +688,10 @@ class PriorYearImporter:
             loss_amount = 0
             if cap_loss:
                 loss_amount = cap_loss.value
-            elif net_cap_gain and net_cap_gain.value < -3000:
-                # $3,000 limit applied, remainder carries over
-                loss_amount = abs(net_cap_gain.value) - 3000
+            # Also add carryover from net capital loss beyond $3,000 deduction limit
+            if net_cap_gain and net_cap_gain.value < -3000:
+                additional_carryover = abs(net_cap_gain.value) - 3000
+                loss_amount += additional_carryover
 
             if loss_amount > 0:
                 carryovers.append(ImportField(

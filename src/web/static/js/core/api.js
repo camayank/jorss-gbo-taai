@@ -250,6 +250,8 @@ async function request(url, options = {}) {
               credentials: 'same-origin',
             });
             if (refreshResp.ok) {
+              // Clear outer timeout before retrying to prevent it aborting the new request
+              clearTimeout(timeoutId);
               // Retry the original request once with fresh token
               return request(url, { ...options, _isRetryAfterRefresh: true });
             }

@@ -346,7 +346,11 @@ class TestRecommendationEngineIntegration:
         assert opp.irs_reference == "IRC Section 24"
 
     def test_collect_opportunities_adds_irs_references(self):
-        """Verify that _collect_opportunities adds IRS references."""
+        """Verify that _collect_opportunities adds IRS references.
+
+        TODO: This test checks source structure, not runtime behavior.
+        Replace with integration test that calls the function with test data.
+        """
         source_path = os.path.join(
             os.path.dirname(__file__), '..', 'src',
             'recommendation', 'recommendation_engine.py'
@@ -361,7 +365,11 @@ class TestRecommendationEngineIntegration:
         assert '_get_strategy_irs_reference' in source
 
     def test_validate_opportunities_is_called(self):
-        """Verify that _validate_opportunities is called."""
+        """Verify that _validate_opportunities is called.
+
+        TODO: This test checks source structure, not runtime behavior.
+        Replace with integration test that calls the function with test data.
+        """
         source_path = os.path.join(
             os.path.dirname(__file__), '..', 'src',
             'recommendation', 'recommendation_engine.py'

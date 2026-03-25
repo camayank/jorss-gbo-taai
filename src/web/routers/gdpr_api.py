@@ -82,6 +82,18 @@ async def request_data_erasure(
     identifier_type = body.identifier_type
     identifier_value = body.identifier_value
 
+    # Verify ownership — only platform admins can erase other users' data
+    if not auth.is_platform:
+        if identifier_type == "email" and identifier_value != auth.email:
+            raise HTTPException(status_code=403, detail="Can only request erasure of your own data")
+        if identifier_type == "client_id" and identifier_value != str(auth.user_id):
+            raise HTTPException(status_code=403, detail="Can only request erasure of your own data")
+
+    # Sanitize identifier to prevent path traversal in file operations
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9\-_@.]+$', identifier_value):
+        raise HTTPException(status_code=400, detail="Invalid identifier format")
+
     logger.info(
         f"GDPR erasure request {erasure_id}: type={identifier_type}",
         extra={"erasure_id": erasure_id},

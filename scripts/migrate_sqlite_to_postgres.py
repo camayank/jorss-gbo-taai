@@ -195,8 +195,17 @@ class SQLiteToPostgresMigration:
         finally:
             conn.close()
 
+    @staticmethod
+    def _validate_identifier(name: str) -> str:
+        """Validate SQL identifier to prevent injection."""
+        import re
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+            raise ValueError(f"Unsafe SQL identifier: {name!r}")
+        return name
+
     def get_sqlite_table_count(self, table_name: str) -> int:
         """Get row count for a SQLite table."""
+        table_name = self._validate_identifier(table_name)
         conn = self.connect_sqlite()
         try:
             cursor = conn.cursor()
@@ -207,6 +216,7 @@ class SQLiteToPostgresMigration:
 
     def get_postgres_table_count(self, table_name: str) -> int:
         """Get row count for a PostgreSQL table."""
+        table_name = self._validate_identifier(table_name)
         engine = self.connect_postgres()
         try:
             with engine.connect() as conn:

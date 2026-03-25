@@ -610,7 +610,11 @@
         // Check for estimate data and OAuth callback
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const nextUrl = urlParams.get('next') || '/intelligent-advisor';
+            // Validate next URL is a safe same-origin relative path
+            function isSafeRedirect(url) {
+                return url && url.startsWith('/') && !url.startsWith('//');
+            }
+            const nextUrl = isSafeRedirect(urlParams.get('next')) ? urlParams.get('next') : '/intelligent-advisor';
             document.getElementById('next-url').value = nextUrl;
 
             // Handle OAuth callback
@@ -618,6 +622,8 @@
                 const token = urlParams.get('token');
                 if (token) {
                     persistAuthSession({ access_token: token });
+                    // Remove sensitive token from URL/history
+                    window.history.replaceState({}, document.title, window.location.pathname);
                     window.location.href = nextUrl;
                     return;
                 }

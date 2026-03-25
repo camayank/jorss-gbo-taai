@@ -130,7 +130,7 @@ export function setupAdvisorConsent() {
 
     // Log acknowledgment to server and persist the returned token
     try {
-      const response = await fetch('/api/advisor/acknowledge-standards', {
+      const response = await secureFetch('/api/advisor/acknowledge-standards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -707,8 +707,8 @@ function applyDarkMode(isDark) {
   var btn = document.getElementById('themeToggle');
   if (btn) {
     btn.innerHTML = isDark
-      ? 'u2600uFE0F'
-      : 'uD83CuDF19';
+      ? '\u2600\uFE0F'
+      : '\uD83C\uDF19';
   }
 }
 

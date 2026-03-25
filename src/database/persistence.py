@@ -105,13 +105,34 @@ class TaxReturnPersistence:
                 ON tax_returns(tax_year)
             """)
 
+            # Add ownership columns for access control (safe for existing DBs)
+            for col in ("user_id TEXT", "firm_id TEXT"):
+                col_name = col.split()[0]
+                try:
+                    cursor.execute(
+                        f"ALTER TABLE tax_returns ADD COLUMN {col}"
+                    )
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_user_id
+                ON tax_returns(user_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_firm_id
+                ON tax_returns(firm_id)
+            """)
+
             conn.commit()
 
     def save_return(
         self,
         session_id: str,
         tax_return_data: Dict[str, Any],
-        return_id: Optional[str] = None
+        return_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
     ) -> str:
         """
         Save or update a tax return.
@@ -197,7 +218,9 @@ class TaxReturnPersistence:
                         combined_refund_or_owed = ?,
                         status = ?,
                         return_data = ?,
-                        updated_at = ?
+                        updated_at = ?,
+                        user_id = COALESCE(?, user_id),
+                        firm_id = COALESCE(?, firm_id)
                     WHERE return_id = ?
                 """, (
                     session_id,
@@ -218,6 +241,8 @@ class TaxReturnPersistence:
                     "in_progress",
                     json.dumps(sanitized_data, default=str),
                     now,
+                    user_id,
+                    firm_id,
                     return_id
                 ))
             else:
@@ -229,8 +254,9 @@ class TaxReturnPersistence:
                         gross_income, adjusted_gross_income, taxable_income,
                         federal_tax_liability, state_tax_liability, combined_tax_liability,
                         federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
-                        status, return_data, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        status, return_data, created_at, updated_at,
+                        user_id, firm_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     return_id,
                     session_id,
@@ -251,29 +277,45 @@ class TaxReturnPersistence:
                     "draft",
                     json.dumps(sanitized_data, default=str),
                     now,
-                    now
+                    now,
+                    user_id,
+                    firm_id,
                 ))
 
             conn.commit()
 
         return return_id
 
-    def load_return(self, return_id: str) -> Optional[Dict[str, Any]]:
+    def load_return(
+        self,
+        return_id: str,
+        user_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         """
-        Load a tax return by ID.
+        Load a tax return by ID with optional ownership scoping.
 
         Args:
             return_id: The return ID
+            user_id: If provided, only return if owned by this user
+            firm_id: If provided, only return if owned by this firm
 
         Returns:
-            Tax return data dictionary or None if not found
+            Tax return data dictionary or None if not found/not authorized
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT return_data FROM tax_returns WHERE return_id = ?",
-                (return_id,)
-            )
+            query = "SELECT return_data FROM tax_returns WHERE return_id = ?"
+            params: list = [return_id]
+
+            if user_id:
+                query += " AND user_id = ?"
+                params.append(user_id)
+            if firm_id:
+                query += " AND firm_id = ?"
+                params.append(firm_id)
+
+            cursor.execute(query, params)
             row = cursor.fetchone()
 
             if row:
@@ -313,15 +355,19 @@ class TaxReturnPersistence:
         status: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
+        user_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
     ) -> List[SavedReturn]:
         """
-        List saved tax returns.
+        List saved tax returns with ownership scoping.
 
         Args:
             tax_year: Optional filter by tax year
             status: Optional filter by return status
             limit: Maximum number of returns to return
             offset: Number of rows to skip
+            user_id: If provided, only returns owned by this user
+            firm_id: If provided, only returns owned by this firm
 
         Returns:
             List of SavedReturn metadata objects
@@ -337,6 +383,12 @@ class TaxReturnPersistence:
             conditions = []
             params: list = []
 
+            if user_id:
+                conditions.append("user_id = ?")
+                params.append(user_id)
+            if firm_id:
+                conditions.append("firm_id = ?")
+                params.append(firm_id)
             if tax_year:
                 conditions.append("tax_year = ?")
                 params.append(tax_year)
@@ -371,22 +423,36 @@ class TaxReturnPersistence:
 
             return returns
 
-    def delete_return(self, return_id: str) -> bool:
+    def delete_return(
+        self,
+        return_id: str,
+        user_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
+    ) -> bool:
         """
-        Delete a tax return.
+        Delete a tax return with ownership scoping.
 
         Args:
             return_id: The return ID to delete
+            user_id: If provided, only delete if owned by this user
+            firm_id: If provided, only delete if owned by this firm
 
         Returns:
-            True if deleted, False if not found
+            True if deleted, False if not found/not authorized
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "DELETE FROM tax_returns WHERE return_id = ?",
-                (return_id,)
-            )
+            query = "DELETE FROM tax_returns WHERE return_id = ?"
+            params: list = [return_id]
+
+            if user_id:
+                query += " AND user_id = ?"
+                params.append(user_id)
+            if firm_id:
+                query += " AND firm_id = ?"
+                params.append(firm_id)
+
+            cursor.execute(query, params)
             conn.commit()
             return cursor.rowcount > 0
 

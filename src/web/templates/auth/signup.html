@@ -595,13 +595,17 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const nextUrl = urlParams.get('next') || '/intelligent-advisor';
+            function isSafeRedirect(url) {
+                return url && url.startsWith('/') && !url.startsWith('//');
+            }
+            const nextUrl = isSafeRedirect(urlParams.get('next')) ? urlParams.get('next') : '/intelligent-advisor';
             document.getElementById('next-url').value = nextUrl;
 
             if (urlParams.get('oauth_success') === 'true') {
                 const token = urlParams.get('token');
                 if (token) {
                     persistAuthSession({ access_token: token });
+                    window.history.replaceState({}, document.title, window.location.pathname);
                     window.location.href = nextUrl;
                     return;
                 }

@@ -258,7 +258,7 @@ class TFIDFClassifier(BaseClassifier):
                         confidence=confidence,
                         probabilities=probabilities,
                         classifier_used=self.name,
-                        processing_time_ms=self._measure_time(start_time) // len(texts),
+                        processing_time_ms=self._measure_time(start_time) / len(texts),
                         metadata={
                             "top_3": self._get_top_predictions(classes, proba, 3),
                         },

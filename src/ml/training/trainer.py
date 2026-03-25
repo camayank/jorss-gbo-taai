@@ -180,7 +180,9 @@ class DocumentClassifierTrainer:
 
         logger.info(f"Generated {len(texts)} synthetic documents")
 
-        return self.train(texts, labels, random_state=seed)
+        # Use different seed for split to prevent data leakage
+        split_seed = seed + 1 if seed is not None else None
+        return self.train(texts, labels, random_state=split_seed)
 
     def save_models(self) -> None:
         """Save trained models to disk."""

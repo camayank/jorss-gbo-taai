@@ -28,7 +28,7 @@ def _reset_service_registry():
     try:
         from core.service_registry import services
         services.reset_all()
-    except ImportError:
+    except ModuleNotFoundError:
         pass
 
 

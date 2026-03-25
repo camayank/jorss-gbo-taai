@@ -129,6 +129,7 @@ class CircuitBreaker:
         self._success_count = 0
         self._last_failure_time: Optional[float] = None
         self._lock = Lock()
+        self._async_lock: Optional[asyncio.Lock] = None
 
     @property
     def state(self) -> CircuitState:
@@ -285,13 +286,15 @@ class CircuitBreaker:
         if asyncio.iscoroutinefunction(func):
             @wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> T:
-                self.allow_request()  # May raise CircuitBreakerOpen
+                # Run lock-acquiring methods in executor to avoid blocking event loop
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, self.allow_request)
                 try:
                     result = await func(*args, **kwargs)
-                    self.record_success()
+                    await loop.run_in_executor(None, self.record_success)
                     return result
                 except Exception as e:
-                    self.record_failure(e)
+                    await loop.run_in_executor(None, self.record_failure, e)
                     raise
 
             return async_wrapper

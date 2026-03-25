@@ -82,81 +82,83 @@ def add_indexes(db_path: Path):
                     ON tax_returns(submitted_at)
                 """)
 
-        # Compound index for status + year queries (dashboard filtering)
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_returns_status_year_created
-            ON tax_returns(status, tax_year, created_at DESC)
-        """)
+            # Compound index for status + year queries (dashboard filtering)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_returns_status_year_created
+                ON tax_returns(status, tax_year, created_at DESC)
+            """)
 
-        # Compound index for taxpayer lookups with year
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_returns_taxpayer_year_status
-            ON tax_returns(taxpayer_ssn_hash, tax_year, status)
-        """)
+            # Compound index for taxpayer lookups with year
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_returns_taxpayer_year_status
+                ON tax_returns(taxpayer_ssn_hash, tax_year, status)
+            """)
 
-        # Amendment queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_returns_is_amended_year
-            ON tax_returns(is_amended, tax_year)
-        """)
+            # Amendment queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_returns_is_amended_year
+                ON tax_returns(is_amended, tax_year)
+            """)
 
-        # State filtering
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_returns_state_year
-            ON tax_returns(state_code, tax_year)
-        """)
+            # State filtering
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_returns_state_year
+                ON tax_returns(state_code, tax_year)
+            """)
 
-        logger.info("✅ tax_returns indexes added")
+            logger.info("✅ tax_returns indexes added")
 
         # =====================================================================
         # TAXPAYERS TABLE
         # =====================================================================
 
-        logger.info("📊 Adding indexes to taxpayers table...")
+        if table_exists(cursor, "taxpayers"):
+            logger.info("📊 Adding indexes to taxpayers table...")
 
-        # Timestamp indexes
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_taxpayers_created_at
-            ON taxpayers(created_at)
-        """)
+            # Timestamp indexes
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_taxpayers_created_at
+                ON taxpayers(created_at)
+            """)
 
-        # Age-based queries (65+ deductions)
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_taxpayers_age_status
-            ON taxpayers(is_over_65, return_id)
-        """)
+            # Age-based queries (65+ deductions)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_taxpayers_age_status
+                ON taxpayers(is_over_65, return_id)
+            """)
 
-        # Email lookups (for login/recovery)
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_taxpayers_email
-            ON taxpayers(email)
-        """)
+            # Email lookups (for login/recovery)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_taxpayers_email
+                ON taxpayers(email)
+            """)
 
-        logger.info("✅ taxpayers indexes added")
+            logger.info("✅ taxpayers indexes added")
 
         # =====================================================================
         # INCOME_RECORDS TABLE
         # =====================================================================
 
-        logger.info("📊 Adding indexes to income_records table...")
+        if table_exists(cursor, "income_records"):
+            logger.info("📊 Adding indexes to income_records table...")
 
-        # Compound index for filtering by return + source type
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_income_return_source_amount
-            ON income_records(return_id, source_type, gross_amount DESC)
-        """)
+            # Compound index for filtering by return + source type
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_income_return_source_amount
+                ON income_records(return_id, source_type, gross_amount DESC)
+            """)
 
-        # QBI eligibility queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_income_qbi_eligible
-            ON income_records(is_qbi_eligible, return_id)
-        """)
+            # QBI eligibility queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_income_qbi_eligible
+                ON income_records(is_qbi_eligible, return_id)
+            """)
 
-        # Timestamp index
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_income_created_at
-            ON income_records(created_at)
-        """)
+            # Timestamp index
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_income_created_at
+                ON income_records(created_at)
+            """)
 
         logger.info("✅ income_records indexes added")
 

@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from uuid import UUID, uuid4
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .logging_config import get_logger, CalculationLogger
 
@@ -40,15 +40,9 @@ class CalculationResult:
     success: bool
     breakdown: Optional[CalculationBreakdown] = None
     state_result: Optional[Dict[str, Any]] = None
-    errors: List[str] = None
-    warnings: List[str] = None
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
     computation_time_ms: int = 0
-
-    def __post_init__(self):
-        if self.errors is None:
-            self.errors = []
-        if self.warnings is None:
-            self.warnings = []
 
 
 class AsyncTaxReturnService:
@@ -406,8 +400,8 @@ class AsyncTaxReturnService:
                 federal_tax=federal_breakdown.total_tax
             )
         except Exception as e:
-            self._logger.warning(f"State tax calculation failed for {state_code}: {e}")
-            return None
+            self._logger.error(f"State tax calculation failed for {state_code}: {e}", exc_info=True)
+            return {"error": f"State tax calculation failed: {e}", "state_code": state_code}
 
     def _dict_to_tax_return(self, data: Dict[str, Any]) -> TaxReturn:
         """Convert dictionary to TaxReturn model."""

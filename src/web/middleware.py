@@ -272,7 +272,8 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         """Add request ID to request."""
 
         # Generate unique request ID
-        request_id = f"REQ-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        import uuid as _uuid
+        request_id = f"REQ-{_uuid.uuid4().hex[:16]}"
 
         # Add to request state
         request.state.request_id = request_id

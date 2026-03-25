@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
 from .taxpayer import TaxpayerInfo
@@ -107,7 +108,7 @@ class TaxReturn(BaseModel):
         self.total_credits = (
             eitc +
             child_tax_credit +
-            self.credits.child_care_expenses * 0.20 +  # Simplified child care credit
+            float(self.credits.child_care_expenses * Decimal("0.20")) +  # Simplified child care credit
             self.credits.foreign_tax_credit +
             self.credits.residential_energy_credit +
             self.credits.other_credits

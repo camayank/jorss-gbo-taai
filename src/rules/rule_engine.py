@@ -212,6 +212,7 @@ class RuleEngine:
         self._rules: Dict[str, Rule] = {}
         self._rules_by_category: Dict[RuleCategory, List[Rule]] = {}
         self._evaluation_cache: Dict[str, RuleResult] = {}
+        self._cache_max_size = 1024
         self._evaluation_stats: Dict[str, Dict[str, Any]] = {}
 
         self._load_rules()
@@ -347,9 +348,13 @@ class RuleEngine:
         result = self._evaluate_rule_logic(rule, context)
         result.processing_time_ms = int((time.time() - start_time) * 1000)
 
-        # Cache result
+        # Cache result (bounded LRU eviction)
         if use_cache:
             self._evaluation_cache[cache_key] = result
+            if len(self._evaluation_cache) > self._cache_max_size:
+                # Evict oldest entry (first key in insertion order)
+                oldest_key = next(iter(self._evaluation_cache))
+                del self._evaluation_cache[oldest_key]
 
         # Track stats
         self._track_evaluation(rule_id, result)
