@@ -255,7 +255,7 @@ def set_csrf_cookie(response: Response, token: Optional[str] = None) -> str:
         httponly=False,  # Must be readable by JavaScript
         secure=_is_production,  # HTTPS only in production
         samesite="lax",  # Prevent cross-site request attacks
-        max_age=604800,  # 7 days — aligned with CSRFCookieMiddleware
+        max_age=3600,  # 1 hour — regenerated on each login
     )
 
     return csrf_token

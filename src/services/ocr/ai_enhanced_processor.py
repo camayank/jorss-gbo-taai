@@ -131,7 +131,7 @@ class AIEnhancedDocumentProcessor:
         ocr_processor: Optional[DocumentProcessor] = None,
         enable_ai_fallback: bool = True,
         enable_anomaly_detection: bool = True,
-        enable_compliance_check: bool = False,  # Off by default (expensive)
+        enable_compliance_check: bool = True,  # On by default for Circular 230 compliance
     ):
         """
         Initialize AI-enhanced processor.
@@ -572,7 +572,7 @@ _ai_enhanced_processor: Optional[AIEnhancedDocumentProcessor] = None
 def get_ai_enhanced_processor(
     enable_ai_fallback: bool = True,
     enable_anomaly_detection: bool = True,
-    enable_compliance_check: bool = False,
+    enable_compliance_check: bool = True,
 ) -> AIEnhancedDocumentProcessor:
     """Get the singleton AI-enhanced processor instance."""
     global _ai_enhanced_processor

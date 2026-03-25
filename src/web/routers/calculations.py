@@ -14,12 +14,14 @@ Routes:
 - GET /api/recommendations - Get tax recommendations
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any
 import logging
 from decimal import Decimal
 from calculator.decimal_math import money, to_decimal
+from rbac.dependencies import require_auth
+from rbac.context import AuthContext
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +71,7 @@ def _safe_decimal(value: Any, default: Decimal = Decimal("0")) -> Decimal:
 # =============================================================================
 
 @router.post("/calculate/complete")
-async def calculate_complete(request: Request):
+async def calculate_complete(request: Request, ctx: AuthContext = Depends(require_auth)):
     """
     Perform a complete tax calculation with all components.
 
@@ -181,7 +183,7 @@ async def calculate_complete(request: Request):
 
 
 @router.post("/calculate-tax")
-async def calculate_tax_quick(request: Request):
+async def calculate_tax_quick(request: Request, ctx: AuthContext = Depends(require_auth)):
     """
     Quick tax calculation for chatbot/interactive use.
 
@@ -245,7 +247,7 @@ async def calculate_tax_quick(request: Request):
 
 
 @router.post("/estimate")
-async def estimate_tax(request: Request):
+async def estimate_tax(request: Request, ctx: AuthContext = Depends(require_auth)):
     """
     Tax estimate for lead capture and chatbot.
 
@@ -305,7 +307,7 @@ async def estimate_tax(request: Request):
 # =============================================================================
 
 @router.post("/optimize")
-async def optimize_general(request: Request):
+async def optimize_general(request: Request, ctx: AuthContext = Depends(require_auth)):
     """General tax optimization suggestions."""
     try:
         body = await request.json()
@@ -329,7 +331,7 @@ async def optimize_general(request: Request):
 
 
 @router.post("/optimize/filing-status")
-async def optimize_filing_status(request: Request):
+async def optimize_filing_status(request: Request, ctx: AuthContext = Depends(require_auth)):
     """Analyze optimal filing status."""
     try:
         body = await request.json()
@@ -396,7 +398,7 @@ async def optimize_filing_status(request: Request):
 
 
 @router.post("/optimize/credits")
-async def optimize_credits(request: Request):
+async def optimize_credits(request: Request, ctx: AuthContext = Depends(require_auth)):
     """Analyze available tax credits."""
     try:
         body = await request.json()
@@ -466,7 +468,7 @@ async def optimize_credits(request: Request):
 
 
 @router.post("/optimize/deductions")
-async def optimize_deductions(request: Request):
+async def optimize_deductions(request: Request, ctx: AuthContext = Depends(require_auth)):
     """Analyze deduction optimization opportunities."""
     try:
         body = await request.json()
@@ -535,7 +537,7 @@ async def optimize_deductions(request: Request):
 
 
 @router.get("/recommendations")
-async def get_recommendations_route(request: Request):
+async def get_recommendations_route(request: Request, ctx: AuthContext = Depends(require_auth)):
     """Get tax optimization recommendations for current session."""
     try:
         session_id = request.query_params.get("session_id") or request.cookies.get("tax_session_id")

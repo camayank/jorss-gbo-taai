@@ -305,7 +305,7 @@ def get_retirement_limits(tax_year: int = 2025) -> dict:
     Returns dict like:
         {"401k_limit": 23500, "401k_catch_up": 7500, "ira_limit": 7000,
          "ira_catch_up": 1000, "hsa_self": 4300, "hsa_family": 8550,
-         "hsa_catch_up": 1000, "sep_ira_max": 69000, "sep_ira_pct": 0.25}
+         "hsa_catch_up": 1000, "sep_ira_max": 70000, "sep_ira_pct": 0.25}
     """
     loader = get_config_loader()
     config = loader.load_config(tax_year)
@@ -319,7 +319,7 @@ def get_retirement_limits(tax_year: int = 2025) -> dict:
         "hsa_family": config.get("hsa_family_limit", 8550),
         "hsa_catch_up": config.get("hsa_catchup_55_plus", 1000),
         "sep_ira_pct": 0.25,
-        "sep_ira_max": config.get("sep_ira_limit", 69000),
+        "sep_ira_max": config.get("sep_ira_limit", 70000),
     }
 
 

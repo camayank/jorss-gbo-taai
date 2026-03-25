@@ -10,6 +10,8 @@ import sqlite3
 import json
 import uuid
 import hashlib
+import hmac
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -17,6 +19,17 @@ from dataclasses import dataclass
 
 # Default database path
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db"
+
+
+def _hash_ssn(ssn: str) -> str:
+    """Compute keyed HMAC-SHA256 hash of SSN (rainbow-table resistant)."""
+    key = os.environ.get("ENCRYPTION_MASTER_KEY", "").encode()
+    if not key:
+        # Fall back to regular hash if no key configured (dev only)
+        clean_ssn = ssn.replace("-", "").strip()
+        return hashlib.sha256(clean_ssn.encode()).hexdigest()
+    clean_ssn = ssn.replace("-", "").strip()
+    return hmac.new(key, clean_ssn.encode(), hashlib.sha256).hexdigest()
 
 
 @dataclass
@@ -157,7 +170,7 @@ class TaxReturnPersistence:
 
         taxpayer_name = f"{taxpayer.get('first_name', '')} {taxpayer.get('last_name', '')}".strip()
         ssn = taxpayer.get("ssn", "")
-        ssn_hash = hashlib.sha256(ssn.replace("-", "").encode()).hexdigest() if ssn else None
+        ssn_hash = _hash_ssn(ssn) if ssn else None
 
         # SECURITY (SPEC-003): Sanitize SSN before storing in JSON
         # Create a copy with masked SSN to prevent PII exposure

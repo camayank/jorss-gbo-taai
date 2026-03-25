@@ -53,19 +53,19 @@
                         </div>
                         <div class="summary-item">
                             <span class="label">Total Income</span>
-                            <span class="value">${{ "{:,.2f}".format(return_data.total_income or 0) }}</span>
+                            <span class="value">${{ "{:,.0f}".format(return_data.total_income or 0) }}</span>
                         </div>
                         <div class="summary-item">
                             <span class="label">AGI</span>
-                            <span class="value">${{ "{:,.2f}".format(return_data.agi or 0) }}</span>
+                            <span class="value">${{ "{:,.0f}".format(return_data.agi or 0) }}</span>
                         </div>
                         <div class="summary-item">
                             <span class="label">Taxable Income</span>
-                            <span class="value">${{ "{:,.2f}".format(return_data.taxable_income or 0) }}</span>
+                            <span class="value">${{ "{:,.0f}".format(return_data.taxable_income or 0) }}</span>
                         </div>
                         <div class="summary-item">
                             <span class="label">Total Tax</span>
-                            <span class="value">${{ "{:,.2f}".format(return_data.total_tax or 0) }}</span>
+                            <span class="value">${{ "{:,.0f}".format(return_data.total_tax or 0) }}</span>
                         </div>
                         <div class="summary-item highlight">
                             <span class="label">
@@ -76,7 +76,7 @@
                                 {% endif %}
                             </span>
                             <span class="value {% if return_data.refund_or_owed and return_data.refund_or_owed > 0 %}refund{% else %}owed{% endif %}">
-                                ${{ "{:,.2f}".format((return_data.refund_or_owed or 0)|abs) }}
+                                ${{ "{:,.0f}".format((return_data.refund_or_owed or 0)|abs) }}
                             </span>
                         </div>
                     </div>
@@ -93,27 +93,27 @@
                         <tbody>
                             <tr>
                                 <td>W-2 Wages</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.w2_wages or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.w2_wages or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>Interest Income</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.interest_income or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.interest_income or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>Dividend Income</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.dividend_income or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.dividend_income or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>Self-Employment Income</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.self_employment_income or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.self_employment_income or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>Other Income</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.other_income or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.other_income or 0) }}</td>
                             </tr>
                             <tr class="total-row">
                                 <td><strong>Total Income</strong></td>
-                                <td class="amount"><strong>${{ "{:,.2f}".format(return_data.total_income or 0) }}</strong></td>
+                                <td class="amount"><strong>${{ "{:,.0f}".format(return_data.total_income or 0) }}</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -134,7 +134,7 @@
                             </tr>
                             <tr>
                                 <td>Total Deduction</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.total_deduction or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.total_deduction or 0) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -151,23 +151,23 @@
                         <tbody>
                             <tr>
                                 <td>Federal Withholding</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.federal_withholding or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.federal_withholding or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>Estimated Tax Payments</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.estimated_payments or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.estimated_payments or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>Child Tax Credit</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.child_tax_credit or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.child_tax_credit or 0) }}</td>
                             </tr>
                             <tr>
                                 <td>EITC</td>
-                                <td class="amount">${{ "{:,.2f}".format(return_data.eitc or 0) }}</td>
+                                <td class="amount">${{ "{:,.0f}".format(return_data.eitc or 0) }}</td>
                             </tr>
                             <tr class="total-row">
                                 <td><strong>Total Credits & Payments</strong></td>
-                                <td class="amount"><strong>${{ "{:,.2f}".format(return_data.total_payments or 0) }}</strong></td>
+                                <td class="amount"><strong>${{ "{:,.0f}".format(return_data.total_payments or 0) }}</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -195,7 +195,7 @@
                         <div class="compliance-stat">
                             <span class="label">Estimated Penalty Exposure</span>
                             <span class="value penalty-amount {% if compliance_report.estimated_penalty_exposure > 0 %}has-exposure{% endif %}">
-                                ${{ "{:,.2f}".format(compliance_report.estimated_penalty_exposure) }}
+                                ${{ "{:,.0f}".format(compliance_report.estimated_penalty_exposure) }}
                             </span>
                         </div>
                         <div class="compliance-stat">
@@ -1013,7 +1013,7 @@
         }
 
         try {
-            const response = await fetch(`/api/cpa/returns/${sessionId}/notes`, {
+            const response = await fetch(`/api/returns/${sessionId}/notes`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
@@ -1047,7 +1047,7 @@
         }
 
         try {
-            const response = await fetch(`/api/cpa/returns/${sessionId}/approve`, {
+            const response = await fetch(`/api/returns/${sessionId}/approve`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
@@ -1078,7 +1078,7 @@
         }
 
         try {
-            const response = await fetch(`/api/cpa/returns/${sessionId}/revert`, {
+            const response = await fetch(`/api/returns/${sessionId}/revert-to-draft`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({

@@ -77,7 +77,7 @@ RETIREMENT_LIMITS = {
     "401k_catch_up_60_63": 11250,  # New super catch-up
     "ira_limit": 7000,
     "ira_catch_up_50plus": 1000,
-    "sep_ira_limit": 69000,
+    "sep_ira_limit": 70000,
     "simple_ira_limit": 16500,
     "simple_ira_catch_up": 3500,
     "hsa_single": 4300,

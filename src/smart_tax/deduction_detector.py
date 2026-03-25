@@ -629,15 +629,27 @@ class SmartDeductionDetector:
 
         return opportunities
 
+    # 2025 brackets by filing status (Rev. Proc. 2024-40)
+    TAX_BRACKETS_BY_STATUS = {
+        "single": [(11925, "0.10"), (48475, "0.12"), (103350, "0.22"),
+                   (197300, "0.24"), (250525, "0.32"), (626350, "0.35")],
+        "married_filing_jointly": [(23850, "0.10"), (96950, "0.12"), (206700, "0.22"),
+                                   (394600, "0.24"), (501050, "0.32"), (751600, "0.35")],
+        "head_of_household": [(17000, "0.10"), (64850, "0.12"), (103350, "0.22"),
+                              (197300, "0.24"), (250500, "0.32"), (626350, "0.35")],
+        "married_filing_separately": [(11925, "0.10"), (48475, "0.12"), (103350, "0.22"),
+                                      (197300, "0.24"), (250525, "0.32"), (626350, "0.35")],
+    }
+
     def _get_marginal_rate(self, income: Decimal, filing_status: str) -> Decimal:
-        """Get estimated marginal tax rate."""
-        # Simplified - uses single brackets for all
+        """Get estimated marginal tax rate using filing-status-specific brackets."""
+        brackets = self.TAX_BRACKETS_BY_STATUS.get(filing_status, self.TAX_BRACKETS_BY_STATUS["single"])
         standard = self.STANDARD_DEDUCTIONS_2025.get(filing_status, Decimal("15750"))
         taxable = max(income - standard, Decimal("0"))
 
-        for threshold, rate in self.TAX_BRACKETS_SINGLE:
+        for threshold, rate in brackets:
             if taxable <= threshold:
-                return rate
+                return Decimal(rate)
 
         return Decimal("0.37")
 

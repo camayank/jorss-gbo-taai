@@ -152,8 +152,10 @@ def encrypt_pii(
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     except ImportError:
-        logger.warning("cryptography not installed - using fallback encoding (NOT SECURE)")
-        return _fallback_encode(plaintext, field_type)
+        raise RuntimeError(
+            "FATAL: 'cryptography' package is required for PII encryption. "
+            "Install with: pip install cryptography"
+        )
 
     # Get field-specific key
     master_key = get_encryption_key()

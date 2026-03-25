@@ -1215,9 +1215,15 @@ class FederalTaxEngine:
         threshold = self.config.additional_medicare_threshold.get(filing_status, 200000.0)
         rate = self.config.additional_medicare_tax_rate
 
-        # Total Medicare wages and SE income
+        # Total Medicare wages and SE income (include K-1 SE per IRC 3101(b)(2))
         wages = tax_return.income.get_total_wages()
         net_se = max(0.0, tax_return.income.get_schedule_c_se_income())
+        # Add K-1 self-employment earnings from partnerships (Box 14)
+        k1_se = sum(
+            getattr(k1, 'self_employment_earnings', 0) or 0
+            for k1 in getattr(tax_return.income, 'k1_forms', [])
+        )
+        net_se += max(0.0, k1_se)
         se_earnings = net_se * self.config.se_net_earnings_factor
 
         # Additional Medicare Tax on wages
@@ -1261,13 +1267,16 @@ class FederalTaxEngine:
         rate = self.config.niit_rate
 
         # Calculate Net Investment Income
+        # Note: Rental income subject to PAL rules per Treas. Reg. 1.1411-4(f)
+        # Only net positive rental income is included; suspended losses are excluded
         inc = tax_return.income
+        net_rental = max(0, inc.rental_income - inc.rental_expenses)
         nii = (
             inc.interest_income +
             inc.dividend_income +
             inc.short_term_capital_gains +
             inc.long_term_capital_gains +
-            max(0, inc.rental_income - inc.rental_expenses) +
+            net_rental +
             inc.royalty_income +
             inc.other_investment_income
         )
@@ -1434,8 +1443,14 @@ class FederalTaxEngine:
         result['salt_addback'] = to_float(salt_addback)
 
         # 2. Standard Deduction Addback (if used) - AMT doesn't allow standard deduction
-        # But since we started with taxable income, we don't need to add it back
-        # The AMTI computation effectively uses itemized deductions with modifications
+        # IRC 56(b)(1)(E): Standard deduction must be added back to AMTI
+        # Since taxable_income already has the standard deduction removed, we must add it back
+        if breakdown.deduction_type != "itemized":
+            standard_ded = to_decimal(
+                self.config.standard_deductions.get(filing_status, 15750.0)
+            )
+            amti = add(amti, standard_ded)
+            result['standard_deduction_addback'] = to_float(standard_ded)
 
         # 3. ISO Exercise Spread (Form 6251 Line 2i)
         # The spread between exercise price and FMV on ISO exercise
@@ -2225,6 +2240,19 @@ class FederalTaxEngine:
         remaining = preferential_taxable_income
         tax = 0.0
 
+        # Unrecaptured Section 1250 gain taxed at max 25% (IRC 1(h)(1)(D))
+        # This must be carved out before the 0%/15%/20% tiers
+        unrecaptured_1250 = getattr(self, '_current_breakdown', None)
+        if unrecaptured_1250 is None:
+            unrecaptured_1250 = 0.0
+        else:
+            unrecaptured_1250 = getattr(unrecaptured_1250, 'schedule_d_unrecaptured_1250', 0.0) or 0.0
+        if unrecaptured_1250 > 0:
+            amt_1250 = min(unrecaptured_1250, remaining)
+            # Tax at lesser of 25% or taxpayer's marginal rate
+            tax += amt_1250 * 0.25
+            remaining -= amt_1250
+
         # 0% band capacity
         cap0 = max(0.0, t0 - ordinary_taxable_income)
         amt0 = min(remaining, cap0)
@@ -2314,12 +2342,16 @@ class FederalTaxEngine:
                 base_ctc = max(0, base_ctc - reduction)
             result['child_tax_credit'] = min(base_ctc, breakdown.total_tax_before_credits)
 
-            # Additional Child Tax Credit (refundable portion)
+            # Additional Child Tax Credit (refundable portion) — IRC 24(d) / Schedule 8812
+            # ACTC = lesser of: (1) unused CTC, (2) max refundable per child,
+            # (3) 15% of earned income over $2,500
             unused_ctc = base_ctc - result['child_tax_credit']
             if unused_ctc > 0:
+                earned = getattr(tax_return.income, 'get_total_earned_income', lambda: breakdown.agi)()
+                actc_from_earned = max(0, earned - 2500) * 0.15
+                max_refundable = self.config.child_tax_credit_refundable * num_children
                 result['additional_child_tax_credit'] = min(
-                    unused_ctc,
-                    self.config.child_tax_credit_refundable * num_children
+                    unused_ctc, max_refundable, actc_from_earned
                 )
 
         # Other Dependent Credit (ODC) - $500 per qualifying relative or child 17+
@@ -2650,11 +2682,12 @@ class FederalTaxEngine:
         if income_for_eitc <= phaseout_start:
             return max_credit
 
-        # In phaseout range
-        phaseout_range = phaseout_end - phaseout_start
+        # In phaseout range — use IRS rate-based phaseout (Pub 596)
+        EITC_PHASEOUT_RATES = {0: 0.0765, 1: 0.1598, 2: 0.2106, 3: 0.2106}
+        phaseout_rate = EITC_PHASEOUT_RATES.get(min(num_children, 3), 0.2106)
         excess = income_for_eitc - phaseout_start
-        reduction_pct = excess / phaseout_range if phaseout_range > 0 else 1
-        credit = max_credit * (1 - reduction_pct)
+        reduction = excess * phaseout_rate
+        credit = max_credit - reduction
 
         return float(money(max(0, credit)))
 

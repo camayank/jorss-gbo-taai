@@ -230,7 +230,7 @@ hsa_family_limit: 8550
 hsa_catchup_55_plus: 1000
 
 # SEP IRA
-sep_ira_limit: 69000
+sep_ira_limit: 70000
 
 # FSA
 fsa_limit: 3300

@@ -75,7 +75,7 @@ class TaxYearConfig:
     k401_limit: float = 23500.0
     k401_catchup_50_plus: float = 7500.0
     k401_catchup_60_64: float = 11250.0  # SECURE 2.0 super catch-up for ages 60-63
-    sep_ira_limit: float = 69000.0
+    sep_ira_limit: float = 70000.0  # 2025 per Notice 2024-80
 
     # Student loan interest deduction (BR2-0007, BR2-0008)
     student_loan_interest_max: float = 2500.0
@@ -536,7 +536,7 @@ class TaxYearConfig:
             k401_limit=23500.0,
             k401_catchup_50_plus=7500.0,
             k401_catchup_60_64=11250.0,  # SECURE 2.0 super catch-up
-            sep_ira_limit=69000.0,
+            sep_ira_limit=70000.0,
             # Student loan interest phaseouts (BR2-0007, BR2-0008)
             student_loan_interest_max=2500.0,
             student_loan_phaseout_start=student_loan_phase_start,
@@ -769,7 +769,7 @@ class TaxYearConfig:
             k401_limit=float(data.get("k401_contribution_limit", 23500)),
             k401_catchup_50_plus=float(data.get("k401_catchup_50_plus", 7500)),
             k401_catchup_60_64=float(data.get("k401_catchup_60_64", 11250)),
-            sep_ira_limit=float(data.get("sep_ira_limit", 69000)),
+            sep_ira_limit=float(data.get("sep_ira_limit", 70000)),
             student_loan_interest_max=float(data.get("student_loan_interest_max", 2500)),
             student_loan_phaseout_start=student_loan_start or None,
             student_loan_phaseout_end=student_loan_end or None,

@@ -139,9 +139,15 @@ class QBICalculator:
         businesses: list[QBIBusinessDetail] = []
 
         # Self-employment (Schedule C) as one business
+        # Per Treas. Reg. 1.199A-3(b)(1)(ii), QBI must be reduced by:
+        # (C) deductible portion of SE tax, (D) SE health insurance deduction
         se_income = to_decimal(income.self_employment_income)
         se_expenses = to_decimal(income.self_employment_expenses)
         se_net = subtract(se_income, se_expenses)
+        # Reduce QBI by SE tax deduction and health insurance deduction
+        se_tax_ded = to_decimal(getattr(income, 'se_tax_deduction', 0) or 0)
+        se_health_ded = to_decimal(getattr(income, 'se_health_insurance_deduction', 0) or 0)
+        se_net = subtract(se_net, add(se_tax_ded, se_health_ded))
         if se_net > 0:
             breakdown.qbi_from_self_employment = se_net
             businesses.append(QBIBusinessDetail(

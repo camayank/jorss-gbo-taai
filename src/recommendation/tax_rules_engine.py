@@ -1029,11 +1029,11 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED063",
         name="SEP-IRA Limit",
-        description="SEP contributions up to 25% of compensation (max $69,000)",
+        description="SEP contributions up to 25% of compensation (max $70,000)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 408(j)",
-        limit=69000.0,
+        limit=70000.0,
         rate=0.25
     ),
     TaxRule(
@@ -1048,11 +1048,11 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED065",
         name="Solo 401(k) Total Limit",
-        description="Total contributions (employee + employer) up to $69,000",
+        description="Total contributions (employee + employer) up to $70,000",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 415(c)",
-        limit=69000.0
+        limit=70000.0
     ),
 
     # More specific deductions

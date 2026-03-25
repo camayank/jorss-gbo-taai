@@ -105,7 +105,7 @@ retirement_deadlines:
     description: "Deadline for 2025 SEP IRA contributions (with extension)"
     applies_to: "Self-employed, small business owners"
     max_contribution_percent: 25
-    max_contribution_amount: 69000
+    max_contribution_amount: 70000
     notes: "Can contribute until extended filing deadline"
 
 # Business-related deadlines

@@ -372,16 +372,22 @@ class FilingPackageGenerator:
 
         taxable_income = max(0, income["total"] - deductions["total"])
 
-        # Simplified tax calculation (2024 single brackets)
+        # Simplified tax calculation (2025 single brackets — Rev. Proc. 2024-40)
         def calculate_tax(income: float) -> float:
-            if income <= 11600:
+            if income <= 11925:
                 return income * 0.10
-            elif income <= 47150:
-                return 1160 + (income - 11600) * 0.12
-            elif income <= 100525:
-                return 5426 + (income - 47150) * 0.22
+            elif income <= 48475:
+                return 1192.50 + (income - 11925) * 0.12
+            elif income <= 103350:
+                return 5578.50 + (income - 48475) * 0.22
+            elif income <= 197300:
+                return 17651.00 + (income - 103350) * 0.24
+            elif income <= 250525:
+                return 40199.00 + (income - 197300) * 0.32
+            elif income <= 626350:
+                return 57231.00 + (income - 250525) * 0.35
             else:
-                return 17168.50 + (income - 100525) * 0.24
+                return 188769.75 + (income - 626350) * 0.37
 
         tax_liability = calculate_tax(taxable_income)
         credits = self._extract_credits()

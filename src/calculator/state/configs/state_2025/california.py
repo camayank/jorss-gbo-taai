@@ -81,11 +81,11 @@ def get_california_config() -> StateTaxConfig:
         },
         starts_from="federal_agi",
         standard_deduction={
-            "single": 5363,
-            "married_joint": 10726,
-            "married_separate": 5363,
-            "head_of_household": 10726,
-            "qualifying_widow": 10726,
+            "single": 5540,
+            "married_joint": 11080,
+            "married_separate": 5540,
+            "head_of_household": 11080,
+            "qualifying_widow": 11080,
         },
         # California uses exemption credits, not deductions
         # These are the credit amounts per exemption

@@ -419,15 +419,15 @@ class ContradictionDetector:
         claiming_eitc = data.get("claiming_eitc", False)
         investment_income = data.get("investment_income", 0)
 
-        # 2025 limit is approximately $11,600
-        if claiming_eitc and investment_income and investment_income > 11600:
+        # 2025 limit per Rev. Proc. 2024-40
+        if claiming_eitc and investment_income and investment_income > 11950:
             return Contradiction(
                 id="eitc_investment_limit",
                 severity=ContradictionSeverity.ERROR,
                 title="EITC Investment Income Limit",
-                message=f"Investment income of ${investment_income:,.0f} exceeds EITC limit of $11,600.",
+                message=f"Investment income of ${investment_income:,.0f} exceeds EITC limit of $11,950.",
                 fields_involved=["claiming_eitc", "investment_income"],
-                suggestion="You cannot claim EITC with investment income over $11,600.",
+                suggestion="You cannot claim EITC with investment income over $11,950.",
                 irs_reference="Pub 596"
             )
         return None

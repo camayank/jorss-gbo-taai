@@ -60,6 +60,13 @@ class AuditEventType(Enum):
     ACCESS_GRANTED = "access_granted"
     ACCESS_REVOKED = "access_revoked"
 
+    # AI Advisory Events (Circular 230 compliance)
+    AI_CONTENT_GENERATED = "ai_content_generated"
+    AI_ADVICE_SURFACED = "ai_advice_surfaced"
+    AI_RECOMMENDATION_ACCEPTED = "ai_recommendation_accepted"
+    AI_RECOMMENDATION_DISMISSED = "ai_recommendation_dismissed"
+    PII_ACCESSED = "pii_accessed"
+
     # System events
     SYSTEM_ERROR = "system_error"
     VALIDATION_ERROR = "validation_error"

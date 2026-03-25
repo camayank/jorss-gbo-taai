@@ -141,7 +141,7 @@ class EntityStructureResponse(BaseModel):
 class RetirementOptimizationRequest(BaseModel):
     """Request for retirement contribution optimization."""
     annual_income: float = Field(..., ge=0, le=10000000)
-    current_401k: float = Field(default=0, ge=0, le=69000)  # 2025 limit
+    current_401k: float = Field(default=0, ge=0, le=70000)  # 2025 limit
     current_ira: float = Field(default=0, ge=0, le=7000)   # 2025 limit
     age: int = Field(default=35, ge=0, le=100)
     employer_match_percent: float = Field(default=0, ge=0, le=100)
@@ -150,7 +150,7 @@ class RetirementOptimizationRequest(BaseModel):
     def validate_401k(cls, v, values):
         """Validate 401k contribution limits"""
         age = values.get('age', 35)
-        limit = 69000 if age >= 50 else 66000  # 2025 limits with catch-up
+        limit = 70000 if age >= 50 else 66000  # 2025 limits with catch-up
         if v > limit:
             raise ValueError(f"401(k) contribution exceeds 2025 limit (${limit:,.0f})")
         return v

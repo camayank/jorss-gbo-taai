@@ -43,7 +43,7 @@ EITC_LIMITS = {
         3: Decimal("66460"),
     },
 }
-EITC_INVESTMENT_INCOME_LIMIT = Decimal("11600")
+EITC_INVESTMENT_INCOME_LIMIT = Decimal("11950")  # 2025 per Rev. Proc. 2024-40
 
 # Child Tax Credit Thresholds
 CTC_PHASEOUT_SINGLE = Decimal("200000")
@@ -102,7 +102,7 @@ class SkipRules:
             {"field": "filing_status", "op": "in", "value": ["single", "mfj", "hoh", "qw"]},
             {"field": "has_earned_income", "op": "equals", "value": True},
             # Investment income check
-            {"field": "investment_income", "op": "lte", "value": 11600},
+            {"field": "investment_income", "op": "lte", "value": 11950},
             # AGI check based on filing status and children - simplified
             {"or": [
                 {"and": [
@@ -122,7 +122,7 @@ class SkipRules:
         "or": [
             {"field": "filing_status", "op": "equals", "value": "mfs"},
             {"field": "agi", "op": "gt", "value": 66460},
-            {"field": "investment_income", "op": "gt", "value": 11600},
+            {"field": "investment_income", "op": "gt", "value": 11950},
         ]
     }
 

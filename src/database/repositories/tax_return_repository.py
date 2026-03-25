@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import logging
 import hashlib
+import hmac
+import os
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID
@@ -97,9 +99,17 @@ class TaxReturnRepository(ITaxReturnRepository):
         last_name = taxpayer.get("last_name", "")
         taxpayer_name = f"{first_name} {last_name}".strip() or "Unknown"
 
-        # Hash SSN for lookups (SPEC-003)
+        # Hash SSN for lookups (SPEC-003) — keyed HMAC to prevent rainbow tables
         ssn = taxpayer.get("ssn", "")
-        ssn_hash = hashlib.sha256(ssn.encode()).hexdigest() if ssn else None
+        if ssn:
+            key = os.environ.get("ENCRYPTION_MASTER_KEY", "").encode()
+            clean_ssn = ssn.replace("-", "").strip()
+            if key:
+                ssn_hash = hmac.new(key, clean_ssn.encode(), hashlib.sha256).hexdigest()
+            else:
+                ssn_hash = hashlib.sha256(clean_ssn.encode()).hexdigest()
+        else:
+            ssn_hash = None
 
         # SECURITY (SPEC-003): Sanitize SSN from stored JSON data
         # Replace plaintext SSN with masked version to prevent PII exposure

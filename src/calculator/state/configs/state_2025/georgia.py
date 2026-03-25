@@ -21,7 +21,7 @@ def get_georgia_config() -> StateTaxConfig:
         state_name="Georgia",
         tax_year=2025,
         is_flat_tax=True,
-        flat_rate=0.0539,  # 5.39% flat rate (moved to flat in 2024)
+        flat_rate=0.0549,  # 5.49% flat rate (Ga. Code 48-7-20, HB 1437)
         brackets=None,
         starts_from="federal_agi",
         standard_deduction={

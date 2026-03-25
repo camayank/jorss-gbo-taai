@@ -593,7 +593,7 @@ class TaxReturnSchema:
             "hsa_individual": Decimal("4300"),
             "hsa_family": Decimal("8550"),
             "hsa_catchup_55_plus": Decimal("1000"),
-            "sep_ira": Decimal("69000"),
+            "sep_ira": Decimal("70000"),
         },
         # Credit Limits
         "credit_limits": {

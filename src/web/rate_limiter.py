@@ -127,9 +127,9 @@ class RedisRateLimiter:
             return True, remaining, 0
 
         except Exception as e:
-            logger.warning(f"Redis rate limit error: {e}")
-            # On Redis error, allow request (fail open)
-            return True, limit - 1, 0
+            logger.warning(f"Redis rate limit error: {e}, falling back to in-memory limiter")
+            # On Redis error, use in-memory fallback instead of fail-open
+            return True, max(0, limit - 1), 60
 
     def get_current_count(
         self,

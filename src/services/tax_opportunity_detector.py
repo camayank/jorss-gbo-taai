@@ -622,7 +622,7 @@ class TaxOpportunityDetector:
 
         # SEP-IRA for Self-Employed
         if profile.self_employment_income > Decimal("10000"):
-            max_sep = min(profile.self_employment_income * Decimal("0.25"), Decimal("69000"))
+            max_sep = min(profile.self_employment_income * Decimal("0.25"), Decimal("70000"))
             if profile.traditional_401k == 0:  # No employer 401k
                 opportunities.append(TaxOpportunity(
                     id="sep_ira",

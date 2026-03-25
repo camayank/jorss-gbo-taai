@@ -676,6 +676,32 @@
             </div>
         </div>
 
+        <!-- DEDUCTION STRATEGY COMPARISON -->
+        <div class="card" style="margin-bottom: var(--space-4, 16px); border-radius: 12px; overflow: hidden;">
+            <div class="card-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                <h2 style="margin: 0; font-size: 1.1rem;">Deduction Strategy</h2>
+            </div>
+            <div class="card-body" style="padding: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="padding: 16px; border-radius: 8px; background: var(--bg-secondary, #f8f9fa); text-align: center;">
+                        <h3 style="margin: 0 0 8px; font-size: 0.9rem; color: var(--text-secondary, #6b7280);">Standard Deduction</h3>
+                        <div style="font-size: 1.5rem; font-weight: 700;">${{ "{:,.0f}".format(return_data.get('standard_deduction', 0)) }}</div>
+                    </div>
+                    <div style="padding: 16px; border-radius: 8px; background: var(--bg-secondary, #f8f9fa); text-align: center;">
+                        <h3 style="margin: 0 0 8px; font-size: 0.9rem; color: var(--text-secondary, #6b7280);">Itemized Deductions</h3>
+                        <div style="font-size: 1.5rem; font-weight: 700;">${{ "{:,.0f}".format(return_data.get('total_itemized', 0)) }}</div>
+                    </div>
+                </div>
+                {% set std = return_data.get('standard_deduction', 0) %}
+                {% set itm = return_data.get('total_itemized', 0) %}
+                {% if std > 0 or itm > 0 %}
+                <div style="margin-top: 12px; padding: 10px 16px; border-radius: 8px; background: var(--color-success-50, #ecfdf5); color: var(--color-success-700, #15803d); font-weight: 600; text-align: center;">
+                    {% if itm > std %}Itemizing saves you ${{ "{:,.0f}".format(itm - std) }} more{% else %}Standard deduction is optimal{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- COMPARISON CARD -->
         <div class="results-comparison">
             <h2>What You'd Miss Without Professional Review</h2>

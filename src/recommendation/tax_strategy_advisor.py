@@ -942,7 +942,7 @@ class TaxStrategyAdvisor:
 
         if se_income > 10000:
             # SEP-IRA or Solo 401(k)
-            max_sep = min(se_income * 0.25, 69000)  # 2025 limit
+            max_sep = min(se_income * 0.25, 70000)  # 2025 limit per Notice 2024-80
             strategies.append(TaxStrategy(
                 title="Open SEP-IRA or Solo 401(k)",
                 category="business",

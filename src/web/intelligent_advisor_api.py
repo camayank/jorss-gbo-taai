@@ -1380,11 +1380,11 @@ class IntelligentChatEngine:
         if not income or not status:
             return None
 
-        # Estimate marginal rate from 2025 brackets
+        # Estimate marginal rate from 2025 brackets (Rev. Proc. 2024-40)
         if status == "married_joint":
-            brackets = [(23200, .10), (94300, .12), (201050, .22), (383900, .24), (487450, .32), (731200, .35)]
+            brackets = [(23850, .10), (96950, .12), (206700, .22), (394600, .24), (501050, .32), (751600, .35)]
         else:
-            brackets = [(11600, .10), (47150, .12), (100525, .22), (191950, .24), (243725, .32), (609350, .35)]
+            brackets = [(11925, .10), (48475, .12), (103350, .22), (197300, .24), (250525, .32), (626350, .35)]
         rate = 0.22  # default
         for top, r in brackets:
             if income <= top:
@@ -1891,11 +1891,11 @@ class IntelligentChatEngine:
     # 20% deduction on qualified business income for pass-through entities
     QBI_DEDUCTION_RATE = 0.20
     QBI_TAXABLE_INCOME_THRESHOLD = {
-        "single": 191950,
-        "married_joint": 383900,
-        "married_separate": 191950,
-        "head_of_household": 191950,
-        "qualifying_widow": 383900
+        "single": 197300,
+        "married_joint": 394600,
+        "married_separate": 197300,
+        "head_of_household": 197300,
+        "qualifying_widow": 394600
     }
     QBI_PHASEOUT_RANGE = {
         "single": 50000,  # Phase-out over $50K
@@ -3738,16 +3738,16 @@ def _quick_tax_estimate(profile: dict) -> dict:
     # 4. Taxable income
     taxable = max(0, income - deduction - above_line)
 
-    # 5. Progressive tax calculation (2025 brackets)
+    # 5. Progressive tax calculation (2025 brackets — Rev. Proc. 2024-40)
     if status == "married_joint" or status == "qualifying_widow":
-        brackets = [(23200, 0.10), (94300, 0.12), (201050, 0.22), (383900, 0.24),
-                    (487450, 0.32), (731200, 0.35), (float("inf"), 0.37)]
+        brackets = [(23850, 0.10), (96950, 0.12), (206700, 0.22), (394600, 0.24),
+                    (501050, 0.32), (751600, 0.35), (float("inf"), 0.37)]
     elif status == "head_of_household":
-        brackets = [(16550, 0.10), (63100, 0.12), (100500, 0.22), (191950, 0.24),
-                    (243700, 0.32), (609350, 0.35), (float("inf"), 0.37)]
+        brackets = [(17000, 0.10), (64850, 0.12), (103350, 0.22), (197300, 0.24),
+                    (250500, 0.32), (626350, 0.35), (float("inf"), 0.37)]
     else:  # single or MFS
-        brackets = [(11600, 0.10), (47150, 0.12), (100525, 0.22), (191950, 0.24),
-                    (243725, 0.32), (609350, 0.35), (float("inf"), 0.37)]
+        brackets = [(11925, 0.10), (48475, 0.12), (103350, 0.22), (197300, 0.24),
+                    (250525, 0.32), (626350, 0.35), (float("inf"), 0.37)]
 
     tax = 0
     prev = 0
@@ -7938,8 +7938,8 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
         # ─── NEW: Retirement expanded ────────────────────────────────────
         "has_trad_ira": {"retirement_ira": 7000, "_asked_retirement": True},
         "has_roth_ira": {"retirement_ira": 7000, "_has_roth_ira": True, "_asked_retirement": True},
-        "has_sep": {"retirement_401k": 69000, "_asked_retirement": True},  # 2025 SEP limit
-        "has_solo_401k": {"retirement_401k": 69000, "_asked_retirement": True},
+        "has_sep": {"retirement_401k": 70000, "_asked_retirement": True},  # 2025 SEP limit
+        "has_solo_401k": {"retirement_401k": 70000, "_asked_retirement": True},
         # ─── NEW: HSA expanded ───────────────────────────────────────────
         "has_hdhp_no_hsa": {"hsa_contributions": 0, "_has_hdhp": True, "_asked_hsa": True},
         # ─── NEW: Distributions ──────────────────────────────────────────

@@ -5,7 +5,7 @@ IRS Form for calculating the Section 199A QBI deduction for taxpayers
 with taxable income at or below threshold amounts.
 
 Form 8995 (Simplified):
-- Used when taxable income <= $182,100 (single) or $364,200 (MFJ) for 2024
+- Used when taxable income <= $197,300 (single) or $394,600 (MFJ) for 2025
 - No W-2 wage or UBIA limitations apply
 - No SSTB limitations apply
 
