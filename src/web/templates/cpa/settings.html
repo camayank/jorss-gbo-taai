@@ -420,12 +420,17 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        revokeSession(idx) {
-            const name = this.sessions[idx].device;
-            if (confirm('Revoke session on ' + name + '?')) {
-                this.sessions.splice(idx, 1);
-                this.showToast('Session on ' + name + ' has been revoked');
-            }
+        async revokeSession(idx) {
+            const session = this.sessions[idx];
+            const name = session.device;
+            if (!confirm('Revoke session on ' + name + '?')) return;
+            try {
+                if (session.id) {
+                    await fetch('/api/auth/sessions/' + session.id + '/revoke', { method: 'POST', credentials: 'same-origin' });
+                }
+            } catch (e) { /* best effort server-side revoke */ }
+            this.sessions.splice(idx, 1);
+            this.showToast('Session on ' + name + ' has been revoked');
         },
 
         async toggleIntegration(integration) {

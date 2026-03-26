@@ -702,6 +702,30 @@ function worksheetManager() {
     return {
         taxYear: 2025,
         filingStatus: 'single',
+
+        async init() {
+            // Pre-populate from session if available
+            const sessionId = '{{ session_id or "" }}' || new URLSearchParams(window.location.search).get('session_id');
+            if (!sessionId) return;
+            try {
+                const resp = await fetch(`/api/sessions/${sessionId}/restore`, { credentials: 'same-origin' });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const p = data.profile || data.extracted_data || data;
+                if (p.filing_status) this.filingStatus = p.filing_status.replace('married_filing_jointly', 'mfj').replace('married_filing_separately', 'mfs').replace('head_of_household', 'hoh');
+                if (p.wages || p.w2_income) this.income.wages = Number(p.wages || p.w2_income || 0);
+                if (p.interest_income) this.income.interestTaxable = Number(p.interest_income || 0);
+                if (p.dividend_income) this.income.dividendsOrdinary = Number(p.dividend_income || 0);
+                if (p.business_income || p.self_employment_income) this.income.businessIncome = Number(p.business_income || p.self_employment_income || 0);
+                if (p.capital_gains) this.income.capitalGains = Number(p.capital_gains || 0);
+                if (p.rental_income) this.income.rentalIncome = Number(p.rental_income || 0);
+                if (p.social_security || p.ss_benefits) this.income.socialSecurity = Number(p.social_security || p.ss_benefits || 0);
+                if (p.federal_withholding || p.federal_withheld) this.payments.federalWithheld = Number(p.federal_withholding || p.federal_withheld || 0);
+                if (p.estimated_payments) this.payments.estimatedPayments = Number(p.estimated_payments || 0);
+                if (p.mortgage_interest) this.itemized.mortgageInterest = Number(p.mortgage_interest || 0);
+                if (p.charitable_donations) this.itemized.charitableCash = Number(p.charitable_donations || 0);
+            } catch (e) { /* Session restore optional */ }
+        },
         sections: {
             income: true,
             adjustments: true,
@@ -764,11 +788,11 @@ function worksheetManager() {
 
         get standardDeduction() {
             const sd = {
-                single: 15700,
-                mfj: 31400,
-                mfs: 15700,
-                hoh: 23500,
-                qss: 31400
+                single: 15750,
+                mfj: 31500,
+                mfs: 15750,
+                hoh: 23850,
+                qss: 31500
             };
             return sd[this.filingStatus] || 15700;
         },

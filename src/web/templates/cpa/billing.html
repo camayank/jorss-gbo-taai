@@ -288,7 +288,7 @@
 <div class="billing-grid">
     <div class="plan-card">
         <div class="plan-header">
-            <div class="plan-name">{{ billing.plan }}</div>
+            <div class="plan-name">{{ billing.plan or 'No Active Plan' }}</div>
             <span class="plan-status">{{ icon('check') }} {{ billing.status|capitalize }}</span>
         </div>
         <div class="plan-body">
@@ -404,7 +404,7 @@
                 {% if plan.name == billing.plan %}
                 <button class="btn btn-secondary" style="width:100%;" disabled>Current Plan</button>
                 {% else %}
-                <a href="mailto:support@jorss-gbo.com?subject=Plan Change Request — {{ plan.name }}&body=I would like to switch to the {{ plan.name }} plan." class="btn btn-primary" style="width:100%; display:block; text-align:center; text-decoration:none;">Select</a>
+                <button class="btn btn-primary" style="width:100%;" onclick="alert('Plan upgrade to {{ plan.name }} requested. Our team will contact you within 24 hours to complete the upgrade.'); fetch('/api/cpa/billing/upgrade-request', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan:'{{ plan.name }}'})}).catch(function(){});">Select {{ plan.name }}</button>
                 {% endif %}
             </div>
             {% endfor %}
