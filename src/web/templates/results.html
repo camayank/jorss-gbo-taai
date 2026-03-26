@@ -652,12 +652,18 @@
                     <span class="results-date">{{ return_data.get('completed_date', '') }}</span>
                 </div>
 
-                {% set savings = refund if refund else (tax_owed if tax_owed else 4847) %}
+                {% set savings = refund if refund else (tax_owed if tax_owed else 0) %}
                 <div class="results-amount">
                     <span class="dollar">$</span>{{ "{:,.0f}".format(savings) }}
                 </div>
-                <div class="results-amount-label">Identified Tax Savings</div>
-                <div class="results-range">Conservative estimate: ${{ "{:,.0f}".format(savings * 0.7) }} &mdash; ${{ "{:,.0f}".format(savings * 1.3) }}</div>
+                {% if savings > 0 %}
+                <div class="results-amount-label">
+                    {% if refund %}Estimated Refund{% else %}Tax Savings Identified{% endif %}
+                </div>
+                {% else %}
+                <div class="results-amount-label">Calculation Pending</div>
+                <div class="results-range" style="color: var(--text-secondary);">Complete your tax profile to see your results</div>
+                {% endif %}
 
                 <div class="results-metrics">
                     <div class="results-metric">

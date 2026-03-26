@@ -1396,15 +1396,27 @@ async def cpa_return_queue_page(
                 data = s.data
                 profile = data.get("profile", {})
                 if profile.get("filing_status"):
+                    # Load actual tax return data for refund/owed amount
+                    refund_owed = 0
+                    total_income = 0
+                    try:
+                        tax_return = persistence.load_session_tax_return(s.session_id, tenant_id=tenant_id)
+                        if tax_return:
+                            refund_owed = tax_return.get("refund_or_owed", 0) or tax_return.get("combined_refund_or_owed", 0)
+                            total_income = tax_return.get("adjusted_gross_income", 0) or tax_return.get("total_income", 0)
+                    except Exception:
+                        pass  # Use defaults if tax return not yet calculated
+
                     returns.append({
                         "session_id": s.session_id,
                         "client_name": profile.get("name", "Anonymous Client"),
                         "client_email": profile.get("email", ""),
                         "tax_year": data.get("tax_year", 2025),
                         "filing_status": profile.get("filing_status", "Unknown"),
-                        "refund_or_owed": 0,
+                        "total_income": total_income,
+                        "refund_or_owed": refund_owed,
                         "submitted_at": s.last_activity or s.created_at,
-                        "status": status
+                        "status": data.get("workflow_status", status),
                     })
     except Exception as e:
         logger.warning(f"Could not load returns from database: {e}")
@@ -1505,30 +1517,32 @@ async def cpa_return_review_page(
                 notes = session.get('notes', [])
 
     except Exception as e:
-        logger.error(f"Error loading return for review: {e}")
-        # Use demo data fallback
-        return_data = {
-            "status": "pending_review",
-            "filing_status": "Single",
-            "w2_wages": 75000,
-            "interest_income": 500,
-            "dividend_income": 1200,
-            "self_employment_income": 0,
-            "other_income": 0,
-            "total_income": 76700,
-            "agi": 76700,
-            "taxable_income": 62100,
-            "use_standard_deduction": True,
-            "total_deduction": 14600,
-            "federal_withholding": 12000,
-            "estimated_payments": 0,
-            "child_tax_credit": 0,
-            "eitc": 0,
-            "total_payments": 12000,
-            "total_tax": 9245,
-            "refund_or_owed": 2755
-        }
-        client_name = "Demo Client"
+        logger.error(f"Error loading return for review: {e}", exc_info=True)
+        # Try loading from session_tax_returns as fallback
+        try:
+            from database.session_persistence import get_session_persistence
+            fallback_persistence = get_session_persistence()
+            tax_data = fallback_persistence.load_session_tax_return(session_id)
+            if tax_data:
+                return_data = {
+                    "status": "pending_review",
+                    "filing_status": tax_data.get("filing_status", "Unknown"),
+                    "total_income": tax_data.get("adjusted_gross_income", 0),
+                    "agi": tax_data.get("adjusted_gross_income", 0),
+                    "taxable_income": tax_data.get("taxable_income", 0),
+                    "total_tax": tax_data.get("tax_liability", 0),
+                    "refund_or_owed": tax_data.get("refund_or_owed", 0),
+                    "total_payments": tax_data.get("total_payments", 0),
+                }
+                taxpayer = tax_data.get("taxpayer", {})
+                client_name = f"{taxpayer.get('first_name', '')} {taxpayer.get('last_name', '')}".strip() or "Client"
+            else:
+                return_data = {"status": "error", "error_message": "Return data not found for this session."}
+                client_name = "Unknown"
+        except Exception as fallback_err:
+            logger.error(f"Fallback data load also failed: {fallback_err}")
+            return_data = {"status": "error", "error_message": "Unable to load return data. Please try again."}
+            client_name = "Unknown"
 
     # Compliance review
     compliance_report = None

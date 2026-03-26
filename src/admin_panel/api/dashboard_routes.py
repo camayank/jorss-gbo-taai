@@ -140,6 +140,17 @@ async def get_dashboard(
     active_returns = returns_row[0] or 0
     pending_review = returns_row[1] or 0
 
+    # Also count session-based returns from the intelligent advisor
+    try:
+        from database.session_persistence import get_session_persistence
+        session_persistence = get_session_persistence()
+        all_sessions = session_persistence.list_sessions(tenant_id=None)
+        session_returns = [s for s in all_sessions if s.session_type == "intelligent_advisor" and s.data and s.data.get("profile", {}).get("filing_status")]
+        active_returns += len(session_returns)
+        pending_review += sum(1 for s in session_returns if s.data.get("workflow_status") in (None, "pending_review", "in_review"))
+    except Exception as e:
+        logger.debug(f"Could not count session-based returns: {e}")
+
     # Get returns from last month for comparison
     last_month_query = text("""
         SELECT COUNT(*) FROM returns r

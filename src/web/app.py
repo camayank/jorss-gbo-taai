@@ -1228,6 +1228,39 @@ if _ENABLE_TEST_ROUTES:
         """
         return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
+    @app.get("/dev/login-as/{role}")
+    def dev_login_as(role: str):
+        """DEV ONLY: Generate auth cookies for a given role to browse screens."""
+        from uuid import UUID, uuid4
+        from rbac.jwt import create_access_token
+        from rbac.roles import Role
+
+        ROLE_MAP = {
+            "admin": {"role": Role.SUPER_ADMIN, "user_type": "platform_admin", "email": "admin@dev.local", "name": "Dev Admin"},
+            "cpa": {"role": Role.PARTNER, "user_type": "firm_user", "email": "cpa@dev.local", "name": "Dev CPA", "firm_id": uuid4(), "firm_name": "Dev CPA Firm"},
+            "staff": {"role": Role.STAFF, "user_type": "firm_user", "email": "staff@dev.local", "name": "Dev Staff", "firm_id": uuid4(), "firm_name": "Dev CPA Firm"},
+            "client": {"role": Role.FIRM_CLIENT, "user_type": "client", "email": "client@dev.local", "name": "Dev Client", "firm_id": uuid4(), "firm_name": "Dev CPA Firm"},
+        }
+        if role not in ROLE_MAP:
+            return JSONResponse({"error": f"Unknown role: {role}. Use: admin, cpa, staff, client"}, status_code=400)
+
+        cfg = ROLE_MAP[role]
+        token = create_access_token(
+            user_id=uuid4(),
+            email=cfg["email"],
+            name=cfg["name"],
+            role=cfg["role"],
+            user_type=cfg["user_type"],
+            firm_id=cfg.get("firm_id"),
+            firm_name=cfg.get("firm_name"),
+        )
+        redirect_map = {"admin": "/admin", "cpa": "/cpa/dashboard", "staff": "/cpa/dashboard", "client": "/app/portal"}
+        response = RedirectResponse(url=redirect_map.get(role, "/"), status_code=302)
+        response.set_cookie("auth_token", token, httponly=True, samesite="lax", max_age=86400)
+        response.set_cookie("user_role", cfg["user_type"], max_age=86400)
+        response.set_cookie("user_name", cfg["name"], max_age=86400)
+        return response
+
 
 def _require_admin_page_access(request: Request) -> Optional[RedirectResponse]:
     """
