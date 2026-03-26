@@ -61,6 +61,11 @@
     {% include 'partials/sidebar.html' %}
   {% endif %}
 
+  {# Client navigation bar (shown on client-facing pages) #}
+  {% if user and user.role in ('client', 'firm_client', 'direct_client', 'anonymous') %}
+    {% include 'partials/client_nav.html' ignore missing %}
+  {% endif %}
+
   {# Main content area #}
   <main class="main-content">
     {% include 'partials/next_step_banner.html' ignore missing %}
