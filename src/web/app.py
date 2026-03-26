@@ -2977,15 +2977,10 @@ async def export_pdf(request: Request, session_id: str = None):
     # Support both query parameter and cookie for session_id
     session_id = session_id or request.cookies.get("tax_session_id") or ""
 
-    # CPA COMPLIANCE: Check approval status before allowing export
-    is_approved, error_msg = _check_cpa_approval(session_id, "PDF Export")
-    if not is_approved:
-        return create_error_response(
-            code=ErrorCode.VALIDATION_ERROR,
-            message=error_msg,
-            status_code=403,
-            user_message=error_msg
-        )
+    # Check approval status — allow download but flag as DRAFT if not approved
+    is_approved, _ = _check_cpa_approval(session_id, "PDF Export")
+    # CPAs and clients can always download; only flag unapproved returns
+    draft_watermark = not is_approved
 
     tax_return = _get_tax_return_for_session(session_id)
 

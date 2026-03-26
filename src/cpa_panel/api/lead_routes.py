@@ -479,3 +479,34 @@ async def get_states_info(request: Request, user=Depends(require_internal_cpa_au
         })
     except Exception as e:
         log_and_raise_http_error(e, category="db", context="getting states info")
+
+
+@lead_router.patch("/leads/{lead_id}/state", operation_id="update_lead_state")
+async def update_lead_state(lead_id: str, request: Request):
+    """Update lead pipeline state (for kanban drag-and-drop)."""
+    body = await request.json()
+    new_state = body.get("state")
+    if not new_state:
+        raise HTTPException(status_code=400, detail="state is required")
+
+    try:
+        engine = _get_lead_state_engine()
+        # Try force_state first (direct state transition)
+        if hasattr(engine, 'force_state'):
+            engine.force_state(lead_id, new_state)
+        elif hasattr(engine, 'transition_lead'):
+            engine.transition_lead(lead_id, new_state)
+        else:
+            # Direct DB update as fallback
+            from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
+            service = get_lead_magnet_service()
+            service.update_lead(lead_id, {"current_state": new_state})
+
+        return JSONResponse({
+            "success": True,
+            "lead_id": lead_id,
+            "state": new_state,
+        })
+    except Exception as e:
+        logger.error(f"Failed to update lead state: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
