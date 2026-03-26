@@ -848,6 +848,26 @@ templates.env.globals["platform_name"] = _default_brand.get("platform_name", "Ta
 templates.env.globals["platform_url"] = _default_brand.get("website_url", "")
 templates.env.globals["contact_email"] = _default_brand.get("support_email", "support@example.com")
 
+# Config object for templates that reference {{ config.APP_NAME }}
+class _TemplateConfig:
+    APP_NAME = _default_brand.get("platform_name", "Tax Advisory Platform")
+    SUPPORT_EMAIL = _default_brand.get("support_email", "support@example.com")
+    TAX_YEAR = 2025
+
+templates.env.globals["config"] = _TemplateConfig()
+
+# Default values for template variables that some routes forget to pass
+templates.env.globals.setdefault("current_path", "")
+templates.env.globals.setdefault("active_page", "")
+templates.env.globals.setdefault("nav_sections", [])
+templates.env.globals.setdefault("tenant_features", {
+    "documents": True, "support": True, "tasks": True,
+    "appointments": True, "deadlines": True, "messaging": True, "analytics": True,
+})
+templates.env.globals.setdefault("sidebar_theme", "default")
+templates.env.globals.setdefault("logo_url", "")
+templates.env.globals.setdefault("user", {"role": "anonymous", "name": "Guest", "email": ""})
+
 # Static files (for PWA manifest, icons, etc.)
 from fastapi.staticfiles import StaticFiles
 static_dir = os.path.join(os.path.dirname(__file__), "static")

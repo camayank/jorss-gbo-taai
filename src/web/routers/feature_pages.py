@@ -34,6 +34,25 @@ router = APIRouter(tags=["Feature Pages"])
 _templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 templates = Jinja2Templates(directory=_templates_dir)
 
+# Add globals that base templates expect
+# Comprehensive template globals — prevents UndefinedError for all base template vars
+_feature_defaults = {
+    "current_path": "", "active_page": "", "nav_sections": [],
+    "branding": {"platform_name": "Tax Advisory Platform", "support_email": "support@example.com"},
+    "brand_name": "Tax Advisory Platform", "platform_name": "Tax Advisory Platform",
+    "platform_url": "", "contact_email": "support@example.com",
+    "tenant_features": {"documents": True, "support": True, "tasks": True, "appointments": True, "deadlines": True, "messaging": True, "analytics": True},
+    "sidebar_theme": "default", "logo_url": "",
+}
+for k, v in _feature_defaults.items():
+    templates.env.globals.setdefault(k, v)
+
+class _FeatureConfig:
+    APP_NAME = "Tax Advisory Platform"
+    SUPPORT_EMAIL = "support@example.com"
+    TAX_YEAR = 2025
+templates.env.globals.setdefault("config", _FeatureConfig())
+
 
 # =============================================================================
 # DOCUMENTS

@@ -34,6 +34,25 @@ try:
 except ImportError:
     pass
 
+# Comprehensive template globals to prevent UndefinedError
+_page_defaults = {
+    "current_path": "", "active_page": "", "nav_sections": [],
+    "branding": {"platform_name": "Tax Advisory Platform", "support_email": "support@example.com"},
+    "brand_name": "Tax Advisory Platform", "platform_name": "Tax Advisory Platform",
+    "platform_url": "", "contact_email": "support@example.com",
+    "tenant_features": {"documents": True, "support": True, "tasks": True, "appointments": True, "deadlines": True, "messaging": True, "analytics": True},
+    "sidebar_theme": "default", "logo_url": "",
+    "user": {"role": "anonymous", "name": "Guest", "email": ""},
+}
+for _k, _v in _page_defaults.items():
+    templates.env.globals.setdefault(_k, _v)
+
+class _PageConfig:
+    APP_NAME = "Tax Advisory Platform"
+    SUPPORT_EMAIL = "support@example.com"
+    TAX_YEAR = 2025
+templates.env.globals.setdefault("config", _PageConfig())
+
 
 # =========================================================================
 # AUTH/ROLE HELPER FUNCTIONS
@@ -403,9 +422,10 @@ def scenarios_page(request: Request, session_id: str = None):
     denied = _require_any_auth(request)
     if denied:
         return denied
+    user_context = _ui_user_context(request)
     return templates.TemplateResponse(
         "scenarios.html",
-        {"request": request, "session_id": session_id, "page_title": "Scenario Comparison"}
+        {"request": request, "user": user_context, "session_id": session_id, "page_title": "Scenario Comparison"}
     )
 
 
