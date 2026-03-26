@@ -3049,10 +3049,10 @@ async def export_universal_json(request: Request, session_id: str = None):
 @app.get("/api/tools/tax-rate-lookup")
 async def tax_rate_lookup(income: float = 85000, filing_status: str = "single"):
     """Quick tax rate lookup — marginal and effective rates for 2025."""
-    from calculator.tax_year_config import get_tax_year_config
-    config = get_tax_year_config(2025)
-    brackets = config.tax_brackets.get(filing_status, config.tax_brackets.get("single", []))
-    std_ded = config.standard_deductions.get(filing_status, 15750)
+    from calculator.tax_year_config import TaxYearConfig
+    config = TaxYearConfig.for_2025()
+    brackets = config.ordinary_income_brackets.get(filing_status, config.ordinary_income_brackets.get("single", []))
+    std_ded = config.standard_deduction.get(filing_status, 15750)
     taxable = max(0, income - std_ded)
     marginal_rate = 0.10
     tax = 0
@@ -3083,11 +3083,11 @@ async def w4_calculator(
     dependents: int = 0, other_income: float = 0,
 ):
     """W-4 withholding calculator — recommends optimal W-4 settings."""
-    from calculator.tax_year_config import get_tax_year_config
-    config = get_tax_year_config(2025)
-    std_ded = config.standard_deductions.get(filing_status, 15750)
+    from calculator.tax_year_config import TaxYearConfig
+    config = TaxYearConfig.for_2025()
+    std_ded = config.standard_deduction.get(filing_status, 15750)
     taxable = max(0, annual_income + other_income - std_ded)
-    brackets = config.tax_brackets.get(filing_status, config.tax_brackets.get("single", []))
+    brackets = config.ordinary_income_brackets.get(filing_status, config.ordinary_income_brackets.get("single", []))
     annual_tax = 0
     prev = 0
     for threshold, rate in brackets:
