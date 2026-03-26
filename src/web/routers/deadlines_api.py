@@ -40,7 +40,38 @@ class DeadlineUpdate(BaseModel):
     completed: Optional[bool] = None
 
 
-_custom_deadlines: dict[str, dict] = {}
+# SQLite-backed persistence (replaces in-memory dict)
+import sqlite3, json, os
+from pathlib import Path
+
+_DB_PATH = Path(os.environ.get("DATABASE_PATH", str(Path(__file__).parent.parent.parent.parent / "data" / "platform.db")))
+
+def _get_db():
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    conn.execute("""CREATE TABLE IF NOT EXISTS custom_deadlines (
+        deadline_id TEXT PRIMARY KEY, data_json TEXT NOT NULL, created_at TEXT NOT NULL
+    )""")
+    return conn
+
+def _save_dl(dl_id, record):
+    with _get_db() as conn:
+        conn.execute("INSERT OR REPLACE INTO custom_deadlines (deadline_id, data_json, created_at) VALUES (?, ?, ?)",
+                     (dl_id, json.dumps(record, default=str), record.get("created_at", "")))
+
+def _load_dl(dl_id):
+    with _get_db() as conn:
+        row = conn.execute("SELECT data_json FROM custom_deadlines WHERE deadline_id = ?", (dl_id,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+def _load_all_dl():
+    with _get_db() as conn:
+        return [json.loads(r[0]) for r in conn.execute("SELECT data_json FROM custom_deadlines").fetchall()]
+
+def _delete_dl(dl_id):
+    with _get_db() as conn:
+        conn.execute("DELETE FROM custom_deadlines WHERE deadline_id = ?", (dl_id,))
 
 
 @router.get("")
@@ -49,7 +80,7 @@ async def list_deadlines(category: Optional[str] = None, ctx=Depends(require_aut
         {**d, "deadline_id": f"irs-{i}", "completed": False}
         for i, d in enumerate(IRS_DEADLINES)
     ]
-    deadlines.extend(_custom_deadlines.values())
+    deadlines.extend(_load_all_dl())
     if category:
         deadlines = [d for d in deadlines if d.get("category") == category]
     deadlines.sort(key=lambda d: d.get("date", ""))
@@ -61,21 +92,24 @@ async def create_deadline(deadline: DeadlineCreate, ctx=Depends(require_auth)):
     dl_id = str(uuid4())
     now = datetime.now(timezone.utc).isoformat()
     record = {"deadline_id": dl_id, **deadline.model_dump(), "completed": False, "created_by": str(ctx.user_id) if ctx.user_id else None, "created_at": now}
-    _custom_deadlines[dl_id] = record
+    _save_dl(dl_id, record)
     return record
 
 
 @router.patch("/{deadline_id}")
 async def update_deadline(deadline_id: str, updates: DeadlineUpdate, ctx=Depends(require_auth)):
-    if deadline_id not in _custom_deadlines:
+    record = _load_dl(deadline_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Deadline not found")
     for key, value in updates.model_dump(exclude_unset=True).items():
-        _custom_deadlines[deadline_id][key] = value
-    return _custom_deadlines[deadline_id]
+        record[key] = value
+    _save_dl(deadline_id, record)
+    return record
 
 
 @router.delete("/{deadline_id}", status_code=204)
 async def delete_deadline(deadline_id: str, ctx=Depends(require_auth)):
-    if deadline_id not in _custom_deadlines:
+    record = _load_dl(deadline_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Deadline not found")
-    del _custom_deadlines[deadline_id]
+    _delete_dl(deadline_id)

@@ -595,11 +595,11 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED015",
         name="Medical Miles Deduction",
-        description="Medical travel at 67 cents per mile (2025)",
+        description="Medical travel at 21 cents per mile (2025)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.LOW,
         irs_reference="Publication 502",
-        rate=0.67
+        rate=0.21
     ),
 
     # Mortgage Interest

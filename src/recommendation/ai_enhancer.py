@@ -137,7 +137,7 @@ CATEGORY_TEMPLATES = {
     "business": {
         "common_questions": [
             {"question": "What business expenses are deductible?", "answer": "Expenses that are ordinary (common in your trade) and necessary (helpful and appropriate) for your business, including supplies, equipment, travel, and home office."},
-            {"question": "Should I use actual expenses or standard mileage?", "answer": "Compare both methods. Standard mileage rate is 67 cents/mile for 2024. Actual expenses may be higher for expensive vehicles."},
+            {"question": "Should I use actual expenses or standard mileage?", "answer": "Compare both methods. Standard mileage rate is 70 cents/mile for 2025. Actual expenses may be higher for expensive vehicles."},
         ],
         "risk_considerations": ["Home office must be exclusive and regular business use", "Vehicle logs must be contemporaneous", "Hobby loss rules if no profit 3 of 5 years"],
         "related_opportunities": ["Section 179 Deduction", "Home Office Deduction", "Qualified Business Income Deduction"],

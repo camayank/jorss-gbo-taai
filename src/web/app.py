@@ -3004,6 +3004,48 @@ async def export_pdf(request: Request, session_id: str = None):
         raise HTTPException(status_code=500, detail="PDF generation failed. Please try again later.")
 
 
+@app.get("/api/export/drake-csv")
+async def export_drake_csv(request: Request, session_id: str = None):
+    """Export tax return in Drake Software compatible CSV format."""
+    from export.practice_software_export import get_drake_csv
+    session_id = session_id or request.cookies.get("tax_session_id") or ""
+    return_data = _get_tax_return_for_session(session_id)
+    if not return_data:
+        raise HTTPException(status_code=404, detail="No tax return data found")
+    rd = return_data.to_dict() if hasattr(return_data, 'to_dict') else (return_data if isinstance(return_data, dict) else {})
+    csv_content = get_drake_csv(rd)
+    from fastapi.responses import Response
+    return Response(content=csv_content, media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=tax_return_{session_id[:8]}_drake.csv"})
+
+
+@app.get("/api/export/lacerte-csv")
+async def export_lacerte_csv(request: Request, session_id: str = None):
+    """Export tax return in Lacerte/ProConnect compatible CSV format."""
+    from export.practice_software_export import get_lacerte_csv
+    session_id = session_id or request.cookies.get("tax_session_id") or ""
+    return_data = _get_tax_return_for_session(session_id)
+    if not return_data:
+        raise HTTPException(status_code=404, detail="No tax return data found")
+    rd = return_data.to_dict() if hasattr(return_data, 'to_dict') else (return_data if isinstance(return_data, dict) else {})
+    csv_content = get_lacerte_csv(rd)
+    from fastapi.responses import Response
+    return Response(content=csv_content, media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=tax_return_{session_id[:8]}_lacerte.csv"})
+
+
+@app.get("/api/export/universal-json")
+async def export_universal_json(request: Request, session_id: str = None):
+    """Export tax return as universal JSON with IRS form/line mappings."""
+    from export.practice_software_export import get_universal_json
+    session_id = session_id or request.cookies.get("tax_session_id") or ""
+    return_data = _get_tax_return_for_session(session_id)
+    if not return_data:
+        raise HTTPException(status_code=404, detail="No tax return data found")
+    rd = return_data.to_dict() if hasattr(return_data, 'to_dict') else (return_data if isinstance(return_data, dict) else {})
+    return JSONResponse(get_universal_json(rd))
+
+
 @app.get("/api/export/json")
 async def export_json(request: Request, session_id: str = None):
     """

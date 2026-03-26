@@ -319,11 +319,22 @@ async def health_check() -> JSONResponse:
     uptime = datetime.now(timezone.utc) - _start_time
     uptime_str = str(uptime).split(".")[0]  # Remove microseconds
 
+    # AI provider check
+    ai_check = {"status": "degraded", "message": "No AI providers configured"}
+    try:
+        from config.ai_providers import get_available_providers
+        providers = get_available_providers()
+        if providers:
+            ai_check = {"status": "healthy", "providers": [getattr(p, 'name', str(p)) for p in providers], "count": len(providers)}
+    except Exception as e:
+        ai_check = {"status": "degraded", "message": f"AI check failed: {e}"}
+
     checks = {
         "database": db_check,
         "redis": redis_check,
         "encryption": encryption_check,
         "disk": disk_check,
+        "ai_providers": ai_check,
     }
 
     # Determine overall status
