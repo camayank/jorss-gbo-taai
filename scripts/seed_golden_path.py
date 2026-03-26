@@ -23,9 +23,10 @@ from database.session_persistence import SessionPersistence
 
 
 def get_persistence():
+    # Use same default path as the running app: data/tax_returns.db
     db_path = Path(os.environ.get(
         "SESSION_DB_PATH",
-        str(Path(__file__).parent.parent / "src" / "database" / "sessions.db")
+        str(Path(__file__).parent.parent / "data" / "tax_returns.db")
     ))
     return SessionPersistence(db_path=db_path)
 

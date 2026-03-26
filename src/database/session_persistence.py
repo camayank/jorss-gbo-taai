@@ -561,6 +561,18 @@ class SessionPersistence:
                 self.delete_session(session_id)
                 return None
 
+            # Safely decode session data — handle encryption/empty/corrupt JSON
+            try:
+                raw_data = _decrypt_session_data(row[6]) if row[6] else ""
+                session_data = json.loads(raw_data) if raw_data else {}
+            except (json.JSONDecodeError, Exception):
+                session_data = {}
+
+            try:
+                session_meta = json.loads(row[7]) if row[7] else {}
+            except (json.JSONDecodeError, Exception):
+                session_meta = {}
+
             return SessionRecord(
                 session_id=row[0],
                 tenant_id=row[1],
@@ -568,8 +580,8 @@ class SessionPersistence:
                 created_at=row[3],
                 last_activity=row[4],
                 expires_at=row[5],
-                data=json.loads(_decrypt_session_data(row[6])) if row[6] else {},
-                metadata=json.loads(row[7]) if row[7] else {}
+                data=session_data,
+                metadata=session_meta,
             )
 
     def load_agent_state(self, session_id: str) -> Optional[bytes]:

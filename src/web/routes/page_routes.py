@@ -573,12 +573,22 @@ def filing_results(request: Request, session_id: str = None):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Return not found or expired.")
 
-    return_data = persistence.load_session_tax_return(session_id)
-    if not return_data:
-        return_data = {}
+    raw_return = persistence.load_session_tax_return(session_id)
+    if not raw_return:
+        raw_return = {}
 
-    total_tax = return_data.get('total_tax', 0)
-    total_withholding = return_data.get('total_withholding', 0)
+    # Unwrap nested structure: load_session_tax_return returns
+    # {"return_data": {...}, "calculated_results": {...}, "tax_year": ...}
+    return_data = raw_return.get('return_data', raw_return) if isinstance(raw_return, dict) else {}
+    calculated = raw_return.get('calculated_results', {}) if isinstance(raw_return, dict) else {}
+    # Merge calculated results into return_data for template access
+    if calculated:
+        for k, v in calculated.items():
+            if k not in return_data or not return_data[k]:
+                return_data[k] = v
+
+    total_tax = return_data.get('tax_liability', 0) or return_data.get('total_tax', 0)
+    total_withholding = return_data.get('total_payments', 0) or return_data.get('total_withholding', 0)
     refund = None
     tax_owed = None
     if total_withholding > total_tax:
@@ -587,7 +597,9 @@ def filing_results(request: Request, session_id: str = None):
         tax_owed = total_tax - total_withholding
 
     branding = get_branding_config()
-    user_id = session_data.get("user_id")
+    # session_data is a SessionRecord (dataclass), not a dict
+    sd = session_data.data if hasattr(session_data, 'data') else (session_data if isinstance(session_data, dict) else {})
+    user_id = sd.get("user_id") if isinstance(sd, dict) else getattr(session_data, 'tenant_id', None)
     user_tier = get_user_tier(user_id)
 
     full_report = return_data.get("advisory_report", {

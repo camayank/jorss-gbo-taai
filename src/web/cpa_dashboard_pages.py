@@ -1406,8 +1406,9 @@ async def cpa_return_queue_page(
                     refund_owed = 0
                     total_income = 0
                     try:
-                        tax_return = persistence.load_session_tax_return(s.session_id, tenant_id=tenant_id)
-                        if tax_return:
+                        raw = persistence.load_session_tax_return(s.session_id, tenant_id=tenant_id)
+                        if raw:
+                            tax_return = raw.get("return_data", raw) if isinstance(raw, dict) else {}
                             refund_owed = tax_return.get("refund_or_owed", 0) or tax_return.get("combined_refund_or_owed", 0)
                             total_income = tax_return.get("adjusted_gross_income", 0) or tax_return.get("total_income", 0)
                     except Exception:
@@ -1528,17 +1529,25 @@ async def cpa_return_review_page(
         try:
             from database.session_persistence import get_session_persistence
             fallback_persistence = get_session_persistence()
-            tax_data = fallback_persistence.load_session_tax_return(session_id)
-            if tax_data:
+            raw_data = fallback_persistence.load_session_tax_return(session_id)
+            if raw_data:
+                # Unwrap nested structure
+                tax_data = raw_data.get("return_data", raw_data) if isinstance(raw_data, dict) else {}
                 return_data = {
                     "status": "pending_review",
                     "filing_status": tax_data.get("filing_status", "Unknown"),
-                    "total_income": tax_data.get("adjusted_gross_income", 0),
+                    "total_income": tax_data.get("total_income", 0) or tax_data.get("adjusted_gross_income", 0),
                     "agi": tax_data.get("adjusted_gross_income", 0),
                     "taxable_income": tax_data.get("taxable_income", 0),
                     "total_tax": tax_data.get("tax_liability", 0),
                     "refund_or_owed": tax_data.get("refund_or_owed", 0),
                     "total_payments": tax_data.get("total_payments", 0),
+                    "effective_rate": tax_data.get("effective_rate", 0),
+                    "deduction_type": tax_data.get("deduction_type", "standard"),
+                    "deduction_amount": tax_data.get("deduction_amount", 0),
+                    "standard_deduction": tax_data.get("standard_deduction", 0),
+                    "total_itemized": tax_data.get("total_itemized", 0),
+                    "state_of_residence": tax_data.get("state_of_residence", ""),
                 }
                 taxpayer = tax_data.get("taxpayer", {})
                 client_name = f"{taxpayer.get('first_name', '')} {taxpayer.get('last_name', '')}".strip() or "Client"
