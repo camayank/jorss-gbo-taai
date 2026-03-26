@@ -470,11 +470,47 @@ def clients_redirect(request: Request):
 
 @router.get("/advisory-report-preview", response_class=HTMLResponse)
 async def advisory_report_preview(request: Request):
-    """Serve advisory report preview page."""
+    """Serve advisory report preview page with session data."""
     denied = _require_any_auth(request)
     if denied:
         return denied
-    return templates.TemplateResponse("advisory_report_preview.html", {"request": request})
+
+    session_id = request.query_params.get('session_id') or request.cookies.get('tax_session_id')
+    taxpayer_name = "Client"
+    filing_status = ""
+    tax_year = 2025
+    disclaimer = ""
+
+    if session_id:
+        try:
+            from database.session_persistence import get_session_persistence
+            persistence = get_session_persistence()
+            raw = persistence.load_session_tax_return(session_id)
+            if raw:
+                rd = raw.get("return_data", raw) if isinstance(raw, dict) else {}
+                tp = rd.get("taxpayer", {})
+                taxpayer_name = f"{tp.get('first_name', '')} {tp.get('last_name', '')}".strip() or "Client"
+                filing_status = rd.get("filing_status", "")
+                tax_year = rd.get("tax_year", 2025)
+        except Exception:
+            pass
+
+    try:
+        from advisory.disclaimer import CIRCULAR_230_DISCLAIMER
+        disclaimer = CIRCULAR_230_DISCLAIMER
+    except ImportError:
+        disclaimer = "This report is for informational purposes only."
+
+    user_context = _ui_user_context(request)
+    return templates.TemplateResponse("advisory_report_preview.html", {
+        "request": request,
+        "user": user_context,
+        "session_id": session_id,
+        "taxpayer_name": taxpayer_name,
+        "filing_status": filing_status,
+        "tax_year": tax_year,
+        "circular_230_disclaimer": disclaimer,
+    })
 
 
 # =========================================================================

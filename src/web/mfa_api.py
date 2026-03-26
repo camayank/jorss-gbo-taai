@@ -260,7 +260,12 @@ def generate_backup_codes(count: int = 10) -> List[str]:
 
 def hash_backup_code(code: str) -> str:
     """Hash a backup code for secure storage using HMAC-SHA256"""
-    secret_key = os.environ.get("MFA_BACKUP_SECRET", "").encode() or secrets.token_bytes(32)
+    # Use ENCRYPTION_MASTER_KEY as fallback if MFA_BACKUP_SECRET not set
+    mfa_secret = os.environ.get("MFA_BACKUP_SECRET", "") or os.environ.get("ENCRYPTION_MASTER_KEY", "")
+    if not mfa_secret:
+        logger.warning("MFA_BACKUP_SECRET not set — backup codes may not survive restart")
+        mfa_secret = "dev-mfa-backup-secret-not-for-production"
+    secret_key = mfa_secret.encode()
     normalized = code.upper().replace('-', '')
     return hmac.new(secret_key, normalized.encode(), hashlib.sha256).hexdigest()
 

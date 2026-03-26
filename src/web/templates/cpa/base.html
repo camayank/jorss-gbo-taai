@@ -302,6 +302,14 @@
     }
     </script>
 
+    {# Toast notifications — required by dashboard, leads, queue, review #}
+    <script src="/static/js/toast.js"></script>
+    <div id="toast-container" class="toast-container"></div>
+
+    {# Alpine.js — required by pipeline kanban and interactive components #}
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

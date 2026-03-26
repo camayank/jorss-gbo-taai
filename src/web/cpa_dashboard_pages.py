@@ -1155,14 +1155,14 @@ async def cpa_billing_page(
     cpa_profile = await get_cpa_profile_from_context(request)
     stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
 
-    # Plan info — defaults that match subscription_plans model
+    # Plan info — show empty state if no subscription found
     billing = {
-        "plan": "Professional",
-        "status": "active",
-        "next_billing": "Contact support",
-        "amount": 499.00,
+        "plan": None,
+        "status": "inactive",
+        "next_billing": "No active subscription",
+        "amount": 0,
         "leads_this_month": stats.get("total_leads", 0),
-        "leads_limit": 500,
+        "leads_limit": 99999,
     }
 
     # Available plans — aligned with subscription_plans table
@@ -1248,12 +1248,7 @@ async def cpa_billing_page(
     except Exception as e:
         logger.debug(f"Could not load invoices from DB: {e}")
 
-    # If no real invoices, provide demo data for demo readiness
-    if not invoices_list:
-        invoices_list = [
-            {"id": "INV-001", "date": "2026-02-01", "amount": 99.00, "status": "paid", "description": f"{billing['plan']} Plan - February 2026"},
-            {"id": "INV-002", "date": "2026-03-01", "amount": 99.00, "status": "pending", "description": f"{billing['plan']} Plan - March 2026"},
-        ]
+    # No demo invoices — show empty state in template instead of fake data
 
     return templates.TemplateResponse(
         "cpa/billing.html",

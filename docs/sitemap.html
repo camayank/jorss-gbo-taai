@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jorss-GBO Platform Sitemap</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 4px; color: #f8fafc; }
+  .subtitle { color: #94a3b8; margin-bottom: 20px; font-size: 0.9rem; }
+  .tip { background: #1e3a5f; border: 1px solid #2563eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; color: #93c5fd; }
+
+  .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat { background: #1e293b; border-radius: 10px; padding: 12px 20px; text-align: center; }
+  .stat-num { font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; border: 1px solid #334155; background: #1e293b; color: #94a3b8; transition: all 0.15s; }
+  .tab:hover { border-color: #3b82f6; color: #e2e8f0; }
+  .tab.active { background: #3b82f6; border-color: #3b82f6; color: white; }
+
+  .flow-section { margin-bottom: 24px; }
+  .section-header { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 10px; padding: 4px 0; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 8px; }
+  .section-count { background: #334155; color: #94a3b8; border-radius: 99px; padding: 1px 8px; font-size: 0.65rem; }
+
+  .screen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; margin-bottom: 20px; }
+
+  .screen-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; transition: all 0.2s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+  .screen-card:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
+
+  .screen-bar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #0f172a; font-size: 0.65rem; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-red { background: #ef4444; }
+  .dot-yellow { background: #eab308; }
+  .dot-green { background: #22c55e; }
+  .screen-bar-url { color: #64748b; font-family: monospace; margin-left: 4px; }
+
+  .screen-body { padding: 12px 14px; }
+  .screen-name { font-weight: 600; font-size: 0.9rem; color: #f1f5f9; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+  .screen-desc { font-size: 0.78rem; color: #64748b; line-height: 1.4; }
+
+  .badge { font-size: 0.6rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+  .badge-public { background: #065f46; color: #6ee7b7; }
+  .badge-client { background: #1e3a5f; color: #93c5fd; }
+  .badge-cpa { background: #4c1d95; color: #c4b5fd; }
+  .badge-admin { background: #7c2d12; color: #fdba74; }
+  .badge-lead { background: #713f12; color: #fde68a; }
+  .badge-system { background: #334155; color: #94a3b8; }
+
+  .journey-box { background: #1e293b; border-radius: 10px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155; }
+  .journey-label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
+  .journey-flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .j-step { background: #0f172a; border: 1px solid #475569; border-radius: 6px; padding: 5px 10px; font-size: 0.72rem; font-family: monospace; color: #93c5fd; cursor: pointer; text-decoration: none; }
+  .j-step:hover { border-color: #3b82f6; color: #60a5fa; }
+  .j-arrow { color: #475569; font-size: 1rem; padding: 0 4px; }
+
+  .search { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.85rem; margin-bottom: 16px; outline: none; }
+  .search:focus { border-color: #3b82f6; }
+  .search::placeholder { color: #475569; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) { .screen-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>Platform Sitemap &mdash; All Screens</h1>
+<p class="subtitle">Click any card to open the live page. App running on localhost:8000.</p>
+
+<div class="tip">
+  <strong>Step 1:</strong> Click a role button below to log in as that user type. <strong>Step 2:</strong> Click any card to view the live page.<br><br>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="http://localhost:8000/dev/login-as/admin" target="_blank" style="padding:8px 20px; border-radius:6px; background:#7c2d12; color:#fdba74; text-decoration:none; font-weight:700; font-size:0.85rem;">Login as Admin</a>
+    <a href="http://localhost:8000/dev/login-as/cpa" target="_blank" style="padding:8px 20px; border-radius:6px; background:#4c1d95; color:#c4b5fd; text-decoration:none; font-weight:700; font-size:0.85rem;">Login as CPA</a>
+    <a href="http://localhost:8000/dev/login-as/staff" target="_blank" style="padding:8px 20px; border-radius:6px; background:#4c1d95; color:#c4b5fd; text-decoration:none; font-weight:700; font-size:0.85rem;">Login as Staff</a>
+    <a href="http://localhost:8000/dev/login-as/client" target="_blank" style="padding:8px 20px; border-radius:6px; background:#1e3a5f; color:#93c5fd; text-decoration:none; font-weight:700; font-size:0.85rem;">Login as Client</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num">95</div><div class="stat-label">Pages</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">Flows</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-label">Roles</div></div>
+  <div class="stat"><div class="stat-num">131</div><div class="stat-label">Templates</div></div>
+  <div class="stat"><div class="stat-num">125</div><div class="stat-label">Routes</div></div>
+</div>
+
+<input type="text" class="search" id="search" placeholder="Search screens by name, URL, or description..." oninput="filterAll()">
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tag="all" onclick="setTag('all',this)">All (95)</div>
+  <div class="tab" data-tag="public" onclick="setTag('public',this)">Public (16)</div>
+  <div class="tab" data-tag="lead" onclick="setTag('lead',this)">Lead Magnet (7)</div>
+  <div class="tab" data-tag="client" onclick="setTag('client',this)">Client (22)</div>
+  <div class="tab" data-tag="cpa" onclick="setTag('cpa',this)">CPA (22)</div>
+  <div class="tab" data-tag="admin" onclick="setTag('admin',this)">Admin (5)</div>
+  <div class="tab" data-tag="system" onclick="setTag('system',this)">System (3)</div>
+</div>
+
+<div id="content"></div>
+
+<script>
+var BASE = 'http://localhost:8000';
+var currentTag = 'all';
+
+var DATA = [
+  // ── PUBLIC ──
+  {section:'Public Entry Points', tag:'public'},
+  {u:'/landing', n:'Landing Page', d:'Hero with features, pricing, CPA branding', t:'public', b:'Public'},
+  {u:'/intelligent-advisor', n:'Intelligent Tax Advisor', d:'Core product: conversational AI tax filing', t:'public', b:'Public'},
+  {u:'/results', n:'Tax Results & Summary', d:'Refund/owed, deduction comparison, savings', t:'public', b:'Public'},
+  {u:'/scenarios', n:'Scenario Comparison', d:'Side-by-side what-if tax analysis', t:'public', b:'Public'},
+  {u:'/advisor-embed', n:'Embeddable Widget', d:'Frameable advisor for CPA websites', t:'public', b:'Public'},
+
+  {section:'Authentication', tag:'public'},
+  {u:'/login', n:'CPA / Admin Login', d:'Email+password, OAuth, MFA flow', t:'public', b:'Public'},
+  {u:'/signup', n:'Registration', d:'Create new account', t:'public', b:'Public'},
+  {u:'/client/login', n:'Client Portal Login', d:'Email-only access for tax clients', t:'public', b:'Public'},
+  {u:'/forgot-password', n:'Forgot Password', d:'Request password reset email', t:'public', b:'Public'},
+  {u:'/reset-password', n:'Reset Password', d:'Set new password from reset token', t:'public', b:'Public'},
+  {u:'/mfa-setup', n:'MFA Setup', d:'Register TOTP authenticator app', t:'public', b:'Public'},
+  {u:'/mfa-verify', n:'MFA Verify', d:'Enter 2FA code during login', t:'public', b:'Public'},
+
+  {section:'Legal Pages', tag:'public'},
+  {u:'/terms', n:'Terms of Service', d:'Legal terms and conditions', t:'public', b:'Public'},
+  {u:'/privacy', n:'Privacy Policy', d:'Data handling and privacy', t:'public', b:'Public'},
+  {u:'/cookies', n:'Cookie Policy', d:'Cookie usage disclosure', t:'public', b:'Public'},
+  {u:'/disclaimer', n:'Legal Disclaimer', d:'Tax advice disclaimer / Circular 230', t:'public', b:'Public'},
+
+  // ── LEAD MAGNET ──
+  {section:'Lead Magnet Funnel', tag:'lead'},
+  {u:'/lead-magnet/', n:'Funnel Landing', d:'CPA-branded hero acquisition page', t:'lead', b:'Lead'},
+  {u:'/lead-magnet/estimate', n:'Quick Estimate', d:'4-question savings calculator', t:'lead', b:'Lead'},
+  {u:'/lead-magnet/teaser', n:'Savings Teaser', d:'Potential savings preview (urgency)', t:'lead', b:'Lead'},
+  {u:'/lead-magnet/contact', n:'Contact Capture', d:'Email/phone gate (conversion point)', t:'lead', b:'Lead'},
+  {u:'/lead-magnet/report', n:'Tier 1 Report', d:'Free teaser report with basic insights', t:'lead', b:'Lead'},
+  {u:'/lead-magnet/analysis', n:'Tier 2 Analysis', d:'Full analysis (gated behind engagement)', t:'lead', b:'Lead'},
+  {u:'/lead-magnet/engagement-letter', n:'Engagement Letter', d:'CPA engagement acknowledgment', t:'lead', b:'Lead'},
+
+  // ── CLIENT ──
+  {section:'Client Portal', tag:'client'},
+  {u:'/app/portal', n:'Client Dashboard', d:'5-step intake: Welcome > Profile > Docs > Contact > Report', t:'client', b:'Client'},
+  {u:'/advisory-report-preview', n:'Advisory Report Preview', d:'AI-generated tax advisory report', t:'client', b:'Client'},
+  {u:'/computation-worksheet', n:'Computation Worksheet', d:'IRS-style detailed tax computation', t:'client', b:'Client'},
+
+  {section:'Client Tax Tools', tag:'client'},
+  {u:'/capital-gains', n:'Capital Gains Calculator', d:'Form 8949 / Schedule D tool', t:'client', b:'Client'},
+  {u:'/k1-basis', n:'K-1 Basis Tracker', d:'Partnership / S-Corp basis calculator', t:'client', b:'Client'},
+  {u:'/rental-depreciation', n:'Depreciation Schedule', d:'MACRS depreciation calculator', t:'client', b:'Client'},
+  {u:'/draft-forms', n:'Draft Tax Forms', d:'Preview draft 1040 and schedules', t:'client', b:'Client'},
+  {u:'/filing-package', n:'Filing Package', d:'Export-ready filing package (PDF)', t:'client', b:'Client'},
+
+  {section:'Client Documents & Support', tag:'client'},
+  {u:'/documents/library', n:'Document Library', d:'Uploaded W-2s, 1099s, receipts', t:'client', b:'Client'},
+  {u:'/support/tickets', n:'Support Tickets', d:'Support request list', t:'client', b:'Client'},
+  {u:'/support/new', n:'Create Support Ticket', d:'Submit new support request', t:'client', b:'Client'},
+
+  {section:'Client Tasks & Scheduling', tag:'client'},
+  {u:'/tasks', n:'Task List', d:'Assigned tasks and to-dos', t:'client', b:'Client'},
+  {u:'/tasks/kanban', n:'Task Kanban Board', d:'Drag-and-drop task management', t:'client', b:'Client'},
+  {u:'/appointments/calendar', n:'Appointment Calendar', d:'Scheduled meetings calendar view', t:'client', b:'Client'},
+  {u:'/appointments/book', n:'Book Appointment', d:'Schedule a CPA consultation', t:'client', b:'Client'},
+  {u:'/appointments/settings', n:'Appointment Settings', d:'Scheduling preferences', t:'client', b:'Client'},
+  {u:'/deadlines', n:'Deadline List', d:'Tax filing deadline tracker', t:'client', b:'Client'},
+  {u:'/deadlines/calendar', n:'Deadline Calendar', d:'Calendar view of deadlines', t:'client', b:'Client'},
+
+  {section:'Client Settings', tag:'client'},
+  {u:'/settings/profile', n:'Profile Settings', d:'User profile and preferences', t:'client', b:'Client'},
+  {u:'/settings/notifications', n:'Notification Settings', d:'Email and push preferences', t:'client', b:'Client'},
+
+  // ── CPA ──
+  {section:'CPA Dashboard & Analytics', tag:'cpa'},
+  {u:'/cpa/dashboard', n:'CPA Dashboard', d:'KPIs, recent leads, pipeline, revenue metrics', t:'cpa', b:'CPA'},
+  {u:'/cpa/onboarding', n:'CPA Onboarding Wizard', d:'First-time firm setup (4 steps)', t:'cpa', b:'CPA'},
+  {u:'/cpa/analytics', n:'Analytics Dashboard', d:'Lead conversion, revenue, client metrics', t:'cpa', b:'CPA'},
+
+  {section:'CPA Lead Management', tag:'cpa'},
+  {u:'/cpa/leads', n:'Leads List', d:'All leads with status, savings, temperature', t:'cpa', b:'CPA'},
+  {u:'/cpa/leads/pipeline', n:'Leads Pipeline', d:'Kanban: New > Contacted > Engaged > Converted', t:'cpa', b:'CPA'},
+
+  {section:'CPA Client & Returns', tag:'cpa'},
+  {u:'/cpa/clients', n:'Client Management', d:'Active client list with status cards', t:'cpa', b:'CPA'},
+  {u:'/cpa/returns/queue', n:'Return Queue', d:'Tax returns by status: Draft, In Review, Approved', t:'cpa', b:'CPA'},
+
+  {section:'CPA Operations', tag:'cpa'},
+  {u:'/cpa/messaging', n:'Messaging', d:'Client communication center', t:'cpa', b:'CPA'},
+  {u:'/cpa/tasks', n:'Tasks', d:'Firm task management', t:'cpa', b:'CPA'},
+  {u:'/cpa/appointments', n:'Appointments', d:'Client meeting scheduler', t:'cpa', b:'CPA'},
+  {u:'/cpa/deadlines', n:'Deadlines', d:'Filing deadline tracker', t:'cpa', b:'CPA'},
+
+  {section:'CPA Firm Settings', tag:'cpa'},
+  {u:'/cpa/team', n:'Team Management', d:'Add staff, assign roles, manage access', t:'cpa', b:'CPA'},
+  {u:'/cpa/billing', n:'Billing & Subscription', d:'Plans, invoices, payment history', t:'cpa', b:'CPA'},
+  {u:'/cpa/profile', n:'CPA Profile', d:'Credentials, certifications, bio', t:'cpa', b:'CPA'},
+  {u:'/cpa/settings', n:'Workspace Settings', d:'Firm configuration and preferences', t:'cpa', b:'CPA'},
+  {u:'/cpa/settings/branding', n:'White-Label Branding', d:'Logo, colors, custom domain', t:'cpa', b:'CPA'},
+  {u:'/cpa/settings/payments', n:'Payment Settings', d:'Stripe Connect for client billing', t:'cpa', b:'CPA'},
+
+  // ── ADMIN ──
+  {section:'Admin Panel (SPA)', tag:'admin'},
+  {u:'/admin', n:'Admin Dashboard', d:'Platform overview, metrics, system health', t:'admin', b:'Admin'},
+  {u:'/admin/settings', n:'Platform Settings', d:'Global config, feature flags', t:'admin', b:'Admin'},
+  {u:'/admin/impersonation', n:'User Impersonation', d:'Support tool: act as any user', t:'admin', b:'Admin'},
+  {u:'/admin/refunds', n:'Refund Management', d:'Process and track refunds', t:'admin', b:'Admin'},
+  {u:'/admin/api-keys', n:'API Key Management', d:'Create/revoke API credentials', t:'admin', b:'Admin'},
+
+  // ── SYSTEM ──
+  {section:'System & Navigation', tag:'system'},
+  {u:'/hub', n:'System Hub', d:'Central navigation page (all roles)', t:'system', b:'System'},
+  {u:'/workflow', n:'Workflow Hub', d:'Workflow visualization / dev nav', t:'system', b:'System'},
+  {u:'/dashboard', n:'General Dashboard', d:'Role-adaptive dashboard redirect', t:'system', b:'System'},
+];
+
+var badgeCls = {'Public':'badge-public','Client':'badge-client','CPA':'badge-cpa','Admin':'badge-admin','Lead':'badge-lead','System':'badge-system'};
+
+function render() {
+  var q = (document.getElementById('search').value || '').toLowerCase();
+  var html = '';
+  var inSection = false;
+  var sectionScreens = '';
+  var sectionCount = 0;
+
+  DATA.forEach(function(item, idx) {
+    if (item.section) {
+      // Close previous section
+      if (inSection) {
+        html += '<div class="screen-grid">' + sectionScreens + '</div></div>';
+      }
+      // Check if section matches tag
+      if (currentTag !== 'all' && item.tag !== currentTag) { inSection = false; return; }
+      sectionScreens = '';
+      sectionCount = 0;
+      inSection = true;
+      // Count screens in this section
+      for (var j = idx+1; j < DATA.length && !DATA[j].section; j++) {
+        if (currentTag === 'all' || DATA[j].t === currentTag) sectionCount++;
+      }
+      html += '<div class="flow-section" data-tag="'+item.tag+'"><div class="section-header">'+item.section+' <span class="section-count">'+sectionCount+'</span></div>';
+      return;
+    }
+    if (!inSection) return;
+    if (currentTag !== 'all' && item.t !== currentTag) return;
+    if (q && item.u.indexOf(q) === -1 && item.n.toLowerCase().indexOf(q) === -1 && item.d.toLowerCase().indexOf(q) === -1) return;
+
+    var bc = badgeCls[item.b] || 'badge-system';
+    sectionScreens += '<a class="screen-card" href="'+BASE+item.u+'" target="_blank" rel="noopener">';
+    sectionScreens += '<div class="screen-bar"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span><span class="screen-bar-url">localhost:8000'+item.u+'</span></div>';
+    sectionScreens += '<div class="screen-body"><div class="screen-name">'+item.n+' <span class="badge '+bc+'">'+item.b+'</span></div>';
+    sectionScreens += '<div class="screen-desc">'+item.d+'</div></div></a>';
+  });
+  // Close last section
+  if (inSection) {
+    html += '<div class="screen-grid">' + sectionScreens + '</div></div>';
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function setTag(tag, el) {
+  currentTag = tag;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  render();
+}
+
+function filterAll() { render(); }
+
+render();
+</script>
+</body>
+</html>

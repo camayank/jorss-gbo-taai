@@ -201,7 +201,7 @@ function messagingApp() {
 
         async loadConversations() {
             try {
-                const resp = await fetch('/api/v1/messages/conversations', {
+                const resp = await fetch('/api/core/messages/conversations', {
                     headers: { 'X-Tenant-Id': this.cpaId }
                 });
                 if (resp.ok) {
@@ -218,7 +218,7 @@ function messagingApp() {
             this.selectedId = conv.id;
             this.selectedConv = conv;
             try {
-                const resp = await fetch(`/api/v1/messages/conversations/${conv.id}/messages`, {
+                const resp = await fetch(`/api/core/messages/conversations/${conv.id}/messages`, {
                     headers: { 'X-Tenant-Id': this.cpaId }
                 });
                 if (resp.ok) {
@@ -226,7 +226,7 @@ function messagingApp() {
                     this.messages = data.messages || data || [];
                 }
                 // Mark as read
-                await fetch(`/api/v1/messages/conversations/${conv.id}/read`, {
+                await fetch(`/api/core/messages/conversations/${conv.id}/read`, {
                     method: 'POST',
                     headers: { 'X-Tenant-Id': this.cpaId }
                 });
@@ -261,7 +261,7 @@ function messagingApp() {
             });
 
             try {
-                await fetch(`/api/v1/messages/conversations/${this.selectedId}/messages`, {
+                await fetch(`/api/core/messages/conversations/${this.selectedId}/messages`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

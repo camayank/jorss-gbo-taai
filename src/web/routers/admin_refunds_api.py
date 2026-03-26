@@ -328,9 +328,12 @@ async def process_refund(
             detail=f"Only approved refunds can be processed (current: {refund.get('status')})"
         )
 
-    # In production, call payment processor here
-    # For now, simulate processing
-    transaction_id = f"txn_{uuid4().hex[:12]}"
+    # GUARD: Block simulated processing in production
+    import os
+    if os.environ.get("APP_ENVIRONMENT", "").lower() in ("production", "prod"):
+        raise HTTPException(status_code=501, detail="Payment processor integration not configured. Contact platform admin.")
+    # Development: simulate processing (no real payment call)
+    transaction_id = f"txn_dev_{uuid4().hex[:12]}"
     refund["status"] = "processed"
     refund["processed_at"] = datetime.now(timezone.utc).isoformat()
     refund["transaction_id"] = transaction_id

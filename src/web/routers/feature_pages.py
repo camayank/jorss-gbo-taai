@@ -221,11 +221,13 @@ def settings_notifications(request: Request, current_user: dict = Depends(_requi
 # =============================================================================
 
 @router.get("/computation-worksheet", response_class=HTMLResponse)
-def computation_worksheet(request: Request, current_user: dict = Depends(_require_page_auth)):
+def computation_worksheet(request: Request, session_id: str = None, current_user: dict = Depends(_require_page_auth)):
     """IRS-style tax computation worksheet with live calculations."""
+    sid = session_id or request.query_params.get("session_id") or request.cookies.get("tax_session_id")
     return templates.TemplateResponse(
         "computation_worksheet.html",
-        {"request": request, "user": current_user, "page_title": "Computation Worksheet"}
+        {"request": request, "user": current_user, "page_title": "Computation Worksheet",
+         "session_id": sid, "current_path": "/computation-worksheet"}
     )
 
 
@@ -286,11 +288,13 @@ def draft_forms(request: Request, current_user: dict = Depends(_require_page_aut
 # =============================================================================
 
 @router.get("/filing-package", response_class=HTMLResponse)
-def filing_package(request: Request, current_user: dict = Depends(_require_page_auth)):
+def filing_package(request: Request, session_id: str = None, current_user: dict = Depends(_require_page_auth)):
     """Filing package export - generate and download complete tax filing packages."""
+    sid = session_id or request.query_params.get("session_id") or request.cookies.get("tax_session_id")
     return templates.TemplateResponse(
         "filing_package.html",
-        {"request": request, "user": current_user, "page_title": "Filing Package"}
+        {"request": request, "user": current_user, "page_title": "Filing Package",
+         "session_id": sid, "current_path": "/filing-package"}
     )
 
 

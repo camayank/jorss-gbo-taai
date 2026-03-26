@@ -1669,10 +1669,17 @@
           const formData = new FormData();
           formData.append('file', file);
 
-          const response = await fetch(`${API_BASE}/clients/${state.sessionId}/documents`, {
+          // Try CPA session upload first, fall back to public upload
+          let response = await fetch(`${API_BASE}/session/${state.sessionId}/documents/upload`, {
             method: 'POST',
             body: formData
           });
+          // Fallback to public upload endpoint if CPA endpoint fails
+          if (!response.ok && [401, 403, 404].includes(response.status)) {
+            const fallbackForm = new FormData();
+            fallbackForm.append('file', file);
+            response = await fetch('/api/upload', { method: 'POST', body: fallbackForm });
+          }
 
           if (response.ok) {
             const data = await response.json();
@@ -2117,7 +2124,9 @@
         currentStep: state.currentStep,
         sessionId: state.sessionId,
         consent: state.consent,
-        userInfo: state.userInfo,
+        assessmentMode: state.assessmentMode,
+        taxProfile: state.taxProfile,
+        contact: state.contact,
         documents: state.documents.map(d => ({ id: d.id, name: d.name, size: d.size, status: d.status })),
         status: state.status,
         savedAt: Date.now()
