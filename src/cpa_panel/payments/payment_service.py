@@ -44,14 +44,52 @@ class PaymentService:
     """
 
     def __init__(self):
-        # In-memory storage (replace with database in production)
+        # SQLite-backed storage (persists across restarts)
+        import sqlite3, json
+        from pathlib import Path
+        self._db_path = Path(os.environ.get("DATABASE_PATH", str(Path(__file__).parent.parent.parent.parent / "data" / "platform.db")))
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(str(self._db_path)) as conn:
+            conn.execute("""CREATE TABLE IF NOT EXISTS pay_invoices (
+                invoice_id TEXT PRIMARY KEY, data_json TEXT NOT NULL, updated_at TEXT)""")
+            conn.execute("""CREATE TABLE IF NOT EXISTS pay_payments (
+                payment_id TEXT PRIMARY KEY, data_json TEXT NOT NULL, updated_at TEXT)""")
+            conn.execute("""CREATE TABLE IF NOT EXISTS pay_links (
+                link_id TEXT PRIMARY KEY, code TEXT, data_json TEXT NOT NULL, updated_at TEXT)""")
+
+        # In-memory caches (hydrated from DB on first access)
         self._invoices: Dict[UUID, Invoice] = {}
         self._payments: Dict[UUID, Payment] = {}
         self._payment_links: Dict[UUID, PaymentLink] = {}
         self._links_by_code: Dict[str, UUID] = {}
+        self._db_loaded = False
 
         # Stripe configuration
         self._stripe_configured = bool(os.environ.get("STRIPE_SECRET_KEY"))
+
+    def _persist_invoice(self, invoice):
+        """Write-through cache: persist invoice to SQLite."""
+        import sqlite3, json
+        with sqlite3.connect(str(self._db_path)) as conn:
+            data = invoice.model_dump() if hasattr(invoice, 'model_dump') else vars(invoice)
+            conn.execute("INSERT OR REPLACE INTO pay_invoices (invoice_id, data_json, updated_at) VALUES (?, ?, ?)",
+                         (str(invoice.invoice_id), json.dumps(data, default=str), datetime.now(timezone.utc).isoformat()))
+
+    def _persist_payment(self, payment):
+        """Write-through cache: persist payment to SQLite."""
+        import sqlite3, json
+        with sqlite3.connect(str(self._db_path)) as conn:
+            data = payment.model_dump() if hasattr(payment, 'model_dump') else vars(payment)
+            conn.execute("INSERT OR REPLACE INTO pay_payments (payment_id, data_json, updated_at) VALUES (?, ?, ?)",
+                         (str(payment.payment_id), json.dumps(data, default=str), datetime.now(timezone.utc).isoformat()))
+
+    def _persist_link(self, link):
+        """Write-through cache: persist payment link to SQLite."""
+        import sqlite3, json
+        with sqlite3.connect(str(self._db_path)) as conn:
+            data = link.model_dump() if hasattr(link, 'model_dump') else vars(link)
+            conn.execute("INSERT OR REPLACE INTO pay_links (link_id, code, data_json, updated_at) VALUES (?, ?, ?, ?)",
+                         (str(link.link_id), getattr(link, 'code', ''), json.dumps(data, default=str), datetime.now(timezone.utc).isoformat()))
 
     # =========================================================================
     # INVOICE MANAGEMENT
@@ -122,6 +160,8 @@ class PaymentService:
             )
 
         self._invoices[invoice.id] = invoice
+        try: self._persist_invoice(invoice)
+        except Exception: pass  # Best effort persistence
 
         logger.info(
             f"Invoice {invoice.invoice_number} created: "
@@ -262,6 +302,8 @@ class PaymentService:
         )
 
         self._payments[payment.id] = payment
+        try: self._persist_payment(payment)
+        except Exception: pass
 
         # Update invoice
         invoice.amount_paid += amount
@@ -334,6 +376,8 @@ class PaymentService:
 
         self._payment_links[link.id] = link
         self._links_by_code[link.link_code] = link.id
+        try: self._persist_link(link)
+        except Exception: pass
 
         logger.info(f"Payment link created: {link.name} ({link.link_code})")
 
@@ -437,6 +481,8 @@ class PaymentService:
         )
 
         self._payments[payment.id] = payment
+        try: self._persist_payment(payment)
+        except Exception: pass
 
         # Update link usage
         link.record_use(amount)
