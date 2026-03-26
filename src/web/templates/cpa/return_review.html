@@ -323,6 +323,90 @@
             </div>
             {% endif %}
 
+            <!-- Client Contact Info -->
+            {% if client_contact and client_contact.email %}
+            <div class="card">
+                <div class="card-header"><h2>Client Contact</h2></div>
+                <div class="card-body">
+                    <div class="summary-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="summary-item">
+                            <span class="label">Name</span>
+                            <span class="value">{{ client_contact.name or client_name }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Email</span>
+                            <span class="value"><a href="mailto:{{ client_contact.email }}">{{ client_contact.email }}</a></span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Phone</span>
+                            <span class="value">{{ client_contact.phone or 'Not provided' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Uploaded Documents -->
+            {% if uploaded_documents %}
+            <div class="card">
+                <div class="card-header"><h2>Uploaded Documents ({{ uploaded_documents|length }})</h2></div>
+                <div class="card-body">
+                    <table class="data-table" style="width:100%;">
+                        <thead><tr><th>Document</th><th>Type</th><th>Status</th></tr></thead>
+                        <tbody>
+                        {% for doc in uploaded_documents %}
+                        <tr>
+                            <td>{{ doc.filename }}</td>
+                            <td>{{ doc.document_type or 'Unknown' }}</td>
+                            <td><span class="status-badge status-{{ doc.status }}">{{ doc.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- AI Recommendations -->
+            {% if ai_recommendations %}
+            <div class="card">
+                <div class="card-header"><h2>AI Tax Recommendations</h2></div>
+                <div class="card-body">
+                    {% for rec in ai_recommendations %}
+                    <div style="padding: 10px 0; border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                        <strong>{{ rec.title if rec.title is defined else rec.get('title', 'Strategy') if rec.get is defined else 'Strategy' }}</strong>
+                        {% if rec.savings is defined or (rec.get is defined and rec.get('savings')) %}
+                        <span style="color: var(--color-success-600, #16a34a); font-weight: 600; margin-left: 8px;">
+                            ${{ "{:,.0f}".format(rec.savings if rec.savings is defined else rec.get('savings', 0)) }} potential savings
+                        </span>
+                        {% endif %}
+                        <p style="margin: 4px 0 0; color: var(--text-secondary, #6b7280); font-size: 0.85rem;">
+                            {{ rec.description if rec.description is defined else rec.get('description', '') if rec.get is defined else '' }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Chat History -->
+            {% if conversation_history %}
+            <div class="card">
+                <div class="card-header"><h2>Client Chat History ({{ conversation_history|length }} messages)</h2></div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for msg in conversation_history %}
+                    <div style="padding: 8px 12px; margin-bottom: 6px; border-radius: 8px; background: {{ 'var(--color-blue-50, #eff6ff)' if msg.role == 'user' else 'var(--bg-secondary, #f8f9fa)' }};">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 2px;">
+                            {{ 'Client' if msg.role == 'user' else 'AI Advisor' }}
+                            {% if msg.timestamp %} &mdash; {{ msg.timestamp[:16] }}{% endif %}
+                        </div>
+                        <div style="font-size: 0.85rem;">{{ msg.content[:500] }}{{ '...' if msg.content|length > 500 else '' }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Notes Section -->
             <div class="card">
                 <div class="card-header">

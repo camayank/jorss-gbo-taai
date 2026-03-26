@@ -1415,10 +1415,14 @@ async def cpa_return_queue_page(
                         "client_email": profile.get("email", ""),
                         "tax_year": data.get("tax_year", 2025),
                         "filing_status": profile.get("filing_status", "Unknown"),
+                        "state_code": profile.get("state", ""),
                         "total_income": total_income,
                         "refund_or_owed": refund_owed,
                         "submitted_at": s.last_activity or s.created_at,
                         "status": data.get("workflow_status", status),
+                        "has_documents": bool(data.get("documents")),
+                        "has_calculation": bool(data.get("calculations")),
+                        "lead_score": data.get("lead_score", 0),
                     })
     except Exception as e:
         logger.warning(f"Could not load returns from database: {e}")
@@ -1574,6 +1578,47 @@ async def cpa_return_review_page(
         except Exception as e:
             logger.warning(f"Compliance review failed for session {session_id}: {e}")
 
+    # Load additional context: chat history, documents, recommendations, contact info
+    conversation_history = []
+    uploaded_documents = []
+    ai_recommendations = []
+    client_contact = {}
+    client_profile = {}
+
+    try:
+        from database.session_persistence import get_session_persistence
+        sp = get_session_persistence()
+        sess = sp.load_session(session_id)
+        if sess:
+            sd = sess.data if hasattr(sess, 'data') else (sess if isinstance(sess, dict) else {})
+            # Chat conversation history
+            conversation_history = sd.get("conversation", [])[-20:]  # Last 20 messages
+            # AI recommendations from advisor
+            calcs = sd.get("calculations", {})
+            if isinstance(calcs, dict):
+                ai_recommendations = calcs.get("recommendations", []) or calcs.get("strategies", [])
+            # Client profile from lead magnet
+            client_profile = sd.get("profile", {})
+            client_contact = {
+                "name": client_profile.get("name", client_name),
+                "email": client_profile.get("email", ""),
+                "phone": client_profile.get("phone", ""),
+                "state": client_profile.get("state", return_data.get("state_of_residence", "")),
+            }
+    except Exception as ctx_err:
+        logger.debug(f"Could not load additional context for {session_id}: {ctx_err}")
+
+    # Load uploaded documents
+    try:
+        from database.persistence import get_document_persistence
+        doc_persistence = get_document_persistence()
+        uploaded_documents = [
+            {"filename": d.filename, "document_type": d.document_type, "status": d.status, "document_id": d.document_id}
+            for d in doc_persistence.list_documents(session_id)
+        ]
+    except Exception:
+        pass  # No documents or persistence not available
+
     return templates.TemplateResponse(
         "cpa/return_review.html",
         {
@@ -1585,8 +1630,13 @@ async def cpa_return_review_page(
             "session_id": session_id,
             "return_data": return_data,
             "client_name": client_name,
+            "client_contact": client_contact,
+            "client_profile": client_profile,
             "tax_year": tax_year,
             "notes": notes,
-            "compliance_report": compliance_report
+            "compliance_report": compliance_report,
+            "conversation_history": conversation_history,
+            "uploaded_documents": uploaded_documents,
+            "ai_recommendations": ai_recommendations,
         }
     )
