@@ -53,8 +53,27 @@ class MessageCreate(BaseModel):
 
 
 # =============================================================================
-# IN-MEMORY STORAGE (Replace with database in production)
+# SQLite-BACKED STORAGE (migrated from in-memory dict)
 # =============================================================================
+import sqlite3, json, os as _os
+from pathlib import Path as _Path
+
+_SUPPORT_DB = _Path(_os.environ.get("DATABASE_PATH", str(_Path(__file__).parent.parent.parent.parent / "data" / "platform.db")))
+
+def _get_support_db():
+    _SUPPORT_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_SUPPORT_DB))
+    conn.row_factory = sqlite3.Row
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS support_tickets (
+            ticket_id TEXT PRIMARY KEY,
+            firm_id TEXT NOT NULL,
+            data_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """)
+    return conn
 
 
 @dataclass
@@ -85,8 +104,56 @@ class SupportTicket:
     messages: List[dict] = field(default_factory=list)
 
 
-# Thread-safe in-memory storage
-_tickets: dict[str, SupportTicket] = {}
+# SQLite-backed ticket storage helpers
+def _save_ticket(ticket: SupportTicket):
+    with _get_support_db() as conn:
+        data = {
+            "ticket_id": ticket.ticket_id, "firm_id": ticket.firm_id,
+            "subject": ticket.subject, "description": ticket.description,
+            "category": ticket.category, "priority": ticket.priority,
+            "status": ticket.status, "created_by": ticket.created_by,
+            "created_by_name": ticket.created_by_name,
+            "created_at": ticket.created_at.isoformat() if isinstance(ticket.created_at, datetime) else ticket.created_at,
+            "updated_at": ticket.updated_at.isoformat() if isinstance(ticket.updated_at, datetime) else ticket.updated_at,
+            "messages": ticket.messages,
+        }
+        conn.execute(
+            "INSERT OR REPLACE INTO support_tickets (ticket_id, firm_id, data_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (ticket.ticket_id, ticket.firm_id, json.dumps(data, default=str), data["created_at"], data["updated_at"])
+        )
+
+def _load_ticket(ticket_id: str) -> Optional[SupportTicket]:
+    with _get_support_db() as conn:
+        row = conn.execute("SELECT data_json FROM support_tickets WHERE ticket_id = ?", (ticket_id,)).fetchone()
+        if not row: return None
+        d = json.loads(row[0])
+        return SupportTicket(
+            ticket_id=d["ticket_id"], firm_id=d["firm_id"], subject=d["subject"],
+            description=d["description"], category=d["category"], priority=d["priority"],
+            status=d["status"], created_by=d["created_by"], created_by_name=d["created_by_name"],
+            created_at=datetime.fromisoformat(d["created_at"]) if isinstance(d["created_at"], str) else d["created_at"],
+            updated_at=datetime.fromisoformat(d["updated_at"]) if isinstance(d["updated_at"], str) else d["updated_at"],
+            messages=d.get("messages", []),
+        )
+
+def _load_firm_tickets(firm_id: str) -> List[SupportTicket]:
+    with _get_support_db() as conn:
+        rows = conn.execute("SELECT data_json FROM support_tickets WHERE firm_id = ? ORDER BY updated_at DESC", (firm_id,)).fetchall()
+        result = []
+        for row in rows:
+            d = json.loads(row[0])
+            result.append(SupportTicket(
+                ticket_id=d["ticket_id"], firm_id=d["firm_id"], subject=d["subject"],
+                description=d["description"], category=d["category"], priority=d["priority"],
+                status=d["status"], created_by=d["created_by"], created_by_name=d["created_by_name"],
+                created_at=datetime.fromisoformat(d["created_at"]) if isinstance(d["created_at"], str) else d["created_at"],
+                updated_at=datetime.fromisoformat(d["updated_at"]) if isinstance(d["updated_at"], str) else d["updated_at"],
+                messages=d.get("messages", []),
+            ))
+        return result
+
+# Legacy compatibility alias
+_tickets: dict = {}  # Not used — kept to avoid import errors in tests
 
 
 # =============================================================================
@@ -109,8 +176,8 @@ async def list_tickets(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    # Filter tickets by firm
-    firm_tickets = [t for t in _tickets.values() if t.firm_id == firm_id]
+    # Load tickets from database
+    firm_tickets = _load_firm_tickets(firm_id)
 
     # Apply filters
     if status:
@@ -189,7 +256,7 @@ async def create_ticket(
         updated_at=now,
     )
 
-    _tickets[ticket.ticket_id] = ticket
+    _save_ticket(ticket)
 
     logger.info(f"Support ticket created: {ticket.ticket_id} by user {ctx.user_id}")
 
@@ -217,7 +284,7 @@ async def get_ticket(
 
     Includes all messages in the ticket thread.
     """
-    ticket = _tickets.get(ticket_id)
+    ticket = _load_ticket(ticket_id)
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
     if not ticket or ticket.firm_id != firm_id:
@@ -251,7 +318,7 @@ async def add_message(
 
     Updates the ticket's updated_at timestamp.
     """
-    ticket = _tickets.get(ticket_id)
+    ticket = _load_ticket(ticket_id)
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
     if not ticket or ticket.firm_id != firm_id:
@@ -274,6 +341,7 @@ async def add_message(
 
     ticket.messages.append(message)
     ticket.updated_at = datetime.now(timezone.utc)
+    _save_ticket(ticket)
 
     logger.info(f"Message added to ticket {ticket_id} by user {ctx.user_id}")
 
@@ -298,7 +366,7 @@ async def update_ticket(
     - resolved -> closed, open (reopen)
     - closed -> open (reopen)
     """
-    ticket = _tickets.get(ticket_id)
+    ticket = _load_ticket(ticket_id)
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
     if not ticket or ticket.firm_id != firm_id:
@@ -323,6 +391,7 @@ async def update_ticket(
         ticket.priority = data.priority
 
     ticket.updated_at = datetime.now(timezone.utc)
+    _save_ticket(ticket)
 
     logger.info(f"Ticket {ticket_id} updated by user {ctx.user_id}")
 
@@ -347,7 +416,7 @@ async def get_ticket_stats(
     Returns counts by status and category.
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
-    firm_tickets = [t for t in _tickets.values() if t.firm_id == firm_id]
+    firm_tickets = _load_firm_tickets(firm_id)
 
     # Count by status
     status_counts = {"open": 0, "in_progress": 0, "resolved": 0, "closed": 0}
