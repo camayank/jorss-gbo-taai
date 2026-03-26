@@ -3046,6 +3046,139 @@ async def export_universal_json(request: Request, session_id: str = None):
     return JSONResponse(get_universal_json(rd))
 
 
+@app.get("/api/tools/tax-rate-lookup")
+async def tax_rate_lookup(income: float = 85000, filing_status: str = "single"):
+    """Quick tax rate lookup — marginal and effective rates for 2025."""
+    from calculator.tax_year_config import get_tax_year_config
+    config = get_tax_year_config(2025)
+    brackets = config.tax_brackets.get(filing_status, config.tax_brackets.get("single", []))
+    std_ded = config.standard_deductions.get(filing_status, 15750)
+    taxable = max(0, income - std_ded)
+    marginal_rate = 0.10
+    tax = 0
+    prev = 0
+    for threshold, rate in brackets:
+        chunk = min(taxable, threshold) - prev
+        if chunk > 0:
+            tax += chunk * rate
+            marginal_rate = rate
+        prev = threshold
+        if taxable <= threshold:
+            break
+    if taxable > prev:
+        tax += (taxable - prev) * 0.37
+        marginal_rate = 0.37
+    effective_rate = (tax / income * 100) if income > 0 else 0
+    return JSONResponse({
+        "income": income, "filing_status": filing_status, "standard_deduction": std_ded,
+        "taxable_income": round(taxable), "federal_tax": round(tax),
+        "marginal_rate": f"{marginal_rate * 100:.1f}%", "effective_rate": f"{effective_rate:.1f}%",
+    })
+
+
+@app.get("/api/tools/w4-calculator")
+async def w4_calculator(
+    annual_income: float = 85000, filing_status: str = "single",
+    current_withholding_per_paycheck: float = 0, pay_frequency: str = "biweekly",
+    dependents: int = 0, other_income: float = 0,
+):
+    """W-4 withholding calculator — recommends optimal W-4 settings."""
+    from calculator.tax_year_config import get_tax_year_config
+    config = get_tax_year_config(2025)
+    std_ded = config.standard_deductions.get(filing_status, 15750)
+    taxable = max(0, annual_income + other_income - std_ded)
+    brackets = config.tax_brackets.get(filing_status, config.tax_brackets.get("single", []))
+    annual_tax = 0
+    prev = 0
+    for threshold, rate in brackets:
+        chunk = min(taxable, threshold) - prev
+        if chunk > 0: annual_tax += chunk * rate
+        prev = threshold
+    if taxable > prev: annual_tax += (taxable - prev) * 0.37
+    ctc = min(dependents * 2000, annual_tax)
+    annual_tax_after_credits = max(0, annual_tax - ctc)
+    periods = {"weekly": 52, "biweekly": 26, "semimonthly": 24, "monthly": 12}.get(pay_frequency, 26)
+    target = annual_tax_after_credits / periods
+    annual_current = current_withholding_per_paycheck * periods
+    gap = annual_current - annual_tax_after_credits
+    if gap > 500:
+        rec = f"Over-withholding by ~${gap:,.0f}/year. Consider reducing withholding."
+    elif gap < -500:
+        rec = f"Under-withholding by ~${abs(gap):,.0f}/year. Add ${abs(gap)/periods:,.0f}/paycheck on W-4 Line 4(c)."
+    else:
+        rec = "Your withholding looks about right."
+    return JSONResponse({
+        "annual_tax_estimate": round(annual_tax_after_credits),
+        "target_per_paycheck": round(target, 2),
+        "current_annual_withholding": round(annual_current),
+        "annual_gap": round(gap),
+        "recommendation": rec,
+    })
+
+
+@app.get("/api/advisor/checklist")
+async def get_intake_checklist(request: Request, session_id: str = None):
+    """Generate personalized document checklist based on tax profile."""
+    session_id = session_id or request.cookies.get("tax_session_id") or ""
+    checklist = [
+        {"item": "Government-issued photo ID", "category": "Identity", "required": True},
+        {"item": "Social Security card (or ITIN letter)", "category": "Identity", "required": True},
+        {"item": "Prior year tax return (2024)", "category": "Prior Year", "required": True},
+    ]
+    profile = {}
+    try:
+        from database.session_persistence import get_session_persistence
+        persistence = get_session_persistence()
+        session = persistence.load_session(session_id)
+        if session:
+            sd = session.data if hasattr(session, 'data') else session
+            profile = sd.get("profile", {}) if isinstance(sd, dict) else {}
+    except Exception:
+        pass
+    it = str(profile.get("income_type", "")).lower()
+    if "w2" in it or profile.get("wages") or profile.get("is_w2_employee"):
+        checklist.append({"item": "W-2 from each employer", "category": "Income", "required": True})
+    if profile.get("is_self_employed") or profile.get("business_income") or "self" in it:
+        checklist.extend([
+            {"item": "1099-NEC / 1099-MISC for freelance income", "category": "Income", "required": True},
+            {"item": "Business expense records + mileage log", "category": "Business", "required": True},
+        ])
+    if profile.get("_has_investments") or profile.get("dividend_income"):
+        checklist.extend([
+            {"item": "1099-DIV (dividends)", "category": "Income", "required": True},
+            {"item": "1099-B (stock/crypto sales)", "category": "Income", "required": True},
+            {"item": "1099-INT (interest income)", "category": "Income", "required": True},
+        ])
+    if profile.get("_has_rental") or profile.get("rental_income"):
+        checklist.extend([
+            {"item": "Rental income and expense records", "category": "Rental", "required": True},
+            {"item": "Depreciation schedule", "category": "Rental", "required": False},
+        ])
+    if profile.get("ss_benefits"):
+        checklist.append({"item": "SSA-1099 (Social Security)", "category": "Income", "required": True})
+    if profile.get("_has_k1"):
+        checklist.append({"item": "Schedule K-1 from partnerships/S-Corps", "category": "Income", "required": True})
+    if profile.get("_has_mortgage"):
+        checklist.append({"item": "1098 (mortgage interest)", "category": "Deductions", "required": True})
+    if profile.get("charitable_donations"):
+        checklist.append({"item": "Charitable donation receipts", "category": "Deductions", "required": True})
+    if profile.get("student_loan_interest"):
+        checklist.append({"item": "1098-E (student loan interest)", "category": "Deductions", "required": True})
+    if profile.get("hsa_contributions"):
+        checklist.extend([
+            {"item": "5498-SA (HSA contributions)", "category": "Healthcare", "required": True},
+            {"item": "1099-SA (HSA distributions)", "category": "Healthcare", "required": True},
+        ])
+    deps = int(profile.get("dependents", 0) or 0)
+    if deps > 0:
+        checklist.extend([
+            {"item": "Dependent SSNs and birth dates", "category": "Dependents", "required": True},
+            {"item": "Childcare provider info (name, EIN, amount)", "category": "Dependents", "required": False},
+        ])
+    checklist.append({"item": "Bank routing + account number (for direct deposit)", "category": "Refund", "required": False})
+    return JSONResponse({"checklist": checklist, "total": len(checklist), "required": sum(1 for c in checklist if c["required"])})
+
+
 @app.get("/api/export/json")
 async def export_json(request: Request, session_id: str = None):
     """

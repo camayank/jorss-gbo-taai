@@ -468,6 +468,15 @@ def clients_redirect(request: Request):
     return RedirectResponse(url="/cpa/clients", status_code=302)
 
 
+@router.get("/refund-tracker", response_class=HTMLResponse)
+def refund_tracker(request: Request):
+    """Refund status tracker — links to IRS Where's My Refund."""
+    user_context = _ui_user_context(request)
+    return templates.TemplateResponse("refund_tracker.html", {
+        "request": request, "user": user_context, "page_title": "Refund Tracker"
+    })
+
+
 @router.get("/advisory-report-preview", response_class=HTMLResponse)
 async def advisory_report_preview(request: Request):
     """Serve advisory report preview page with session data."""
