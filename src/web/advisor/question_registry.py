@@ -873,15 +873,22 @@ RETIREMENT = [
 # ═══════════════════════════════════════════════════════════════════════════════
 
 DEPENDENTS = [
-    # Q-37  Dependent age split
+    # Q-37  Dependent age split — actions generated from dependent count
     FlowQuestion(
         id="dep_age_split",
         pool="dependents", phase=2,
         text=(
-            "Of your {dependents} dependent(s), how many are under age 17? "
+            "How many of your dependents are under age 17? "
             "(Important for the Child Tax Credit — $2,000 per child under 17)"
         ),
-        actions=[],  # Dynamic — built at runtime based on count
+        actions=[
+            {"label": "None (all 17+)", "value": "dep_under17_0"},
+            {"label": "1", "value": "dep_under17_1"},
+            {"label": "2", "value": "dep_under17_2"},
+            {"label": "3", "value": "dep_under17_3"},
+            {"label": "4", "value": "dep_under17_4"},
+            {"label": "All of them", "value": "dep_under17_all"},
+        ],
         eligibility=lambda p: has_dependents(p) and p.get("dependents_under_17") is None,
         base_score=85,
         sets_fields=["dependents_under_17"],

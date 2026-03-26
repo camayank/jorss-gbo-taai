@@ -2283,6 +2283,26 @@ class IntelligentChatEngine:
         filing_status = profile.get("filing_status", "single")
         state = profile.get("state", "").upper()
 
+        # Add income sources that may not be included in total_income
+        pension_income = profile.get("pension_income", 0) or 0
+        gambling_income = profile.get("gambling_income", 0) or 0
+        alimony_received = profile.get("alimony_received", 0) or 0
+        income += pension_income + gambling_income + alimony_received
+
+        # Social Security benefits — taxable portion (up to 85% based on combined income)
+        ss_benefits = profile.get("ss_benefits", 0) or 0
+        if ss_benefits > 0:
+            provisional_income = income + (ss_benefits * 0.5)
+            base_amount = 32000 if filing_status == "married_joint" else 25000
+            upper_amount = 44000 if filing_status == "married_joint" else 34000
+            if provisional_income > upper_amount:
+                taxable_ss = min(ss_benefits * 0.85, 0.85 * (provisional_income - base_amount))
+            elif provisional_income > base_amount:
+                taxable_ss = min(ss_benefits * 0.50, 0.50 * (provisional_income - base_amount))
+            else:
+                taxable_ss = 0
+            income += max(0, taxable_ss)
+
         # Calculate AGI (income minus above-the-line deductions)
         adjustments = 0.0
 
@@ -3697,8 +3717,8 @@ def _quick_tax_estimate(profile: dict) -> dict:
         return {"amount": 0, "confidence": "none", "label": ""}
 
     # 1. Standard deduction (2025)
-    std_ded = {"single": 15000, "married_joint": 30000, "head_of_household": 22500,
-               "married_separate": 15000, "qualifying_widow": 30000}.get(status, 15000)
+    std_ded = {"single": 15750, "married_joint": 31500, "head_of_household": 23850,
+               "married_separate": 15750, "qualifying_widow": 31500}.get(status, 15750)
 
     # Bonus standard deduction for 65+
     age = profile.get("age")
@@ -3844,7 +3864,7 @@ def _get_proactive_advice(profile: dict, updates: dict) -> str:
     prop_tax = float(profile.get("property_taxes", 0) or 0)
     if "mortgage_interest" in updates or "property_taxes" in updates:
         total_item = mortgage + prop_tax + float(profile.get("charitable_donations", 0) or 0)
-        std_ded = {"single": 15000, "married_joint": 30000, "head_of_household": 22500}.get(
+        std_ded = {"single": 15750, "married_joint": 31500, "head_of_household": 23850}.get(
             profile.get("filing_status", "single"), 15000)
         if total_item > std_ded:
             advice_parts.append(f"💡 With ${total_item:,.0f} in deductions, you'll save more by itemizing (standard deduction is ${std_ded:,.0f}).")
@@ -7625,7 +7645,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
             "_asked_cost_seg": True, "_asked_rental_convert": True, "_asked_rental_loss_allow": True},
         "skip_rental": {"_asked_rental": True},
         # Retirement
-        "has_401k": {"_has_401k": True, "retirement_401k": 23500},  # 2025 employee limit
+        "has_401k": {"_has_401k": True, "retirement_401k": 23500, "_401k_needs_actual": True},  # Default to max; follow-up asks actual
         "has_ira": {"_has_ira": True, "retirement_ira": 7000},
         "has_both_retirement": {"retirement_401k": 23500, "retirement_ira": 7000},
         "no_retirement": {"_asked_retirement": True, "retirement_401k": 0, "retirement_ira": 0,
@@ -7633,9 +7653,16 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
             "_asked_mega_backdoor": True, "_asked_ira_deduct": True, "_asked_savers_credit": True},
         "skip_retirement": {"_asked_retirement": True},
         # HSA
-        "has_hsa": {"hsa_contributions": 4150},  # 2025 individual limit
+        "has_hsa": {"hsa_contributions": 4150, "_hsa_needs_actual": True},  # Default to max; follow-up asks actual
         "no_hsa": {"_asked_hsa": True, "hsa_contributions": 0},
         "skip_hsa": {"_asked_hsa": True},
+        # Dependent age split (under 17)
+        "dep_under17_0": {"dependents_under_17": 0, "_asked_dependents_age": True},
+        "dep_under17_1": {"dependents_under_17": 1, "_asked_dependents_age": True},
+        "dep_under17_2": {"dependents_under_17": 2, "_asked_dependents_age": True},
+        "dep_under17_3": {"dependents_under_17": 3, "_asked_dependents_age": True},
+        "dep_under17_4": {"dependents_under_17": 4, "_asked_dependents_age": True},
+        "dep_under17_all": {"_dep_under17_all": True, "_asked_dependents_age": True},
         # Deductions
         "has_mortgage": {"_has_mortgage": True, "_asked_deductions": True},
         "has_charitable": {"_has_charitable": True, "_asked_deductions": True},
@@ -7659,7 +7686,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
         "no_estimated_payments": {"_asked_estimated": True, "estimated_payments": 0},
         "skip_estimated": {"_asked_estimated": True},
         # Student loans
-        "has_student_loans": {"student_loan_interest": 2500},  # Max deductible
+        "has_student_loans": {"student_loan_interest": 2500, "_student_loans_needs_actual": True},  # Default to max deductible; follow-up asks actual
         "no_student_loans": {"_asked_student_loans": True, "student_loan_interest": 0},
         "skip_student_loans": {"_asked_student_loans": True},
         # Skip deep dive entirely
@@ -8575,6 +8602,10 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
         if _multi_updates:
             msg_lower = _multi_values[0]  # Use first value for smart default check
             updates = _multi_updates
+            # Resolve "all" dependent age split
+            if updates.get("_dep_under17_all"):
+                updates["dependents_under_17"] = int(profile.get("dependents", 0) or 0)
+                del updates["_dep_under17_all"]
             profile.update(updates)
             session = await chat_engine.update_session(request.session_id, {"profile": profile})
             _quick_action_handled = True
