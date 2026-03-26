@@ -301,10 +301,12 @@ async def get_recent_leads(cpa_id: str, limit: int = 10) -> List[dict]:
         from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
         service = get_lead_magnet_service()
 
-        leads = service.list_leads(cpa_id=cpa_id, limit=limit, offset=0)
+        leads_data = service.list_leads(cpa_id=cpa_id, limit=limit, offset=0)
 
+        # list_leads returns List[dict] directly, not {"leads": [...]}
+        lead_list = leads_data if isinstance(leads_data, list) else leads_data.get("leads", [])
         result = []
-        for lead in leads.get("leads", []):
+        for lead in lead_list:
             result.append({
                 "id": lead.get("lead_id"),
                 "name": lead.get("first_name", ""),
@@ -336,7 +338,8 @@ async def get_priority_leads(cpa_id: str, limit: int = 5) -> List[dict]:
         queue = service.get_priority_queue(cpa_id, limit=limit)
 
         result = []
-        for lead in queue.get("leads", []):
+        queue_leads = queue if isinstance(queue, list) else queue.get("leads", [])
+        for lead in queue_leads:
             result.append({
                 "id": lead.get("lead_id"),
                 "name": lead.get("first_name", ""),
@@ -560,7 +563,8 @@ async def cpa_leads_list(
         )
 
         leads = []
-        for lead in leads_result.get("leads", []):
+        lead_list = leads_result if isinstance(leads_result, list) else leads_result.get("leads", [])
+        for lead in lead_list:
             leads.append({
                 "id": lead.get("lead_id"),
                 "name": lead.get("first_name", ""),
@@ -575,7 +579,7 @@ async def cpa_leads_list(
                 "created_at": lead.get("created_at"),
             })
 
-        total_count = leads_result.get("total_count", 0)
+        total_count = len(lead_list) if isinstance(leads_result, list) else leads_result.get("total_count", 0)
         total_pages = (total_count + limit - 1) // limit if total_count > 0 else 1
 
     except Exception as e:
@@ -843,7 +847,8 @@ async def cpa_converted(
         from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
         service = get_lead_magnet_service()
         leads_result = service.list_leads(cpa_id=cpa_id, state="converted", limit=50)
-        for lead in leads_result.get("leads", []):
+        client_list = leads_result if isinstance(leads_result, list) else leads_result.get("leads", [])
+        for lead in client_list:
             leads.append({
                 "id": lead.get("lead_id"),
                 "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "Lead",
@@ -1115,7 +1120,8 @@ async def cpa_clients_page(
         service = get_lead_magnet_service()
         cpa_id = get_cpa_id_from_user(current_user)
         leads_result = service.list_leads(cpa_id=cpa_id, state="converted", limit=50)
-        for lead in leads_result.get("leads", []):
+        client_list = leads_result if isinstance(leads_result, list) else leads_result.get("leads", [])
+        for lead in client_list:
             clients.append({
                 "id": lead.get("lead_id"),
                 "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "Client",
