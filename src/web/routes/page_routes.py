@@ -598,9 +598,6 @@ def guided_filing_page(request: Request, session_id: str = None):
 @router.get("/results", response_class=HTMLResponse)
 def filing_results(request: Request, session_id: str = None):
     """Show completed tax return results with subscription tier filtering."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
     from config.branding import get_branding_config
     from database.session_persistence import get_session_persistence
     from subscription.tier_control import ReportAccessControl, SubscriptionTier, get_user_tier
@@ -609,6 +606,12 @@ def filing_results(request: Request, session_id: str = None):
         session_id = request.query_params.get('session_id')
     if not session_id:
         session_id = request.cookies.get('tax_session_id')
+
+    # Allow access with session_id even without login (for advisor → results flow)
+    if not session_id:
+        denied = _require_any_auth(request)
+        if denied:
+            return denied
     if not session_id:
         return RedirectResponse(url="/lead-magnet/", status_code=302)
 

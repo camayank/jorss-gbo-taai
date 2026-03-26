@@ -212,7 +212,13 @@ export function setupNoticeBanner() {
 
 // ======================== STATE VARIABLES ========================
 
-export let sessionId = null;
+// Restore session from cookie if available (enables return visits)
+export let sessionId = (function() {
+  var stored = sessionStorage.getItem('tax_session_id');
+  if (stored) return stored;
+  var match = document.cookie.match(/tax_session_id=([^;]+)/);
+  return match ? match[1] : null;
+})();
 export let conversationHistory = [];
 export let extractedData = {
   // Lead Information (for CPA handoff)
@@ -652,6 +658,8 @@ export async function initializeSession() {
     const data = await response.json();
     sessionId = data.session_id;
     sessionStorage.setItem('tax_session_id', sessionId);
+    // Also persist as cookie for cross-session return visits
+    document.cookie = 'tax_session_id=' + sessionId + '; path=/; max-age=86400; SameSite=Lax';
     if (data.session_token) {
       sessionStorage.setItem('advisor_session_token', data.session_token);
     }

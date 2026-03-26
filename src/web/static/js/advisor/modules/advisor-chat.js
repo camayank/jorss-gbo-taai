@@ -910,6 +910,17 @@ export async function processAIResponse(userMessage) {
     if (data.profile_completeness > 0) {
       if (data.tax_calculation) {
         setTaxCalculations(data.tax_calculation);
+        // Show "View Full Results" link when calculation is ready
+        var resultsLink = document.getElementById('results-link');
+        if (!resultsLink) {
+          resultsLink = document.createElement('a');
+          resultsLink.id = 'results-link';
+          resultsLink.style.cssText = 'display:block;text-align:center;padding:12px 24px;margin:12px auto;background:#2563eb;color:white;border-radius:8px;font-weight:700;text-decoration:none;max-width:300px;';
+          resultsLink.textContent = 'View Full Tax Results';
+          var msgs = document.getElementById('messages');
+          if (msgs) msgs.parentNode.insertBefore(resultsLink, msgs.nextSibling);
+        }
+        resultsLink.href = '/results?session_id=' + sessionId;
       }
       if (data.strategies && data.strategies.length > 0) {
         setTaxStrategies(data.strategies);

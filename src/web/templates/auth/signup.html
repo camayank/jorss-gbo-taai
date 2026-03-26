@@ -677,7 +677,8 @@
                 last_name: formData.get('lastName'),
                 email: formData.get('email'),
                 password: formData.get('password'),
-                user_type: 'consumer'
+                user_type: new URLSearchParams(window.location.search).get('type') === 'cpa' ? 'cpa_team' : 'consumer',
+                firm_name: new URLSearchParams(window.location.search).get('type') === 'cpa' ? formData.get('firmName') || '' : undefined
             };
 
             try {
