@@ -68,6 +68,175 @@ class PaymentService:
         # Stripe configuration
         self._stripe_configured = bool(os.environ.get("STRIPE_SECRET_KEY"))
 
+        self._load_from_db()
+
+    def _load_from_db(self) -> None:
+        """Hydrate in-memory caches from SQLite on startup."""
+        import datetime as _dt
+
+        def _uuid(val):
+            if val is None:
+                return None
+            if isinstance(val, UUID):
+                return val
+            try:
+                return UUID(str(val))
+            except (ValueError, AttributeError):
+                return None
+
+        def _dt_parse(val):
+            if val is None:
+                return None
+            if isinstance(val, _dt.datetime):
+                return val
+            try:
+                return _dt.datetime.fromisoformat(str(val))
+            except (ValueError, AttributeError):
+                return None
+
+        def _date_parse(val):
+            if val is None:
+                return None
+            if isinstance(val, _dt.date):
+                return val
+            try:
+                return _dt.date.fromisoformat(str(val))
+            except (ValueError, AttributeError):
+                return None
+
+        import re as _re
+
+        def _parse_line_item(li):
+            """Parse a LineItem from either a dict or its str() repr."""
+            if isinstance(li, dict):
+                return LineItem(
+                    description=li["description"],
+                    amount=float(li["amount"]),
+                    quantity=int(li.get("quantity", 1)),
+                    tax_rate=float(li.get("tax_rate", 0.0)),
+                )
+            # Handle str repr: LineItem(description='...', amount=X, quantity=Y, tax_rate=Z)
+            s = str(li)
+            desc_m = _re.search(r"description='(.*?)'", s)
+            amt_m = _re.search(r"amount=([\d.]+)", s)
+            qty_m = _re.search(r"quantity=(\d+)", s)
+            tax_m = _re.search(r"tax_rate=([\d.]+)", s)
+            return LineItem(
+                description=desc_m.group(1) if desc_m else "",
+                amount=float(amt_m.group(1)) if amt_m else 0.0,
+                quantity=int(qty_m.group(1)) if qty_m else 1,
+                tax_rate=float(tax_m.group(1)) if tax_m else 0.0,
+            )
+
+        with sqlite3.connect(str(self._db_path)) as conn:
+            # Load invoices
+            for row in conn.execute("SELECT data_json FROM pay_invoices"):
+                try:
+                    d = json.loads(row[0])
+                    items = [
+                        _parse_line_item(li)
+                        for li in d.get("line_items", [])
+                    ]
+                    inv = Invoice(
+                        id=_uuid(d.get("id")),
+                        invoice_number=d.get("invoice_number", ""),
+                        firm_id=_uuid(d.get("firm_id")),
+                        cpa_id=_uuid(d.get("cpa_id")),
+                        cpa_name=d.get("cpa_name", ""),
+                        firm_name=d.get("firm_name", ""),
+                        client_id=_uuid(d.get("client_id")),
+                        client_name=d.get("client_name", ""),
+                        client_email=d.get("client_email", ""),
+                        client_address=d.get("client_address"),
+                        notes=d.get("notes"),
+                        terms=d.get("terms"),
+                        subtotal=float(d.get("subtotal", 0.0)),
+                        tax_total=float(d.get("tax_total", 0.0)),
+                        discount_amount=float(d.get("discount_amount", 0.0)),
+                        total_amount=float(d.get("total_amount", 0.0)),
+                        amount_paid=float(d.get("amount_paid", 0.0)),
+                        currency=d.get("currency", "USD"),
+                        issue_date=_date_parse(d.get("issue_date")) or _dt.date.today(),
+                        due_date=_date_parse(d.get("due_date")) or _dt.date.today(),
+                        paid_date=_date_parse(d.get("paid_date")),
+                        status=InvoiceStatus(d.get("status", InvoiceStatus.DRAFT.value)),
+                        payment_link=d.get("payment_link"),
+                        stripe_invoice_id=d.get("stripe_invoice_id"),
+                        created_at=_dt_parse(d.get("created_at")) or datetime.now(timezone.utc),
+                        updated_at=_dt_parse(d.get("updated_at")) or datetime.now(timezone.utc),
+                        sent_at=_dt_parse(d.get("sent_at")),
+                    )
+                    inv.line_items = items
+                    inv.recalculate_totals()
+                    self._invoices[inv.id] = inv
+                except Exception as e:
+                    logger.warning("Failed to load invoice row: %s", e)
+
+            # Load payments
+            for row in conn.execute("SELECT data_json FROM pay_payments"):
+                try:
+                    d = json.loads(row[0])
+                    pay = Payment(
+                        id=_uuid(d.get("id")),
+                        firm_id=_uuid(d.get("firm_id")),
+                        cpa_id=_uuid(d.get("cpa_id")),
+                        client_id=_uuid(d.get("client_id")),
+                        client_name=d.get("client_name", ""),
+                        client_email=d.get("client_email", ""),
+                        invoice_id=_uuid(d.get("invoice_id")),
+                        invoice_number=d.get("invoice_number"),
+                        amount=float(d.get("amount", 0.0)),
+                        currency=d.get("currency", "USD"),
+                        description=d.get("description", ""),
+                        payment_method=PaymentMethod(d.get("payment_method", PaymentMethod.CARD.value)),
+                        stripe_payment_intent_id=d.get("stripe_payment_intent_id"),
+                        stripe_charge_id=d.get("stripe_charge_id"),
+                        stripe_receipt_url=d.get("stripe_receipt_url"),
+                        platform_fee=float(d.get("platform_fee", 0.0)),
+                        net_amount=float(d.get("net_amount", 0.0)),
+                        status=PaymentStatus(d.get("status", PaymentStatus.PENDING.value)),
+                        refunded_amount=float(d.get("refunded_amount", 0.0)),
+                        refund_reason=d.get("refund_reason"),
+                        created_at=_dt_parse(d.get("created_at")) or datetime.now(timezone.utc),
+                        updated_at=_dt_parse(d.get("updated_at")) or datetime.now(timezone.utc),
+                        completed_at=_dt_parse(d.get("completed_at")),
+                        metadata=d.get("metadata") or {},
+                    )
+                    self._payments[pay.id] = pay
+                except Exception as e:
+                    logger.warning("Failed to load payment row: %s", e)
+
+            # Load payment links
+            for row in conn.execute("SELECT data_json FROM pay_links"):
+                try:
+                    d = json.loads(row[0])
+                    link = PaymentLink(
+                        id=_uuid(d.get("id")),
+                        link_code=d.get("link_code", ""),
+                        firm_id=_uuid(d.get("firm_id")),
+                        cpa_id=_uuid(d.get("cpa_id")),
+                        name=d.get("name", ""),
+                        description=d.get("description"),
+                        amount=float(d["amount"]) if d.get("amount") is not None else None,
+                        currency=d.get("currency", "USD"),
+                        max_uses=int(d["max_uses"]) if d.get("max_uses") is not None else None,
+                        expires_at=_dt_parse(d.get("expires_at")),
+                        min_amount=float(d["min_amount"]) if d.get("min_amount") is not None else None,
+                        max_amount=float(d["max_amount"]) if d.get("max_amount") is not None else None,
+                        is_active=bool(d.get("is_active", True)),
+                        uses_count=int(d.get("uses_count", 0)),
+                        total_collected=float(d.get("total_collected", 0.0)),
+                        stripe_price_id=d.get("stripe_price_id"),
+                        stripe_payment_link_id=d.get("stripe_payment_link_id"),
+                        created_at=_dt_parse(d.get("created_at")) or datetime.now(timezone.utc),
+                    )
+                    self._payment_links[link.id] = link
+                    self._links_by_code[link.link_code] = link.id
+                except Exception as e:
+                    logger.warning("Failed to load payment link row: %s", e)
+
+        self._db_loaded = True
+
     def _persist_invoice(self, invoice):
         """Write-through cache: persist invoice to SQLite."""
         with sqlite3.connect(str(self._db_path)) as conn:
