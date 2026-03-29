@@ -125,3 +125,27 @@ def test_load_from_db_restores_payment_links(tmp_path):
     assert loaded is not None
     assert loaded.name == "Q1 Retainer"
     assert loaded.amount == 1200.0
+
+
+def test_load_from_db_roundtrip_apostrophe_in_description(tmp_path):
+    """Line item descriptions with apostrophes must survive a persist/load cycle."""
+    db = tmp_path / "test.db"
+    firm = uuid.uuid4()
+    cpa = uuid.uuid4()
+
+    with patch.dict(os.environ, {"DATABASE_PATH": str(db)}):
+        svc1 = PaymentService()
+        inv = svc1.create_invoice(
+            firm_id=firm, cpa_id=cpa, cpa_name="O'Brien CPA", firm_name="O'Brien & Co",
+            client_name="Smith's Bakery", client_email="smith@example.com",
+            line_items=[{"description": "O'Brien quarterly prep fee", "amount": 750.0}],
+        )
+        inv_id = inv.id
+
+    with patch.dict(os.environ, {"DATABASE_PATH": str(db)}):
+        svc2 = PaymentService()
+        loaded = svc2.get_invoice(inv_id)
+
+    assert loaded is not None
+    assert loaded.line_items[0].description == "O'Brien quarterly prep fee"
+    assert loaded.total_amount == 750.0

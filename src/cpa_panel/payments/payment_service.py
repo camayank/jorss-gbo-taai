@@ -6,6 +6,7 @@ Provides invoice management, payment links, and payment tracking.
 """
 
 import os
+import re
 import sqlite3
 import json
 import logging
@@ -63,7 +64,6 @@ class PaymentService:
         self._payments: Dict[UUID, Payment] = {}
         self._payment_links: Dict[UUID, PaymentLink] = {}
         self._links_by_code: Dict[str, UUID] = {}
-        self._db_loaded = False
 
         # Stripe configuration
         self._stripe_configured = bool(os.environ.get("STRIPE_SECRET_KEY"))
@@ -72,7 +72,6 @@ class PaymentService:
 
     def _load_from_db(self) -> None:
         """Hydrate in-memory caches from SQLite on startup."""
-        import datetime as _dt
 
         def _uuid(val):
             if val is None:
@@ -87,45 +86,33 @@ class PaymentService:
         def _dt_parse(val):
             if val is None:
                 return None
-            if isinstance(val, _dt.datetime):
+            if isinstance(val, datetime):
                 return val
             try:
-                return _dt.datetime.fromisoformat(str(val))
+                return datetime.fromisoformat(str(val))
             except (ValueError, AttributeError):
                 return None
 
         def _date_parse(val):
             if val is None:
                 return None
-            if isinstance(val, _dt.date):
+            if isinstance(val, date) and not isinstance(val, datetime):
                 return val
             try:
-                return _dt.date.fromisoformat(str(val))
+                return date.fromisoformat(str(val))
             except (ValueError, AttributeError):
                 return None
 
-        import re as _re
-
         def _parse_line_item(li):
-            """Parse a LineItem from either a dict or its str() repr."""
-            if isinstance(li, dict):
-                return LineItem(
-                    description=li["description"],
-                    amount=float(li["amount"]),
-                    quantity=int(li.get("quantity", 1)),
-                    tax_rate=float(li.get("tax_rate", 0.0)),
-                )
-            # Handle str repr: LineItem(description='...', amount=X, quantity=Y, tax_rate=Z)
-            s = str(li)
-            desc_m = _re.search(r"description='(.*?)'", s)
-            amt_m = _re.search(r"amount=([\d.]+)", s)
-            qty_m = _re.search(r"quantity=(\d+)", s)
-            tax_m = _re.search(r"tax_rate=([\d.]+)", s)
+            """Parse a LineItem from a dict (the only supported format)."""
+            if not isinstance(li, dict):
+                logger.warning("Skipping non-dict line item: %r", li)
+                return None
             return LineItem(
-                description=desc_m.group(1) if desc_m else "",
-                amount=float(amt_m.group(1)) if amt_m else 0.0,
-                quantity=int(qty_m.group(1)) if qty_m else 1,
-                tax_rate=float(tax_m.group(1)) if tax_m else 0.0,
+                description=li.get("description", ""),
+                amount=float(li.get("amount", 0.0)),
+                quantity=int(li.get("quantity", 1)),
+                tax_rate=float(li.get("tax_rate", 0.0)),
             )
 
         with sqlite3.connect(str(self._db_path)) as conn:
@@ -134,8 +121,10 @@ class PaymentService:
                 try:
                     d = json.loads(row[0])
                     items = [
-                        _parse_line_item(li)
-                        for li in d.get("line_items", [])
+                        item for item in (
+                            _parse_line_item(li)
+                            for li in d.get("line_items", [])
+                        ) if item is not None
                     ]
                     inv = Invoice(
                         id=_uuid(d.get("id")),
@@ -156,8 +145,8 @@ class PaymentService:
                         total_amount=float(d.get("total_amount", 0.0)),
                         amount_paid=float(d.get("amount_paid", 0.0)),
                         currency=d.get("currency", "USD"),
-                        issue_date=_date_parse(d.get("issue_date")) or _dt.date.today(),
-                        due_date=_date_parse(d.get("due_date")) or _dt.date.today(),
+                        issue_date=_date_parse(d.get("issue_date")) or date.today(),
+                        due_date=_date_parse(d.get("due_date")) or date.today(),
                         paid_date=_date_parse(d.get("paid_date")),
                         status=InvoiceStatus(d.get("status", InvoiceStatus.DRAFT.value)),
                         payment_link=d.get("payment_link"),
@@ -235,12 +224,14 @@ class PaymentService:
                 except Exception as e:
                     logger.warning("Failed to load payment link row: %s", e)
 
-        self._db_loaded = True
-
     def _persist_invoice(self, invoice):
         """Write-through cache: persist invoice to SQLite."""
         with sqlite3.connect(str(self._db_path)) as conn:
-            data = invoice.model_dump() if hasattr(invoice, 'model_dump') else vars(invoice)
+            if hasattr(invoice, 'model_dump'):
+                data = invoice.model_dump()
+            else:
+                data = {k: v for k, v in vars(invoice).items() if k != 'line_items'}
+                data['line_items'] = [item.to_dict() for item in invoice.line_items]
             conn.execute("INSERT OR REPLACE INTO pay_invoices (invoice_id, data_json, updated_at) VALUES (?, ?, ?)",
                          (str(invoice.id), json.dumps(data, default=str), datetime.now(timezone.utc).isoformat()))
 
