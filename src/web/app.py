@@ -3046,9 +3046,18 @@ async def export_universal_json(request: Request, session_id: str = None):
     return JSONResponse(get_universal_json(rd))
 
 
+VALID_FILING_STATUSES = {
+    "single", "married_filing_jointly", "married_filing_separately",
+    "head_of_household", "qualifying_surviving_spouse",
+}
+
+
 @app.get("/api/tools/tax-rate-lookup")
 async def tax_rate_lookup(income: float = 85000, filing_status: str = "single"):
     """Quick tax rate lookup — marginal and effective rates for 2025."""
+    if filing_status not in VALID_FILING_STATUSES:
+        raise HTTPException(status_code=422, detail=f"Invalid filing_status '{filing_status}'. Must be one of: {sorted(VALID_FILING_STATUSES)}")
+    income = max(0.0, income)
     from calculator.tax_year_config import TaxYearConfig
     config = TaxYearConfig.for_2025()
     brackets = config.ordinary_income_brackets.get(filing_status, config.ordinary_income_brackets.get("single", []))
@@ -3083,6 +3092,11 @@ async def w4_calculator(
     dependents: int = 0, other_income: float = 0,
 ):
     """W-4 withholding calculator — recommends optimal W-4 settings."""
+    if filing_status not in VALID_FILING_STATUSES:
+        raise HTTPException(status_code=422, detail=f"Invalid filing_status '{filing_status}'. Must be one of: {sorted(VALID_FILING_STATUSES)}")
+    annual_income = max(0.0, annual_income)
+    dependents = max(0, dependents)
+    other_income = max(-200_000.0, other_income)
     from calculator.tax_year_config import TaxYearConfig
     config = TaxYearConfig.for_2025()
     std_ded = config.standard_deduction.get(filing_status, 15750)
