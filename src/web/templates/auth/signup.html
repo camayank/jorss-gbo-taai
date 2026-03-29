@@ -447,6 +447,11 @@
                     <form id="signup-form">
                         <input type="hidden" name="next" id="next-url" value="/intelligent-advisor">
 
+                        <div class="form-group" id="firm-name-group" style="display:none">
+                            <label class="form-label" for="firmName">Firm Name</label>
+                            <input type="text" id="firmName" name="firmName" class="form-input" placeholder="Smith &amp; Associates CPA" autocomplete="organization">
+                        </div>
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label" for="firstName">First Name</label>
@@ -600,6 +605,14 @@
             }
             const nextUrl = isSafeRedirect(urlParams.get('next')) ? urlParams.get('next') : '/intelligent-advisor';
             document.getElementById('next-url').value = nextUrl;
+
+            // Show firmName field for CPA signup
+            if (urlParams.get('type') === 'cpa') {
+                const firmGroup = document.getElementById('firm-name-group');
+                const firmInput = document.getElementById('firmName');
+                if (firmGroup) firmGroup.style.display = '';
+                if (firmInput) firmInput.required = true;
+            }
 
             if (urlParams.get('oauth_success') === 'true') {
                 const token = urlParams.get('token');
