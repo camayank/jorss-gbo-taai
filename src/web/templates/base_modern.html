@@ -62,7 +62,7 @@
   {% endif %}
 
   {# Client navigation bar (shown on client-facing pages) #}
-  {% if user and user.role in ('client', 'firm_client', 'direct_client', 'anonymous') %}
+  {% if user and user.role in ('client', 'firm_client', 'direct_client') %}
     {% include 'partials/client_nav.html' ignore missing %}
   {% endif %}
 
