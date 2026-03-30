@@ -11,19 +11,36 @@
     <link rel="icon" href="{{ branding.favicon_url }}">
     {% endif %}
     {% include 'partials/head_styles.html' %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* =========================================
            LANDING PAGE — Sunlit Professional
            Light, warm, ClearTax-inspired
            ========================================= */
 
+        :root {
+            --font-heading: 'Playfair Display', Georgia, serif;
+            --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+            --color-primary: #0B1D3A;
+        }
+
         body {
             margin: 0;
             padding: 0;
             background: #FFFFFF;
             color: var(--color-gray-800);
-            font-family: var(--font-sans);
+            font-family: var(--font-body);
             -webkit-font-smoothing: antialiased;
+        }
+
+        p, button, input {
+            font-family: var(--font-body);
+        }
+
+        h1, h2 {
+            font-family: var(--font-heading);
         }
 
         /* --- NAV --- */
@@ -174,7 +191,7 @@
         }
 
         .landing-hero h1 {
-            font-family: var(--font-display);
+            font-family: var(--font-heading);
             font-size: 3.5rem;
             font-weight: 800;
             line-height: 1.12;
@@ -831,12 +848,12 @@
         <div class="hero-inner">
             <div class="hero-badge">
                 <span class="hero-badge-dot"></span>
-                AI-Powered Tax Advisory
+                CPA-Backed Tax Strategy — Free
             </div>
-            <h1>Your Tax Situation Is Unique.<br><span class="highlight">Your Strategy Should Be Too.</span></h1>
+            <h1>Stop Overpaying the IRS.<br><span class="highlight">Find Out What You're Owed.</span></h1>
             <p class="hero-subtitle">
-                Answer a few questions about your finances and get a personalized tax strategy
-                with specific savings opportunities — reviewed and backed by licensed CPAs.
+                Answer a few questions and get a personalized tax strategy with specific
+                savings opportunities — reviewed and backed by licensed CPAs. Takes 3 minutes.
             </p>
             <div class="hero-ctas">
                 <a href="/lead-magnet" class="hero-cta-primary">Get Your Free Tax Estimate &rarr;</a>
@@ -863,19 +880,19 @@
         <div class="authority-bar-inner">
             <div class="authority-stat">
                 <div class="authority-stat-value">76</div>
-                <div class="authority-stat-label">Adaptive Tax Questions</div>
+                <div class="authority-stat-label">Questions That Find Deductions Others Miss</div>
             </div>
             <div class="authority-stat">
                 <div class="authority-stat-value">50+</div>
-                <div class="authority-stat-label">IRS Forms Supported</div>
+                <div class="authority-stat-label">IRS Forms Analyzed Automatically</div>
             </div>
             <div class="authority-stat">
                 <div class="authority-stat-value">46</div>
-                <div class="authority-stat-label">States Covered</div>
+                <div class="authority-stat-label">States with Local Tax Optimization</div>
             </div>
             <div class="authority-stat">
                 <div class="authority-stat-value">2025</div>
-                <div class="authority-stat-label">Tax Year Ready</div>
+                <div class="authority-stat-label">Tax Year — Current Rules Applied</div>
             </div>
         </div>
     </section>
@@ -1017,106 +1034,72 @@
         </div>
     </section>
 
-    <!-- 7. TESTIMONIALS -->
+    <!-- 7. EXAMPLE SCENARIOS -->
     <section class="landing-section testimonials-section">
         <div class="landing-section-inner">
-            <div class="section-eyebrow">Success Stories</div>
-            <h2 class="section-title">What Our Clients Say</h2>
-            <p class="section-desc">Real results from real tax situations</p>
+            <div class="section-eyebrow">Example Scenarios</div>
+            <h2 class="section-title">What the Advisor Finds</h2>
+            <p class="section-desc">Illustrative examples based on common tax situations. Your results will vary based on your specific circumstances.</p>
 
             <div class="testimonials-grid">
                 <div class="testimonial-card">
                     <div class="testimonial-quote-mark">&ldquo;</div>
-                    <blockquote>I had no idea I was eligible for the QBI deduction. The AI advisor identified it immediately and walked me through exactly how to claim it. My CPA confirmed the savings.</blockquote>
+                    <blockquote>Freelance consultant, $95K net income. The advisor identified QBI deduction eligibility and home office deduction — two strategies their previous filing had missed entirely.</blockquote>
                     <div class="testimonial-author-row">
                         <div class="testimonial-author-info">
-                            <div class="testimonial-avatar">MR</div>
+                            <div class="testimonial-avatar">FC</div>
                             <div>
-                                <div class="testimonial-name">Michael R.</div>
-                                <div class="testimonial-role">Freelance Consultant</div>
+                                <div class="testimonial-name">Freelance Consultant</div>
+                                <div class="testimonial-role">Self-Employed · Single Filer</div>
                             </div>
                         </div>
-                        <div class="testimonial-savings-badge">Saved $3,200</div>
+                        <div class="testimonial-savings-badge">Up to $3,200 identified</div>
                     </div>
                 </div>
                 <div class="testimonial-card">
                     <div class="testimonial-quote-mark">&ldquo;</div>
-                    <blockquote>As a small business owner, I was leaving money on the table with my entity structure. The S-Corp election analysis alone was worth it — now I save thousands on self-employment tax.</blockquote>
+                    <blockquote>E-commerce LLC owner, $210K revenue. S-Corp election analysis showed significant self-employment tax savings. Entity restructuring recommendation confirmed by their CPA.</blockquote>
                     <div class="testimonial-author-row">
                         <div class="testimonial-author-info">
-                            <div class="testimonial-avatar">SK</div>
+                            <div class="testimonial-avatar">BO</div>
                             <div>
-                                <div class="testimonial-name">Sarah K.</div>
-                                <div class="testimonial-role">E-commerce Owner</div>
+                                <div class="testimonial-name">E-commerce Business Owner</div>
+                                <div class="testimonial-role">LLC · Married Filing Jointly</div>
                             </div>
                         </div>
-                        <div class="testimonial-savings-badge">Saved $7,400</div>
+                        <div class="testimonial-savings-badge">Up to $7,400 identified</div>
                     </div>
                 </div>
                 <div class="testimonial-card">
                     <div class="testimonial-quote-mark">&ldquo;</div>
-                    <blockquote>The Backdoor Roth strategy was something I'd heard about but never understood. The advisor explained it clearly and my CPA helped me execute it before year-end.</blockquote>
+                    <blockquote>Software engineer, $185K W-2. Backdoor Roth IRA eligibility flagged along with RSU vesting optimization strategy — actionable steps delivered before year-end cutoff.</blockquote>
                     <div class="testimonial-author-row">
                         <div class="testimonial-author-info">
-                            <div class="testimonial-avatar">JT</div>
+                            <div class="testimonial-avatar">SE</div>
                             <div>
-                                <div class="testimonial-name">James T.</div>
-                                <div class="testimonial-role">Software Engineer</div>
+                                <div class="testimonial-name">Software Engineer</div>
+                                <div class="testimonial-role">W-2 Employee · RSU Holder</div>
                             </div>
                         </div>
-                        <div class="testimonial-savings-badge">Saved $2,800</div>
+                        <div class="testimonial-savings-badge">Up to $2,800 identified</div>
                     </div>
                 </div>
             </div>
+            <p style="text-align:center; font-size:0.8rem; color:var(--color-gray-400); margin-top: var(--space-6);">
+                These are illustrative scenarios. Actual savings depend on your individual tax situation. Consult a licensed CPA before making tax decisions.
+            </p>
         </div>
     </section>
 
-    <!-- 7.5. FOR CPA FIRMS -->
-    <section id="for-cpas" style="padding: 80px 0; background: var(--bg-secondary, #f8fafc);">
-        <div style="max-width: 1100px; margin: 0 auto; padding: 0 24px;">
-            <div style="text-align: center; margin-bottom: 48px;">
-                <span style="font-size: 0.85rem; font-weight: 600; color: var(--color-primary-600, #2563eb); text-transform: uppercase; letter-spacing: 0.05em;">For CPA Firms</span>
-                <h2 style="font-size: 2.2rem; font-weight: 800; margin-top: 8px; color: var(--color-navy, #0f172a);">Turn Your Website Into a Lead Machine</h2>
-                <p style="color: var(--text-secondary, #64748b); max-width: 600px; margin: 12px auto 0; font-size: 1.05rem;">
-                    Embed our AI tax advisor on your site. Capture qualified leads with pre-built financial profiles. Close more clients, faster.
-                </p>
+    <!-- 7.5. CPA CALLOUT BANNER -->
+    <section style="background: #0B1D3A; padding: 2.5rem 1.5rem;">
+        <div style="max-width: 860px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;">
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: #C9A84C; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">For CPA Firms</div>
+                <p style="color: #fff; font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">Capture pre-qualified leads from your website 24/7.</p>
+                <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0;">White-label AI advisor. Your brand. Your clients. 14-day free trial.</p>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 40px;">
-                <div style="background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem; margin-bottom: 12px;">🎯</div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;">Qualified Leads, Not Tire-Kickers</h3>
-                    <p style="color: var(--text-secondary, #64748b); font-size: 0.9rem; line-height: 1.6;">AI scores every prospect on 27 behavioral signals. Know their complexity, income range, and engagement level before you pick up the phone.</p>
-                </div>
-                <div style="background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem; margin-bottom: 12px;">🏷️</div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;">Your Brand, Your Clients</h3>
-                    <p style="color: var(--text-secondary, #64748b); font-size: 0.9rem; line-height: 1.6;">White-label everything. Your logo, your colors, your domain. Clients never see our brand — only yours.</p>
-                </div>
-                <div style="background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem; margin-bottom: 12px;">💰</div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;">Know What to Charge</h3>
-                    <p style="color: var(--text-secondary, #64748b); font-size: 0.9rem; line-height: 1.6;">Complexity-based pricing guidance. Simple W-2 returns to multi-entity partnerships — every lead comes with an engagement fee recommendation.</p>
-                </div>
-                <div style="background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem; margin-bottom: 12px;">📊</div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;">Practice Intelligence</h3>
-                    <p style="color: var(--text-secondary, #64748b); font-size: 0.9rem; line-height: 1.6;">Real-time analytics: conversion rates, revenue pipeline, deadline tracking, team utilization. All in one dashboard.</p>
-                </div>
-                <div style="background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem; margin-bottom: 12px;">🤖</div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;">AI With CPA Oversight</h3>
-                    <p style="color: var(--text-secondary, #64748b); font-size: 0.9rem; line-height: 1.6;">Every AI recommendation is queued for your review before the client sees it. You stay in control. Circular 230 compliant.</p>
-                </div>
-                <div style="background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem; margin-bottom: 12px;">⚡</div>
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px;">5-Minute Setup</h3>
-                    <p style="color: var(--text-secondary, #64748b); font-size: 0.9rem; line-height: 1.6;">Copy one embed code to your website. Your personalized lead funnel is live instantly. No IT department needed.</p>
-                </div>
-            </div>
-            <div style="text-align: center;">
-                <a href="/for-cpas" style="display: inline-block; padding: 16px 40px; background: var(--color-primary-600, #2563eb); color: white; border-radius: 10px; font-weight: 700; font-size: 1.1rem; text-decoration: none;">Start Your Free CPA Trial</a>
-                <p style="margin-top: 12px; color: var(--text-secondary, #64748b); font-size: 0.85rem;">No credit card required. Setup in under 5 minutes.</p>
-            </div>
+            <a href="/for-cpas" style="flex-shrink:0; display:inline-block; background:#C9A84C; color:#0B1D3A; font-weight:700; font-size:0.95rem; padding:0.8rem 2rem; border-radius:6px; text-decoration:none; white-space:nowrap;">See How It Works for CPAs &rarr;</a>
         </div>
     </section>
 
