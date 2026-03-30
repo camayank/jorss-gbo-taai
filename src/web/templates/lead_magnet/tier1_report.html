@@ -929,8 +929,25 @@
             <p class="cta-subtitle">
                 Schedule a free, no-obligation consultation with {{ cpa.display_name }}
             </p>
-            <a href="{{ cpa.booking_link or '#contact' }}" class="cta-button">
+            {% if cpa.booking_link %}
+            <a href="{{ cpa.booking_link }}" class="cta-button">
                 Schedule Free Consultation
+            </a>
+            {% else %}
+            <div id="callback-form" style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem;">
+                <p style="margin-bottom: 0.75rem; font-size: 0.95rem;">Leave your number and {{ cpa.display_name }} will call you</p>
+                <form onsubmit="submitCallback(event)" style="display: flex; gap: 0.5rem;">
+                    <input type="tel" id="callback-phone" placeholder="(555) 123-4567" required
+                           style="flex: 1; padding: 0.6rem 1rem; border-radius: 8px; border: none; font-size: 1rem; color: #0B1D3A;">
+                    <button type="submit" style="padding: 0.6rem 1.25rem; border-radius: 8px; border: none; background: #C9A84C; color: #0B1D3A; font-weight: 600; cursor: pointer;">
+                        Submit
+                    </button>
+                </form>
+                <p id="callback-success" style="display:none; margin-top: 0.5rem; color: #C9A84C; font-weight: 600;">We'll be in touch soon!</p>
+            </div>
+            {% endif %}
+            <a href="/intelligent-advisor?session={{ session_id }}" class="cta-button" style="background: #C9A84C; color: #0B1D3A; margin-top: 0.75rem; display: inline-block; text-decoration: none;">
+                Want the full AI analysis? Start Now &rarr;
             </a>
             <div class="cta-benefits">
                 <div class="cta-benefit">
@@ -1091,6 +1108,27 @@
 
         trackLeadMagnetEvent('report_view', 'report_tier1');
         console.log('Tier 1 report viewed for session:', sessionId);
+
+        async function submitCallback(e) {
+            e.preventDefault();
+            const phone = document.getElementById('callback-phone').value;
+            try {
+                const resp = await fetch('/api/cpa/lead-magnet/{{ session_id }}/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone })
+                });
+                if (resp.ok) {
+                    document.getElementById('callback-phone').disabled = true;
+                    document.querySelector('#callback-form button[type="submit"]').disabled = true;
+                    document.getElementById('callback-success').style.display = 'block';
+                } else {
+                    alert('Something went wrong. Please try again.');
+                }
+            } catch (err) {
+                alert('Network error. Please try again.');
+            }
+        }
     </script>
 </body>
 </html>

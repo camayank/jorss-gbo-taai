@@ -839,6 +839,11 @@
     </style>
 </head>
 <body>
+    <nav style="position:sticky;top:0;z-index:200;background:#0B1D3A;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;">
+      <a href="/app/portal" style="color:#fff;text-decoration:none;font-size:0.9rem;font-weight:500;">&larr; My Dashboard</a>
+      <span style="color:#C9A84C;font-weight:600;font-size:1rem;">TaxAdvisor.ai</span>
+      <a href="/logout" style="color:#fff;text-decoration:none;font-size:0.9rem;font-weight:500;">Sign out</a>
+    </nav>
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -913,6 +918,12 @@
                 <button class="btn btn-success" id="generate-new">
                     {{ icon('sparkles') }} Generate New Report
                 </button>
+                <a href="/app/portal" class="btn btn-primary" style="text-decoration:none;">
+                    My Dashboard &rarr;
+                </a>
+                <a href="{{ cpa.booking_link or '/for-cpas' }}" class="btn btn-secondary" style="text-decoration:none;">
+                    Book Consultation
+                </a>
             </div>
 
             <!-- Report Sections -->
