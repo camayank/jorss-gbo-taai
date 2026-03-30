@@ -984,128 +984,7 @@
 
         <!-- Document Grid View -->
         <div class="document-grid" id="documentGrid">
-            <!-- Sample documents - would be populated from API -->
-            <div class="document-card" data-category="w2" data-status="verified">
-                <div class="document-preview">
-                    <div class="document-type-icon pdf">
-                        <svg fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
-                            <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>
-                        </svg>
-                    </div>
-                    <span class="document-status verified">Verified</span>
-                </div>
-                <div class="document-info">
-                    <h4 class="document-name">W-2_2024_Employer.pdf</h4>
-                    <div class="document-meta">
-                        <span>245 KB</span>
-                        <span>Jan 15, 2025</span>
-                    </div>
-                    <span class="document-category">W-2 Forms</span>
-                </div>
-                <div class="document-actions">
-                    <button class="doc-action-btn" onclick="viewDocument('1')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        View
-                    </button>
-                    <button class="doc-action-btn" onclick="downloadDocument('1')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        Download
-                    </button>
-                    <button class="doc-action-btn" onclick="deleteDocument('1')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Delete
-                    </button>
-                </div>
-            </div>
-
-            <div class="document-card" data-category="1099" data-status="processing">
-                <div class="document-preview">
-                    <div class="document-type-icon pdf">
-                        <svg fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
-                            <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>
-                        </svg>
-                    </div>
-                    <span class="document-status processing">Processing</span>
-                </div>
-                <div class="document-info">
-                    <h4 class="document-name">1099-INT_BankOfAmerica.pdf</h4>
-                    <div class="document-meta">
-                        <span>180 KB</span>
-                        <span>Jan 20, 2025</span>
-                    </div>
-                    <span class="document-category">1099 Forms</span>
-                </div>
-                <div class="document-actions">
-                    <button class="doc-action-btn" onclick="viewDocument('2')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        View
-                    </button>
-                    <button class="doc-action-btn" onclick="downloadDocument('2')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        Download
-                    </button>
-                    <button class="doc-action-btn" onclick="deleteDocument('2')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Delete
-                    </button>
-                </div>
-            </div>
-
-            <div class="document-card" data-category="receipts" data-status="needs-review">
-                <div class="document-preview">
-                    <div class="document-type-icon image">
-                        <svg fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <span class="document-status needs-review">Needs Review</span>
-                </div>
-                <div class="document-info">
-                    <h4 class="document-name">office_supplies_receipt.jpg</h4>
-                    <div class="document-meta">
-                        <span>1.2 MB</span>
-                        <span>Jan 18, 2025</span>
-                    </div>
-                    <span class="document-category">Receipts</span>
-                </div>
-                <div class="document-actions">
-                    <button class="doc-action-btn" onclick="viewDocument('3')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        View
-                    </button>
-                    <button class="doc-action-btn" onclick="downloadDocument('3')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        Download
-                    </button>
-                    <button class="doc-action-btn" onclick="deleteDocument('3')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        Delete
-                    </button>
-                </div>
-            </div>
+            <p id="docGridLoading" style="grid-column:1/-1;text-align:center;color:var(--color-gray-500);padding:2rem">Loading documents...</p>
         </div>
 
         <!-- Document List View -->
@@ -1445,6 +1324,65 @@
                 const name = card.querySelector('.document-name').textContent.toLowerCase();
                 card.style.display = name.includes(query) ? '' : 'none';
             });
+        });
+
+        // Load documents from API
+        function _docTypeIcon(filename) {
+            const ext = (filename || '').split('.').pop().toLowerCase();
+            if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+                return `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
+            }
+            return `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg>`;
+        }
+
+        function _renderDocCard(doc) {
+            const status = (doc.status || 'pending').toLowerCase().replace(/ /g, '-');
+            const statusLabel = doc.status || 'Pending';
+            const category = (doc.document_type || doc.category || '').toLowerCase();
+            const name = doc.filename || doc.name || 'Document';
+            const size = doc.file_size ? formatFileSize(doc.file_size) : '';
+            const date = doc.created_at ? new Date(doc.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '';
+            const ext = (name.split('.').pop() || '').toLowerCase();
+            const iconType = ['jpg','jpeg','png','gif','webp'].includes(ext) ? 'image' : 'pdf';
+            return `
+            <div class="document-card" data-category="${category}" data-status="${status}">
+                <div class="document-preview">
+                    <div class="document-type-icon ${iconType}">${_docTypeIcon(name)}</div>
+                    <span class="document-status ${status}">${statusLabel}</span>
+                </div>
+                <div class="document-info">
+                    <h4 class="document-name">${name}</h4>
+                    <div class="document-meta">
+                        ${size ? `<span>${size}</span>` : ''}
+                        ${date ? `<span>${date}</span>` : ''}
+                    </div>
+                    <span class="document-category">${doc.document_type || doc.category || ''}</span>
+                </div>
+                <div class="document-actions">
+                    <button class="doc-action-btn" onclick="viewDocument('${doc.id}')">View</button>
+                    <button class="doc-action-btn" onclick="downloadDocument('${doc.id}')">Download</button>
+                    <button class="doc-action-btn" onclick="deleteDocument('${doc.id}')">Delete</button>
+                </div>
+            </div>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const grid = document.getElementById('documentGrid');
+            const loading = document.getElementById('docGridLoading');
+            try {
+                const resp = await fetch('/api/core/documents/my');
+                if (!resp.ok) throw new Error('fetch failed');
+                const data = await resp.json();
+                const docs = data.documents || data || [];
+                loading.remove();
+                if (docs.length === 0) {
+                    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--color-gray-500);padding:2rem">No documents uploaded yet.</p>';
+                } else {
+                    grid.innerHTML = docs.map(_renderDocCard).join('');
+                }
+            } catch (e) {
+                if (loading) loading.textContent = 'Could not load documents.';
+            }
         });
     </script>
 </body>

@@ -585,6 +585,31 @@
         }
 
         renderCalendar();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.querySelector('#appointment-list, .appointment-list, tbody, [data-appointments]');
+            try {
+                const r = await fetch('/api/cpa/appointments/upcoming');
+                if (!r.ok) throw new Error(r.status);
+                const data = await r.json();
+                const appts = data.appointments || data.items || data || [];
+                if (!container) return;
+                if (!appts.length) {
+                    container.innerHTML = `<div style="text-align:center;padding:3rem;color:#64748b">No upcoming appointments. <a href="/appointments/book" style="color:#C9A84C;font-weight:600;text-decoration:none;margin-left:0.5rem">Book one →</a></div>`;
+                    return;
+                }
+                const isTable = container.tagName === 'TBODY';
+                container.innerHTML = appts.map(a => {
+                    const dt = a.scheduled_at || a.appointment_date;
+                    const date = dt ? new Date(dt).toLocaleString() : '—';
+                    return isTable
+                        ? `<tr><td style="padding:0.75rem;font-weight:600;color:#0B1D3A">${a.client_name||a.title||'—'}</td><td style="padding:0.75rem">${date}</td><td style="padding:0.75rem">${a.appointment_type||a.type||'—'}</td><td style="padding:0.75rem"><span style="padding:0.2rem 0.6rem;border-radius:50px;font-size:0.78rem;background:#dbeafe;color:#1d4ed8;font-weight:600">${a.status||'scheduled'}</span></td></tr>`
+                        : `<div style="padding:1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.75rem;background:white"><div style="font-weight:600;color:#0B1D3A">${a.client_name||a.title||'—'}</div><div style="font-size:0.85rem;color:#64748b;margin-top:0.25rem">${date} · ${a.appointment_type||'—'}</div></div>`;
+                }).join('');
+            } catch (e) {
+                if (container) container.innerHTML = `<div style="padding:2rem;color:#dc2626;text-align:center">Could not load appointments. Please refresh.</div>`;
+            }
+        });
     </script>
 </body>
 </html>

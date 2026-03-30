@@ -30,6 +30,10 @@ except ImportError:
 _ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
 
+import logging as _logging
+_logger = _logging.getLogger(__name__)
+
+
 def _safe_extension(filename: str, default: str = "png") -> str:
     """Extract and validate file extension against whitelist."""
     if filename and "." in filename:
@@ -37,6 +41,61 @@ def _safe_extension(filename: str, default: str = "png") -> str:
         if ext in _ALLOWED_IMAGE_EXTENSIONS:
             return ext
     return default
+
+
+def _upload_to_storage(content: bytes, folder: str, filename: str) -> str:
+    """
+    Persist upload bytes and return a public URL.
+
+    Priority:
+      1. AWS S3  (AWS_S3_BUCKET + AWS_ACCESS_KEY_ID set)
+      2. Cloudflare R2  (R2_BUCKET + R2_ACCOUNT_ID set)
+      3. Local filesystem fallback
+    """
+    s3_bucket = os.environ.get("AWS_S3_BUCKET")
+    r2_bucket = os.environ.get("R2_BUCKET")
+    r2_account = os.environ.get("R2_ACCOUNT_ID")
+    cdn_base = os.environ.get("STORAGE_CDN_BASE", "")
+
+    # --- S3 ---
+    if s3_bucket and os.environ.get("AWS_ACCESS_KEY_ID"):
+        try:
+            import boto3
+            key = f"{folder}/{filename}"
+            s3 = boto3.client("s3")
+            s3.put_object(Bucket=s3_bucket, Key=key, Body=content, ContentType="image/*")
+            if cdn_base:
+                return f"{cdn_base.rstrip('/')}/{key}"
+            return f"https://{s3_bucket}.s3.amazonaws.com/{key}"
+        except Exception as exc:
+            _logger.warning("S3 upload failed, falling back to local: %s", exc)
+
+    # --- Cloudflare R2 ---
+    if r2_bucket and r2_account:
+        try:
+            import boto3
+            key = f"{folder}/{filename}"
+            endpoint = f"https://{r2_account}.r2.cloudflarestorage.com"
+            r2 = boto3.client(
+                "s3",
+                endpoint_url=endpoint,
+                aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
+                aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
+            )
+            r2.put_object(Bucket=r2_bucket, Key=key, Body=content, ContentType="image/*")
+            if cdn_base:
+                return f"{cdn_base.rstrip('/')}/{key}"
+            return f"{endpoint}/{r2_bucket}/{key}"
+        except Exception as exc:
+            _logger.warning("R2 upload failed, falling back to local: %s", exc)
+
+    # --- Local fallback ---
+    upload_dir = Path(os.environ.get("LOCAL_UPLOAD_DIR", "./uploads")) / folder
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / filename
+    with open(file_path, "wb") as fh:
+        fh.write(content)
+    return f"/uploads/{folder}/{filename}"
 
 
 router = APIRouter(prefix="/api/cpa/branding", tags=["cpa-branding"])
@@ -322,14 +381,8 @@ async def upload_profile_photo(
         raise HTTPException(400, "File too large. Max 5MB")
 
     # Save file
-    upload_dir = Path("./uploads/profile_photos")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-
     filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{_safe_extension(file.filename)}"
-    file_path = upload_dir / filename
-
-    with open(file_path, "wb") as f:
-        f.write(content)
+    photo_url = _upload_to_storage(content, "profile_photos", filename)
 
     # Update CPA branding
     persistence = get_tenant_persistence()
@@ -341,7 +394,7 @@ async def upload_profile_photo(
             tenant_id=ctx.tenant_id or "default",
         )
 
-    cpa_branding.profile_photo_url = f"/uploads/profile_photos/{filename}"
+    cpa_branding.profile_photo_url = photo_url
     cpa_branding.updated_at = datetime.now()
 
     persistence.save_cpa_branding(cpa_branding)
@@ -375,14 +428,8 @@ async def upload_signature(
         raise HTTPException(400, "File too large. Max 2MB")
 
     # Save file
-    upload_dir = Path("./uploads/signatures")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-
     filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{_safe_extension(file.filename)}"
-    file_path = upload_dir / filename
-
-    with open(file_path, "wb") as f:
-        f.write(content)
+    sig_url = _upload_to_storage(content, "signatures", filename)
 
     # Update CPA branding
     persistence = get_tenant_persistence()
@@ -394,7 +441,7 @@ async def upload_signature(
             tenant_id=ctx.tenant_id or "default",
         )
 
-    cpa_branding.signature_image_url = f"/uploads/signatures/{filename}"
+    cpa_branding.signature_image_url = sig_url
     cpa_branding.updated_at = datetime.now()
 
     persistence.save_cpa_branding(cpa_branding)
@@ -430,16 +477,8 @@ async def upload_firm_logo(
         raise HTTPException(400, "File too large. Max 5MB")
 
     # Save file
-    from pathlib import Path
-    upload_dir = Path("./uploads/firm_logos")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-
-    # Generate safe filename
     filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{_safe_extension(file.filename)}"
-    file_path = upload_dir / filename
-
-    with open(file_path, "wb") as f:
-        f.write(content)
+    logo_url = _upload_to_storage(content, "firm_logos", filename)
 
     # Update CPA branding
     persistence = get_tenant_persistence()
@@ -451,7 +490,7 @@ async def upload_firm_logo(
             tenant_id=ctx.tenant_id or "default",
         )
 
-    cpa_branding.firm_logo_url = f"/uploads/firm_logos/{filename}"
+    cpa_branding.firm_logo_url = logo_url
     cpa_branding.updated_at = datetime.now()
 
     persistence.save_cpa_branding(cpa_branding)

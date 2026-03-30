@@ -134,11 +134,13 @@ def _require_cpa_or_admin_access(request: Request) -> Optional[RedirectResponse]
 
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    """Main entry point - redirects to landing page for new visitors."""
-    return RedirectResponse(url="/landing", status_code=302)
+    return RedirectResponse(url="/landing", status_code=301)
 
 
-@router.get("/file", response_class=HTMLResponse)
+# =========================================================================
+# CANONICAL REAL PAGES
+# =========================================================================
+
 @router.get("/intelligent-advisor", response_class=HTMLResponse)
 def intelligent_tax_advisor(request: Request):
     """Intelligent Conversational Tax Advisory Platform — publicly accessible."""
@@ -163,14 +165,6 @@ def landing_page(request: Request):
     return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
 
 
-@router.get("/quick-estimate", response_class=HTMLResponse)
-@router.get("/estimate", response_class=HTMLResponse)
-def quick_estimate_page(request: Request):
-    """Redirect quick-estimate entry point to intelligent advisor."""
-    return RedirectResponse(url="/intelligent-advisor?entry=quick-estimate", status_code=302)
-
-
-@router.get("/profile", response_class=HTMLResponse)
 @router.get("/settings/profile", response_class=HTMLResponse)
 def user_profile_page(request: Request):
     """User Profile Page - View and edit profile settings."""
@@ -182,18 +176,6 @@ def user_profile_page(request: Request):
         "settings/profile.html",
         {"request": request, "user": user_context}
     )
-
-
-@router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
-    """CPA Workspace Dashboard - Multi-client management."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    response = templates.TemplateResponse("dashboard.html", {"request": request, "branding": branding})
-    return response
 
 
 # =========================================================================
@@ -215,19 +197,6 @@ async def app_router(request: Request):
     return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
-@router.get("/app/workspace", response_class=HTMLResponse)
-async def workspace_dashboard(request: Request):
-    """CPA Workspace Dashboard."""
-    role_bucket = _resolve_request_role_bucket(request)
-    if role_bucket == "admin":
-        return RedirectResponse(url="/admin", status_code=302)
-    if role_bucket == "client":
-        return RedirectResponse(url="/app/portal", status_code=302)
-    if role_bucket != "cpa":
-        return RedirectResponse(url="/login?next=/cpa/dashboard", status_code=302)
-    return RedirectResponse(url="/cpa/dashboard", status_code=302)
-
-
 @router.get("/app/portal", response_class=HTMLResponse)
 async def client_portal_entrypoint(request: Request):
     """Client Portal Dashboard."""
@@ -246,35 +215,9 @@ async def client_portal_entrypoint(request: Request):
     )
 
 
-@router.get("/app/settings", response_class=HTMLResponse)
-async def app_settings(request: Request):
-    """User settings page accessible from any role."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
-    user = _ui_user_context(request, default_role="user")
-    role_bucket = _resolve_request_role_bucket(request)
-    if role_bucket == "cpa":
-        return RedirectResponse(url="/cpa/settings", status_code=302)
-    elif role_bucket == "admin":
-        return RedirectResponse(url="/admin/settings", status_code=302)
-    else:
-        return templates.TemplateResponse(
-            "client_portal.html",
-            {"request": request, "user": user, "current_path": "/app/settings", "show_settings": True}
-        )
-
-
 # =========================================================================
-# LEGACY CPA ROUTES
+# CPA SETTINGS PAGES
 # =========================================================================
-
-@router.get("/legacy/cpa", include_in_schema=False)
-@router.get("/legacy/cpa/v2", include_in_schema=False)
-def legacy_cpa_dashboard_redirect():
-    """Legacy CPA routes — permanent redirect to CPA dashboard."""
-    return RedirectResponse(url="/cpa/dashboard", status_code=301)
-
 
 @router.get("/cpa/settings/payments", response_class=HTMLResponse)
 def cpa_payment_settings(request: Request):
@@ -296,35 +239,10 @@ def cpa_branding_settings(request: Request):
     return templates.TemplateResponse("cpa_branding_settings.html", {"request": request, "branding": branding})
 
 
-@router.get("/legacy/cpa/clients", include_in_schema=False)
-def legacy_cpa_clients_redirect():
-    """Legacy CPA clients — permanent redirect."""
-    return RedirectResponse(url="/cpa/clients", status_code=301)
-
-
-@router.get("/legacy/cpa/settings", include_in_schema=False)
-def legacy_cpa_settings_redirect():
-    """Legacy CPA settings — permanent redirect."""
-    return RedirectResponse(url="/cpa/settings", status_code=301)
-
-
-@router.get("/legacy/cpa/team", include_in_schema=False)
-def legacy_cpa_team_redirect():
-    """Legacy CPA team — permanent redirect."""
-    return RedirectResponse(url="/cpa/team", status_code=301)
-
-
-@router.get("/legacy/cpa/billing", include_in_schema=False)
-def legacy_cpa_billing_redirect():
-    """Legacy CPA billing — permanent redirect."""
-    return RedirectResponse(url="/cpa/billing", status_code=301)
-
-
 # =========================================================================
-# LEGAL PAGES & CPA LANDING
+# LEGAL PAGES
 # =========================================================================
 
-@router.get("/cpa-landing", response_class=HTMLResponse)
 @router.get("/for-cpas", response_class=HTMLResponse)
 def cpa_landing_page(request: Request):
     """CPA Landing Page - Marketing page for CPA lead generation platform."""
@@ -334,7 +252,6 @@ def cpa_landing_page(request: Request):
 
 
 @router.get("/terms", response_class=HTMLResponse)
-@router.get("/terms-of-service", response_class=HTMLResponse)
 def terms_of_service(request: Request):
     """Terms of Service - Legal terms and conditions."""
     from config.branding import get_branding_config
@@ -343,7 +260,6 @@ def terms_of_service(request: Request):
 
 
 @router.get("/privacy", response_class=HTMLResponse)
-@router.get("/privacy-policy", response_class=HTMLResponse)
 def privacy_policy(request: Request):
     """Privacy Policy - Data collection and usage policies."""
     from config.branding import get_branding_config
@@ -352,7 +268,6 @@ def privacy_policy(request: Request):
 
 
 @router.get("/cookies", response_class=HTMLResponse)
-@router.get("/cookie-policy", response_class=HTMLResponse)
 def cookie_policy(request: Request):
     """Cookie Policy - Cookie usage disclosure."""
     from config.branding import get_branding_config
@@ -368,12 +283,18 @@ def disclaimer_page(request: Request):
     return templates.TemplateResponse("disclaimer.html", {"request": request, "branding": branding})
 
 
-@router.get("/client", response_class=HTMLResponse)
-def client_portal_redirect(request: Request):
-    """Client Access - Redirect to unified filing interface."""
-    logger.info("Client accessing platform - redirecting to /file")
-    return RedirectResponse(url="/file", status_code=302)
+# =========================================================================
+# CONTACT
+# =========================================================================
 
+@router.get("/contact", response_class=HTMLResponse)
+def contact_page(request: Request):
+    return templates.TemplateResponse("contact.html", {"request": request})
+
+
+# =========================================================================
+# CLIENT LOGIN
+# =========================================================================
 
 @router.get("/client/login", response_class=HTMLResponse)
 def client_login_page(request: Request, next: str = "/app/portal"):
@@ -385,7 +306,7 @@ def client_login_page(request: Request, next: str = "/app/portal"):
 
 
 # =========================================================================
-# REDIRECT ROUTES
+# LOGOUT
 # =========================================================================
 
 @router.post("/logout")
@@ -414,6 +335,19 @@ def logout_get_fallback(request: Request):
     response.delete_cookie("user_email")
     response.delete_cookie("cpa_id")
     return response
+
+
+# =========================================================================
+# ADVISORY REPORT PREVIEW & SCENARIOS
+# =========================================================================
+
+@router.get("/advisory-report-preview", response_class=HTMLResponse)
+async def advisory_report_preview(request: Request):
+    """Serve advisory report preview page."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    return templates.TemplateResponse("advisory_report_preview.html", {"request": request})
 
 
 @router.get("/scenarios", response_class=HTMLResponse)
@@ -523,77 +457,8 @@ async def advisory_report_preview(request: Request):
 
 
 # =========================================================================
-# UNIFIED APP ROUTER - Single Entry Point
+# RESULTS
 # =========================================================================
-
-@router.get("/workspace", response_class=HTMLResponse, operation_id="unified_workspace_dashboard")
-def unified_workspace_dashboard_alias(request: Request):
-    return RedirectResponse(url="/app/workspace", status_code=302)
-
-
-@router.get("/portal", response_class=HTMLResponse, operation_id="unified_client_portal")
-def unified_client_portal_alias(request: Request):
-    return RedirectResponse(url="/app/portal", status_code=302)
-
-
-@router.get("/admin", response_class=HTMLResponse)
-@router.get("/admin/{path:path}", response_class=HTMLResponse)
-def admin_dashboard(request: Request, path: str = ""):
-    """Admin Dashboard - Firm Administration Portal."""
-    denied = _require_admin_page_access(request)
-    if denied:
-        return denied
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "branding": branding})
-
-
-@router.get("/hub", response_class=HTMLResponse)
-@router.get("/system-hub", response_class=HTMLResponse)
-def system_hub(request: Request):
-    """System Hub - Central Navigation Portal."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
-    return templates.TemplateResponse("system_hub.html", {"request": request})
-
-
-@router.get("/workflow", response_class=HTMLResponse)
-@router.get("/workflow-hub", response_class=HTMLResponse)
-def workflow_hub(request: Request):
-    """Platform Workflow Hub - User Journey Visualization."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
-    return templates.TemplateResponse("workflow_hub.html", {"request": request})
-
-
-@router.get("/test-dashboard", response_class=HTMLResponse, include_in_schema=False)
-@router.get("/qa", response_class=HTMLResponse, include_in_schema=False)
-def test_dashboard(request: Request):
-    """QA Test Dashboard — disabled (templates removed)."""
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)
-
-
-@router.get("/smart-tax", response_class=HTMLResponse)
-@router.get("/smart-tax/{path:path}", response_class=HTMLResponse)
-def smart_tax_redirect(request: Request, path: str = ""):
-    """DEPRECATED: Smart Tax merged into Intelligent Advisor."""
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)
-
-
-@router.get("/smart-tax-legacy", include_in_schema=False)
-def smart_tax_legacy_redirect():
-    """Legacy smart-tax — permanent redirect to intelligent advisor."""
-    return RedirectResponse(url="/intelligent-advisor", status_code=301)
-
-
-@router.get("/guided", response_class=HTMLResponse)
-@router.get("/guided/{session_id}", response_class=HTMLResponse)
-def guided_filing_page(request: Request, session_id: str = None):
-    """Redirect guided filing entry points to intelligent advisor."""
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)
-
 
 @router.get("/results", response_class=HTMLResponse)
 def filing_results(request: Request, session_id: str = None):
@@ -669,7 +534,6 @@ def filing_results(request: Request, session_id: str = None):
         "upgrade_prompt" in filtered_report
     )
 
-    template_name = "results.html"
     context = {
         "request": request,
         "session_id": session_id,
@@ -693,25 +557,219 @@ def filing_results(request: Request, session_id: str = None):
             "meta_description": branding.meta_description,
         }
     }
-    response = templates.TemplateResponse(template_name, context)
-    return response
+    return templates.TemplateResponse("results.html", context)
 
 
 # =========================================================================
-# LEGACY ADVISOR REDIRECTS
+# ADMIN
 # =========================================================================
 
-@router.get("/advisor", include_in_schema=False)
-@router.get("/tax-advisory", include_in_schema=False)
-@router.get("/advisory", include_in_schema=False)
+@router.get("/admin", response_class=HTMLResponse)
+@router.get("/admin/{path:path}", response_class=HTMLResponse)
+def admin_dashboard(request: Request, path: str = ""):
+    """Admin Dashboard - Firm Administration Portal."""
+    denied = _require_admin_page_access(request)
+    if denied:
+        return denied
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "branding": branding})
+
+
+# =========================================================================
+# 301 REDIRECTS — AUTH ALIASES
+# =========================================================================
+
+@router.get("/signin", include_in_schema=False)
+def signin_redirect():
+    return RedirectResponse(url="/login", status_code=301)
+
+
+@router.get("/register", include_in_schema=False)
+def register_redirect():
+    return RedirectResponse(url="/signup", status_code=301)
+
+
+@router.get("/mfa-setup", include_in_schema=False)
+def mfa_setup_redirect():
+    return RedirectResponse(url="/auth/mfa-setup", status_code=301)
+
+
+@router.get("/mfa-verify", include_in_schema=False)
+def mfa_verify_redirect():
+    return RedirectResponse(url="/auth/mfa-verify", status_code=301)
+
+
+@router.get("/forgot-password", include_in_schema=False)
+def forgot_password_redirect():
+    return RedirectResponse(url="/auth/forgot-password", status_code=301)
+
+
+@router.get("/reset-password", include_in_schema=False)
+def reset_password_redirect():
+    return RedirectResponse(url="/auth/reset-password", status_code=301)
+
+
+# =========================================================================
+# 301 REDIRECTS — PORTAL / DASHBOARD ALIASES
+# =========================================================================
+
+@router.get("/portal", include_in_schema=False)
+def portal_redirect():
+    return RedirectResponse(url="/app/portal", status_code=301)
+
+
+@router.get("/client", include_in_schema=False)
+def client_redirect():
+    return RedirectResponse(url="/app/portal", status_code=301)
+
+
+@router.get("/app/settings", include_in_schema=False)
+def app_settings_redirect():
+    return RedirectResponse(url="/settings/profile", status_code=301)
+
+
+@router.get("/app/workspace", include_in_schema=False)
+def app_workspace_redirect():
+    return RedirectResponse(url="/cpa/dashboard", status_code=301)
+
+
+@router.get("/settings", include_in_schema=False)
+def settings_redirect():
+    return RedirectResponse(url="/settings/profile", status_code=301)
+
+
+@router.get("/profile", include_in_schema=False)
+def profile_redirect():
+    return RedirectResponse(url="/settings/profile", status_code=301)
+
+
+@router.get("/dashboard", include_in_schema=False)
+def dashboard_redirect():
+    return RedirectResponse(url="/cpa/dashboard", status_code=301)
+
+
+@router.get("/workspace", include_in_schema=False)
+def workspace_redirect():
+    return RedirectResponse(url="/cpa/dashboard", status_code=301)
+
+
+@router.get("/cpa-landing", include_in_schema=False)
+def cpa_landing_redirect():
+    return RedirectResponse(url="/for-cpas", status_code=301)
+
+
+# =========================================================================
+# 301 REDIRECTS — DATA PAGE ALIASES
+# =========================================================================
+
+@router.get("/clients", include_in_schema=False)
+def clients_redirect():
+    return RedirectResponse(url="/cpa/clients", status_code=301)
+
+
+@router.get("/documents", include_in_schema=False)
+def documents_redirect():
+    return RedirectResponse(url="/documents/library", status_code=301)
+
+
+@router.get("/returns", include_in_schema=False)
+def returns_redirect():
+    return RedirectResponse(url="/cpa/returns/queue", status_code=301)
+
+
+@router.get("/projections", include_in_schema=False)
+def projections_redirect():
+    return RedirectResponse(url="/scenarios", status_code=301)
+
+
+@router.get("/support", include_in_schema=False)
+def support_redirect():
+    return RedirectResponse(url="/support/tickets", status_code=301)
+
+
+# =========================================================================
+# 301 REDIRECTS — LEGAL ALIASES
+# =========================================================================
+
+@router.get("/privacy-policy", include_in_schema=False)
+def privacy_policy_redirect():
+    return RedirectResponse(url="/privacy", status_code=301)
+
+
+@router.get("/terms-of-service", include_in_schema=False)
+def terms_of_service_redirect():
+    return RedirectResponse(url="/terms", status_code=301)
+
+
+@router.get("/cookie-policy", include_in_schema=False)
+def cookie_policy_redirect():
+    return RedirectResponse(url="/cookies", status_code=301)
+
+
+# =========================================================================
+# 301 REDIRECTS — LEAD MAGNET ALIASES
+# =========================================================================
+
+@router.get("/estimate", include_in_schema=False)
+@router.get("/quick-estimate", include_in_schema=False)
 @router.get("/start", include_in_schema=False)
-@router.get("/analysis", include_in_schema=False)
-@router.get("/tax-advisory/v2", include_in_schema=False)
-@router.get("/advisory/v2", include_in_schema=False)
 @router.get("/start/v2", include_in_schema=False)
 @router.get("/simple", include_in_schema=False)
-@router.get("/conversation", include_in_schema=False)
+@router.get("/file", include_in_schema=False)
+def lead_magnet_redirect():
+    return RedirectResponse(url="/lead-magnet", status_code=301)
+
+
+@router.get("/lead-magnet/universal-report", include_in_schema=False)
+def lead_magnet_universal_report_redirect():
+    return RedirectResponse(url="/lead-magnet/report", status_code=301)
+
+
+# =========================================================================
+# 301 REDIRECTS — INTELLIGENT ADVISOR ALIASES
+# =========================================================================
+
 @router.get("/chat", include_in_schema=False)
-def legacy_advisor_routes_redirect():
-    """Legacy advisor routes — permanent redirect to intelligent advisor."""
+@router.get("/advisor", include_in_schema=False)
+@router.get("/advisory", include_in_schema=False)
+@router.get("/advisory/v2", include_in_schema=False)
+@router.get("/conversation", include_in_schema=False)
+@router.get("/analysis", include_in_schema=False)
+@router.get("/guided", include_in_schema=False)
+@router.get("/guided/{session_id}", include_in_schema=False)
+@router.get("/smart-tax", include_in_schema=False)
+@router.get("/smart-tax-legacy", include_in_schema=False)
+@router.get("/smart-tax/{path:path}", include_in_schema=False)
+@router.get("/tax-advisory", include_in_schema=False)
+@router.get("/tax-advisory/v2", include_in_schema=False)
+def advisor_aliases_redirect():
     return RedirectResponse(url="/intelligent-advisor", status_code=301)
+
+
+# =========================================================================
+# SEO CALCULATOR PAGES
+# =========================================================================
+
+@router.get("/self-employment-tax", response_class=HTMLResponse)
+def self_employment_tax_page(request: Request):
+    """Self-employment tax calculator — public SEO page."""
+    return templates.TemplateResponse(
+        "self_employment_tax.html", {"request": request}
+    )
+
+
+@router.get("/scorp-vs-llc", response_class=HTMLResponse)
+def scorp_vs_llc_page(request: Request):
+    """S-Corp vs LLC tax savings calculator — public SEO page."""
+    return templates.TemplateResponse(
+        "scorp_vs_llc.html", {"request": request}
+    )
+
+
+@router.get("/tax-brackets", response_class=HTMLResponse)
+def tax_brackets_page(request: Request):
+    """2025 federal tax brackets calculator — public SEO page."""
+    return templates.TemplateResponse(
+        "tax_brackets.html", {"request": request}
+    )

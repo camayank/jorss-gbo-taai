@@ -424,13 +424,14 @@ try:
 except ImportError as e:
     logger.debug(f"Extracted chat routes not available: {e}")
 
-# Upload/document routes
-try:
-    from web.routes.upload_routes import router as _upload_router
-    app.include_router(_upload_router)
-    logger.info("Registered: Extracted Upload Routes")
-except ImportError as e:
-    logger.debug(f"Extracted upload routes not available: {e}")
+# Upload/document routes (legacy — gate with LEGACY_UPLOAD=1 to enable)
+if os.environ.get("LEGACY_UPLOAD"):
+    try:
+        from web.routes.upload_routes import router as _upload_router
+        app.include_router(_upload_router)
+        logger.info("Registered: Extracted Upload Routes (legacy)")
+    except ImportError as e:
+        logger.debug(f"Extracted upload routes not available: {e}")
 
 
 # =============================================================================
@@ -2971,7 +2972,6 @@ async def export_pdf(request: Request, session_id: str = None):
     Args:
         session_id: Optional session ID as query parameter. Falls back to cookie if not provided.
     """
-    from export.pdf_generator import TaxReturnPDFGenerator
     from fastapi.responses import Response
 
     # Support both query parameter and cookie for session_id
@@ -2988,15 +2988,24 @@ async def export_pdf(request: Request, session_id: str = None):
         raise HTTPException(status_code=400, detail="No tax return data found")
 
     try:
-        # Generate PDF using the correct method
-        generator = TaxReturnPDFGenerator()
-        pdf_doc = generator.generate_complete_return(tax_return)
+        import tempfile
+        from export.advisory_pdf_exporter import export_advisory_report_to_pdf
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp_path = tmp.name
+        export_advisory_report_to_pdf(tax_return, tmp_path, watermark=None)
+        with open(tmp_path, "rb") as f:
+            pdf_bytes = f.read()
+        import os as _os
+        try:
+            _os.unlink(tmp_path)
+        except OSError:
+            pass
 
         return Response(
-            content=pdf_doc.content,
+            content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename={pdf_doc.filename}"
+                "Content-Disposition": "attachment; filename=advisory_report.pdf"
             }
         )
     except Exception as e:

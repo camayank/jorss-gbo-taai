@@ -1,5 +1,21 @@
 #!/usr/bin/env python3
 """
+DEPRECATED — use scripts/create_platform_admin.py instead.
+
+This script uses SQLite and SHA-256 hashing which are incompatible with the
+production database and login system. It will be removed in a future release.
+"""
+
+import sys
+print(
+    "\nERROR: setup_platform_admin.py is deprecated and does not work with production.\n"
+    "Use instead:\n\n"
+    "  PYTHONPATH=src python3 scripts/create_platform_admin.py\n"
+)
+sys.exit(1)
+
+# ---- original file preserved below for reference only ----
+"""
 Setup CA4CPA GLOBAL LLC Platform Admin
 
 This script creates the PLATFORM ADMIN (super admin) for CA4CPA GLOBAL LLC,

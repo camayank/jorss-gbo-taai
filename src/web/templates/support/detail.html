@@ -819,3 +819,37 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+document.addEventListener('DOMContentLoaded', async () => {
+    const ticketId = '{{ ticket_id }}';
+    if (!ticketId || ticketId === 'None') return;
+    try {
+        const r = await fetch(`/api/cpa/support/${ticketId}`);
+        if (!r.ok) throw new Error(r.status);
+        const t = await r.json();
+
+        const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val || '—'; };
+        set('.ticket-title', t.subject);
+        set('.ticket-id', t.ticket_number ? `#${t.ticket_number}` : '');
+
+        // Load replies
+        const thread = document.querySelector('.conversation-thread');
+        if (thread && t.messages && t.messages.length) {
+            thread.innerHTML = t.messages.map(m => `
+                <div style="padding:1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.75rem;background:${m.is_staff?'#f8fafc':'white'}">
+                    <div style="font-weight:600;font-size:0.85rem;color:#64748b;margin-bottom:0.5rem">
+                        ${m.author_name||(m.is_staff?'Support':'You')} · ${new Date(m.created_at).toLocaleString()}
+                    </div>
+                    <div style="color:#0B1D3A">${m.body||m.message||''}</div>
+                </div>`).join('');
+            const countEl = document.querySelector('.message-count');
+            if (countEl) countEl.textContent = `${t.messages.length} messages`;
+        }
+    } catch (e) {
+        console.error('Ticket detail load error:', e);
+    }
+});
+</script>
+{% endblock %}

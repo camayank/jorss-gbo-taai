@@ -651,5 +651,33 @@
             this.classList.add('active');
         });
     });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const container = document.querySelector('#ticket-list, .ticket-list, tbody, [data-tickets]');
+        try {
+            const r = await fetch('/api/cpa/support');
+            if (!r.ok) throw new Error(r.status);
+            const data = await r.json();
+            const tickets = data.tickets || data.items || data || [];
+            if (!container) return;
+            if (!tickets.length) {
+                container.innerHTML = `<div style="text-align:center;padding:3rem;color:#64748b">No support tickets yet. <a href="/support/new" style="color:#C9A84C;font-weight:600;text-decoration:none;margin-left:0.5rem">Open one →</a></div>`;
+                return;
+            }
+            const isTable = container.tagName === 'TBODY';
+            container.innerHTML = tickets.map(t => {
+                const badge = {open:{bg:'#dbeafe',color:'#1d4ed8'},in_progress:{bg:'#fef9c3',color:'#854d0e'},resolved:{bg:'#dcfce7',color:'#166534'},closed:{bg:'#f1f5f9',color:'#475569'}}[t.status] || {bg:'#dbeafe',color:'#1d4ed8'};
+                return isTable
+                    ? `<tr style="cursor:pointer" onclick="window.location='/support/tickets/${t.ticket_id||t.id}'"><td style="padding:0.75rem;font-weight:600;color:#0B1D3A">#${t.ticket_number||t.id} — ${t.subject}</td><td style="padding:0.75rem">${t.category||'—'}</td><td style="padding:0.75rem"><span style="padding:0.2rem 0.6rem;border-radius:50px;font-size:0.78rem;font-weight:600;background:${badge.bg};color:${badge.color}">${(t.status||'open').replace(/_/g,' ')}</span></td><td style="padding:0.75rem;color:#64748b;font-size:0.85rem">${t.created_at?new Date(t.created_at).toLocaleDateString():'—'}</td></tr>`
+                    : `<div style="padding:1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.75rem;background:white;cursor:pointer" onclick="window.location='/support/tickets/${t.ticket_id||t.id}'"><div style="font-weight:600;color:#0B1D3A">#${t.ticket_number||t.id} — ${t.subject}</div><div style="font-size:0.82rem;color:#64748b;margin-top:0.25rem">${t.category||'—'} · ${t.created_at?new Date(t.created_at).toLocaleDateString():''}</div></div>`;
+            }).join('');
+            // Fix legacy ticket links
+            document.querySelectorAll('a[href*="/support/ticket/"]').forEach(a => {
+                a.href = a.href.replace('/support/ticket/', '/support/tickets/');
+            });
+        } catch (e) {
+            if (container) container.innerHTML = `<div style="padding:2rem;color:#dc2626;text-align:center">Could not load tickets. Please refresh.</div>`;
+        }
+    });
 </script>
 {% endblock %}

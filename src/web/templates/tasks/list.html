@@ -565,6 +565,32 @@
     <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         function openNewTask() { window.location.href = '/tasks/detail?new=true'; }
         function openTaskDetail(id) { window.location.href = '/tasks/detail?id=' + id; }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.querySelector('tbody, #task-list, .task-list, [data-tasks]');
+            if (!container) return;
+            container.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:#64748b">Loading tasks...</td></tr>`;
+            try {
+                const r = await fetch('/api/cpa/tasks?include_completed=true');
+                if (!r.ok) throw new Error(r.status);
+                const data = await r.json();
+                const tasks = data.tasks || data.items || data || [];
+                if (!tasks.length) {
+                    container.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:#64748b">No tasks yet. Create your first task above.</td></tr>`;
+                    return;
+                }
+                container.innerHTML = tasks.map(t => `
+                    <tr>
+                        <td><a href="/tasks/${t.task_id || t.id}" style="font-weight:600;color:#0B1D3A;text-decoration:none">${t.title || t.name || 'Untitled'}</a></td>
+                        <td>${t.client_name || t.assigned_to || '—'}</td>
+                        <td><span style="padding:0.25rem 0.6rem;border-radius:50px;font-size:0.78rem;font-weight:600;background:${t.status==='completed'?'#dcfce7':t.status==='in_progress'?'#dbeafe':'#fef9c3'};color:${t.status==='completed'?'#166534':t.status==='in_progress'?'#1d4ed8':'#854d0e'}">${(t.status||'pending').replace(/_/g,' ')}</span></td>
+                        <td>${t.priority || '—'}</td>
+                        <td>${t.due_date ? new Date(t.due_date).toLocaleDateString() : '—'}</td>
+                    </tr>`).join('');
+            } catch (e) {
+                container.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:#dc2626">Could not load tasks. Please refresh.</td></tr>`;
+            }
+        });
     </script>
 </body>
 </html>

@@ -39,6 +39,7 @@ WORKDIR /app
 # Install runtime dependencies (libpq for PostgreSQL, tesseract for OCR, poppler for PDF→image)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    postgresql-client \
     curl \
     tesseract-ocr \
     poppler-utils \
@@ -58,6 +59,8 @@ COPY database/ ./database/
 
 # Create data directories
 RUN mkdir -p /app/data /app/logs /app/uploads && \
+    mkdir -p /app/data/backups && \
+    chmod 755 /app/data/backups && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user

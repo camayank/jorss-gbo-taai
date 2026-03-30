@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>2025 Federal Tax Brackets Calculator — AI Tax Advisor</title>
+  <meta name="description" content="Calculate exactly how much federal income tax you owe in 2025. See every bracket with your income highlighted.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f8fafc; margin: 0; color: #1e293b; }
+    .nav { background: #0B1D3A; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; }
+    .nav a { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.88rem; }
+    .nav a:hover { color: white; }
+    .nav-brand { color: white; font-weight: 700; font-size: 1rem; }
+    .hero { background: linear-gradient(135deg, #0B1D3A, #132B50); color: white; padding: 3rem 1.5rem; text-align: center; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: 2.25rem; margin: 0 0 0.75rem; line-height: 1.2; }
+    .hero p { color: rgba(255,255,255,0.75); font-size: 1.05rem; max-width: 540px; margin: 0 auto; }
+    .container { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .card h2 { color: #0B1D3A; font-family: 'Playfair Display', serif; font-size: 1.3rem; margin: 0 0 1.25rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    label { display: block; font-weight: 600; font-size: 0.88rem; color: #0B1D3A; margin-bottom: 0.4rem; }
+    input, select { width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.95rem; }
+    input:focus, select:focus { outline: none; border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .btn-calc { width: 100%; padding: 0.9rem; background: #C9A84C; color: #0B1D3A; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; font-family: inherit; }
+    .btn-calc:hover { background: #b8973d; }
+    .results { display: none; }
+    .bracket-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    .bracket-table th { text-align: left; padding: 0.75rem 1rem; background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e8f0; }
+    .bracket-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; }
+    .bracket-table tr.active-bracket { background: #fefce8; }
+    .bracket-table tr.active-bracket td { font-weight: 700; color: #92400e; }
+    .bracket-table tr.active-bracket td:first-child { border-left: 3px solid #C9A84C; }
+    .bracket-table tr.above-bracket td { color: #94a3b8; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .summary-stat { background: #f8fafc; border-radius: 8px; padding: 1rem; text-align: center; }
+    .summary-stat .stat-value { font-size: 1.5rem; font-weight: 700; color: #0B1D3A; }
+    .summary-stat .stat-label { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+    .summary-stat.highlight .stat-value { color: #C9A84C; }
+    .note { background: #fef9c3; border: 1px solid #fcd34d; border-radius: 8px; padding: 0.875rem 1rem; font-size: 0.88rem; color: #78350f; margin-top: 1rem; }
+    .cta-card { background: linear-gradient(135deg, #0B1D3A, #132B50); color: white; border-radius: 12px; padding: 2rem; text-align: center; margin-top: 2rem; }
+    .cta-card h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin: 0 0 0.5rem; }
+    .cta-card p { color: rgba(255,255,255,0.75); margin: 0 0 1.5rem; }
+    .cta-btn { display: inline-block; background: #C9A84C; color: #0B1D3A; padding: 0.875rem 2.5rem; border-radius: 50px; font-weight: 700; font-size: 1rem; text-decoration: none; }
+    .cta-btn:hover { background: #b8973d; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .hero h1 { font-size: 1.75rem; } .bracket-table { font-size: 0.82rem; } .bracket-table th, .bracket-table td { padding: 0.6rem 0.5rem; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/landing">← Home</a>
+  <span class="nav-brand">AI Tax Advisor</span>
+  <a href="/login">Sign in</a>
+</nav>
+
+<div class="hero">
+  <h1>2025 Federal Tax Brackets Calculator</h1>
+  <p>Calculate exactly how much federal income tax you owe in 2025. See every bracket with your income highlighted.</p>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Enter Your Taxable Income</h2>
+    <div class="form-row">
+      <div>
+        <label for="taxable-income">Taxable Income</label>
+        <input type="number" id="taxable-income" placeholder="75000" min="0" step="500">
+      </div>
+      <div>
+        <label for="filing-status">Filing Status</label>
+        <select id="filing-status">
+          <option value="single">Single</option>
+          <option value="mfj">Married Filing Jointly</option>
+          <option value="hoh">Head of Household</option>
+          <option value="mfs">Married Filing Separately</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-calc" onclick="calculate()">Calculate My Tax →</button>
+  </div>
+
+  <div class="results" id="results">
+    <div class="card">
+      <h2>Tax Summary</h2>
+      <div class="summary-grid" id="summary-grid"></div>
+      <div class="note">
+        📌 This uses <strong>taxable income</strong> (after deductions). Enter your gross income minus your standard or itemized deductions above.
+        Standard deduction for 2025: <span id="std-deduction-note"></span>.
+      </div>
+    </div>
+    <div class="card">
+      <h2>Your 2025 Tax Brackets</h2>
+      <p style="color:#64748b;font-size:0.88rem;margin-top:-0.5rem;margin-bottom:1rem">The <span style="background:#fef9c3;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:700">highlighted row</span> is your marginal bracket.</p>
+      <div style="overflow-x:auto">
+        <table class="bracket-table">
+          <thead>
+            <tr>
+              <th>Rate</th>
+              <th>Income Range</th>
+              <th>Tax in This Bracket</th>
+              <th>Cumulative Tax</th>
+            </tr>
+          </thead>
+          <tbody id="bracket-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-card">
+    <h3>Find Deductions That Lower Your Bracket</h3>
+    <p>Our AI identifies deductions you're missing — retirement contributions, business expenses, credits, and more — in under 5 minutes.</p>
+    <a href="/lead-magnet" class="cta-btn">Get Free Tax Analysis →</a>
+  </div>
+</div>
+
+<script>
+const BRACKETS = {
+  single: [
+    { rate: 0.10, min: 0, max: 11925 },
+    { rate: 0.12, min: 11926, max: 48475 },
+    { rate: 0.22, min: 48476, max: 103350 },
+    { rate: 0.24, min: 103351, max: 197300 },
+    { rate: 0.32, min: 197301, max: 250525 },
+    { rate: 0.35, min: 250526, max: 626350 },
+    { rate: 0.37, min: 626351, max: Infinity },
+  ],
+  mfj: [
+    { rate: 0.10, min: 0, max: 23850 },
+    { rate: 0.12, min: 23851, max: 96950 },
+    { rate: 0.22, min: 96951, max: 206700 },
+    { rate: 0.24, min: 206701, max: 394600 },
+    { rate: 0.32, min: 394601, max: 501050 },
+    { rate: 0.35, min: 501051, max: 751600 },
+    { rate: 0.37, min: 751601, max: Infinity },
+  ],
+  hoh: [
+    { rate: 0.10, min: 0, max: 17000 },
+    { rate: 0.12, min: 17001, max: 64850 },
+    { rate: 0.22, min: 64851, max: 103350 },
+    { rate: 0.24, min: 103351, max: 197300 },
+    { rate: 0.32, min: 197301, max: 250500 },
+    { rate: 0.35, min: 250501, max: 626350 },
+    { rate: 0.37, min: 626351, max: Infinity },
+  ],
+  mfs: [
+    { rate: 0.10, min: 0, max: 11925 },
+    { rate: 0.12, min: 11926, max: 48475 },
+    { rate: 0.22, min: 48476, max: 103350 },
+    { rate: 0.24, min: 103351, max: 197300 },
+    { rate: 0.32, min: 197301, max: 250525 },
+    { rate: 0.35, min: 250526, max: 375800 },
+    { rate: 0.37, min: 375801, max: Infinity },
+  ],
+};
+
+const STD_DEDUCTIONS = { single: 14600, mfj: 29200, hoh: 21900, mfs: 14600 };
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function pct(n) {
+  return (n * 100).toFixed(1) + '%';
+}
+
+function calculate() {
+  const income = parseFloat(document.getElementById('taxable-income').value) || 0;
+  const status = document.getElementById('filing-status').value;
+
+  if (income <= 0) {
+    alert('Please enter your taxable income.');
+    return;
+  }
+
+  const brackets = BRACKETS[status] || BRACKETS.single;
+  let totalTax = 0;
+  let marginalRate = 0;
+  let activeBracket = 0;
+
+  // Find marginal bracket
+  for (let i = 0; i < brackets.length; i++) {
+    if (income > brackets[i].min) activeBracket = i;
+  }
+
+  // Build bracket rows
+  const rows = brackets.map((b, i) => {
+    const rangeHigh = b.max === Infinity ? '∞' : b.max.toLocaleString();
+    const rangeStr = `$${b.min.toLocaleString()} – ${b.max === Infinity ? '∞' : '$' + rangeHigh}`;
+
+    let taxInBracket = 0;
+    if (income > b.min) {
+      const taxableInBracket = Math.min(income, b.max === Infinity ? income : b.max) - b.min;
+      taxInBracket = Math.max(0, taxableInBracket) * b.rate;
+    }
+    totalTax += taxInBracket;
+    if (income > b.min) marginalRate = b.rate;
+
+    const cumulative = totalTax;
+    const isActive = i === activeBracket && income > b.min;
+    const isAbove = income <= b.min;
+
+    return { b, rangeStr, taxInBracket, cumulative, isActive, isAbove };
+  });
+
+  // Render bracket table
+  let runningTotal = 0;
+  document.getElementById('bracket-rows').innerHTML = rows.map(({ b, rangeStr, taxInBracket, isActive, isAbove }) => {
+    runningTotal += taxInBracket;
+    const rowClass = isActive ? 'active-bracket' : (isAbove ? 'above-bracket' : '');
+    return `<tr class="${rowClass}">
+      <td>${(b.rate * 100).toFixed(0)}%</td>
+      <td>${rangeStr}</td>
+      <td>${taxInBracket > 0 ? fmt(taxInBracket) : '—'}</td>
+      <td>${runningTotal > 0 ? fmt(runningTotal) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const effectiveRate = income > 0 ? totalTax / income : 0;
+  const stdDeduction = STD_DEDUCTIONS[status] || 14600;
+  const stdDeductionLabel = { single: '$14,600 single', mfj: '$29,200 married filing jointly', hoh: '$21,900 head of household', mfs: '$14,600 married filing separately' }[status];
+
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="summary-stat highlight">
+      <div class="stat-value">${fmt(totalTax)}</div>
+      <div class="stat-label">Total Federal Tax</div>
+    </div>
+    <div class="summary-stat">
+      <div class="stat-value">${pct(effectiveRate)}</div>
+      <div class="stat-label">Effective Tax Rate</div>
+    </div>
+    <div class="summary-stat">
+      <div class="stat-value">${pct(marginalRate)}</div>
+      <div class="stat-label">Marginal Rate</div>
+    </div>
+    <div class="summary-stat">
+      <div class="stat-value">${fmt(income - totalTax)}</div>
+      <div class="stat-label">After-Tax Income</div>
+    </div>`;
+
+  document.getElementById('std-deduction-note').textContent = stdDeductionLabel;
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

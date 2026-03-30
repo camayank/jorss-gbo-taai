@@ -885,6 +885,66 @@
         }
     });
 
+    // Load saved preferences on page open
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const resp = await fetch('/api/cpa/notifications/preferences', {
+                headers: getAuthHeaders()
+            });
+            if (!resp.ok) return;
+            const prefs = await resp.json();
+
+            // Master toggle
+            if (typeof prefs.email_enabled === 'boolean') {
+                const mt = document.querySelector('.master-toggle input[type="checkbox"]');
+                if (mt) mt.checked = prefs.email_enabled;
+            }
+
+            // Digest frequency
+            if (prefs.digest_frequency) {
+                const radio = document.querySelector(`input[name="digest"][value="${prefs.digest_frequency}"]`);
+                if (radio) {
+                    document.querySelectorAll('input[name="digest"]').forEach(r => r.checked = false);
+                    radio.checked = true;
+                    document.querySelectorAll('.frequency-option').forEach(o => o.classList.remove('selected'));
+                    radio.closest('.frequency-option')?.classList.add('selected');
+                }
+            }
+
+            // Quiet hours
+            if (prefs.quiet_hours) {
+                const qt = document.querySelector('.quiet-hours-header input[type="checkbox"]');
+                if (qt) qt.checked = !!prefs.quiet_hours.enabled;
+                const times = document.querySelectorAll('.quiet-hours-content .time-input');
+                if (times[0] && prefs.quiet_hours.from) times[0].value = prefs.quiet_hours.from;
+                if (times[1] && prefs.quiet_hours.to) times[1].value = prefs.quiet_hours.to;
+            }
+
+            // Per-item channel states
+            if (prefs.notifications) {
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    const name = item.querySelector('.notification-name');
+                    if (!name) return;
+                    const key = name.textContent.trim().toLowerCase().replace(/\s+/g, '_');
+                    const channels = prefs.notifications[key];
+                    if (!channels) return;
+                    item.querySelectorAll('.channel-option').forEach(ch => {
+                        const label = ch.querySelector('.channel-label')?.textContent.trim().toLowerCase();
+                        if (label && typeof channels[label] === 'boolean') {
+                            const cb = ch.querySelector('.checkbox');
+                            if (cb) {
+                                if (channels[label]) cb.classList.add('checked');
+                                else cb.classList.remove('checked');
+                            }
+                        }
+                    });
+                });
+            }
+        } catch (e) {
+            // Silently ignore — form retains defaults
+        }
+    });
+
     // Reset to defaults
     document.querySelector('.btn-secondary').addEventListener('click', function() {
         // Check all checkboxes

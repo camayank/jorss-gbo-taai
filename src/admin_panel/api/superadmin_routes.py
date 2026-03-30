@@ -696,25 +696,55 @@ async def get_platform_dashboard(
 async def get_mrr_breakdown(
     user: TenantContext = Depends(get_current_user),
     period: str = Query("month", description="month, quarter, year"),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Get MRR breakdown and trends.
 
     Includes breakdown by tier and growth trends.
     """
+    tier_prices = {"starter": 199.0, "professional": 499.0, "enterprise": 999.0}
+
+    rows = await session.execute(text("""
+        SELECT COALESCE(sp.name, 'starter') AS tier, COUNT(s.id) AS cnt
+        FROM subscriptions s
+        LEFT JOIN subscription_plans sp ON sp.id = s.plan_id
+        WHERE s.status = 'active'
+        GROUP BY tier
+    """))
+    by_tier = {}
+    total_mrr = 0.0
+    for row in rows.mappings():
+        t = row["tier"]
+        cnt = row["cnt"]
+        mrr = cnt * tier_prices.get(t, 199.0)
+        by_tier[t] = {"count": cnt, "mrr": round(mrr, 2)}
+        total_mrr += mrr
+
+    # Previous period: subscriptions active 30+ days ago
+    prev_rows = await session.execute(text("""
+        SELECT COALESCE(sp.name, 'starter') AS tier, COUNT(s.id) AS cnt
+        FROM subscriptions s
+        LEFT JOIN subscription_plans sp ON sp.id = s.plan_id
+        WHERE s.status = 'active' AND s.created_at <= NOW() - INTERVAL '30 days'
+        GROUP BY tier
+    """))
+    prev_mrr = sum(
+        row["cnt"] * tier_prices.get(row["tier"], 199.0)
+        for row in prev_rows.mappings()
+    )
+    change = total_mrr - prev_mrr
+    change_pct = round((change / prev_mrr * 100) if prev_mrr else 0.0, 2)
+
     return {
-        "total_mrr": 98500.00,
-        "by_tier": {
-            "starter": {"count": 120, "mrr": 23880.00},
-            "professional": {"count": 95, "mrr": 47405.00},
-            "enterprise": {"count": 19, "mrr": 18981.00},
-        },
+        "total_mrr": round(total_mrr, 2),
+        "by_tier": by_tier,
         "trends": {
-            "previous_period": 94200.00,
-            "change": 4300.00,
-            "change_percent": 4.56,
+            "previous_period": round(prev_mrr, 2),
+            "change": round(change, 2),
+            "change_percent": change_pct,
         },
-        "forecast_next_month": 101200.00,
+        "forecast_next_month": round(total_mrr * 1.03, 2),
     }
 
 
@@ -723,29 +753,71 @@ async def get_mrr_breakdown(
 async def get_churn_analysis(
     user: TenantContext = Depends(get_current_user),
     period: str = Query("quarter", description="month, quarter, year"),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Get churn analysis.
 
     Includes churn rate, reasons, and at-risk firms.
     """
+    interval_map = {"month": "30 days", "quarter": "90 days", "year": "365 days"}
+    interval = interval_map.get(period, "90 days")
+
+    churned_rows = await session.execute(text(f"""
+        SELECT COALESCE(sp.name, 'starter') AS tier, COUNT(s.id) AS cnt
+        FROM subscriptions s
+        LEFT JOIN subscription_plans sp ON sp.id = s.plan_id
+        WHERE s.status = 'cancelled'
+          AND s.cancelled_at >= NOW() - INTERVAL '{interval}'
+        GROUP BY tier
+    """))
+    by_tier = {}
+    total_churned = 0
+    for row in churned_rows.mappings():
+        by_tier[row["tier"]] = {"churned": row["cnt"], "rate": 0.0}
+        total_churned += row["cnt"]
+
+    active_row = await session.execute(text("SELECT COUNT(*) AS cnt FROM subscriptions WHERE status = 'active'"))
+    active_count = active_row.scalar() or 1
+    churn_rate = round(total_churned / (active_count + total_churned) * 100, 2) if (active_count + total_churned) else 0.0
+
+    # Compute per-tier rates
+    active_tier_rows = await session.execute(text("""
+        SELECT COALESCE(sp.name, 'starter') AS tier, COUNT(s.id) AS cnt
+        FROM subscriptions s
+        LEFT JOIN subscription_plans sp ON sp.id = s.plan_id
+        WHERE s.status = 'active'
+        GROUP BY tier
+    """))
+    for row in active_tier_rows.mappings():
+        t = row["tier"]
+        if t in by_tier:
+            denom = row["cnt"] + by_tier[t]["churned"]
+            by_tier[t]["rate"] = round(by_tier[t]["churned"] / denom * 100, 2) if denom else 0.0
+        else:
+            by_tier[t] = {"churned": 0, "rate": 0.0}
+
+    # At-risk: active firms inactive for >14 days
+    at_risk_rows = await session.execute(text("""
+        SELECT f.id AS firm_id, f.name
+        FROM firms f
+        JOIN subscriptions s ON s.firm_id = f.id AND s.status = 'active'
+        WHERE f.is_active = true
+          AND (f.last_activity_at IS NULL OR f.last_activity_at < NOW() - INTERVAL '14 days')
+        LIMIT 20
+    """))
+    at_risk_list = [
+        {"firm_id": str(row["firm_id"]), "name": row["name"], "risk_score": 70, "signals": ["low_usage"]}
+        for row in at_risk_rows.mappings()
+    ]
+
     return {
-        "churn_rate": 2.3,
-        "churned_firms": 5,
-        "at_risk_firms": 12,
-        "by_tier": {
-            "starter": {"churned": 3, "rate": 2.5},
-            "professional": {"churned": 2, "rate": 2.1},
-            "enterprise": {"churned": 0, "rate": 0.0},
-        },
-        "top_reasons": [
-            {"reason": "Price", "count": 2},
-            {"reason": "Features missing", "count": 2},
-            {"reason": "Business closed", "count": 1},
-        ],
-        "at_risk_list": [
-            {"firm_id": "firm-x", "name": "XYZ Tax", "risk_score": 78, "signals": ["low_usage", "support_tickets"]},
-        ],
+        "churn_rate": churn_rate,
+        "churned_firms": total_churned,
+        "at_risk_firms": len(at_risk_list),
+        "by_tier": by_tier,
+        "top_reasons": [],
+        "at_risk_list": at_risk_list,
     }
 
 
@@ -757,32 +829,42 @@ async def get_churn_analysis(
 @require_platform_admin
 async def list_feature_flags(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """List all feature flags."""
-    return [
-        FeatureFlagSummary(
-            flag_id="flag-1",
-            feature_key="multi_state_analysis",
-            name="Multi-State Analysis",
-            description="Support for clients with income in multiple states",
-            is_enabled_globally=True,
-            min_tier="professional",
-            rollout_percentage=100,
-            enabled_firms=114,
-            usage_this_month=1234,
-        ),
-        FeatureFlagSummary(
-            flag_id="flag-2",
-            feature_key="ai_recommendations_v2",
-            name="AI Recommendations v2",
-            description="Enhanced AI-powered tax optimization recommendations",
-            is_enabled_globally=False,
-            min_tier=None,
-            rollout_percentage=25,
-            enabled_firms=58,
-            usage_this_month=456,
-        ),
-    ]
+    rows = await session.execute(text("""
+        SELECT
+            ff.id AS flag_id,
+            ff.feature_key,
+            ff.name,
+            ff.description,
+            ff.is_enabled_globally,
+            ff.min_tier,
+            ff.rollout_percentage,
+            COUNT(DISTINCT fff.firm_id) AS enabled_firms,
+            COALESCE(SUM(ffu.usage_count), 0) AS usage_this_month
+        FROM feature_flags ff
+        LEFT JOIN firm_feature_flags fff ON fff.flag_id = ff.id AND fff.is_enabled = true
+        LEFT JOIN feature_flag_usage ffu ON ffu.flag_id = ff.id
+            AND ffu.period_start >= date_trunc('month', NOW())
+        GROUP BY ff.id, ff.feature_key, ff.name, ff.description,
+                 ff.is_enabled_globally, ff.min_tier, ff.rollout_percentage
+        ORDER BY ff.name
+    """))
+    flags = []
+    for row in rows.mappings():
+        flags.append(FeatureFlagSummary(
+            flag_id=str(row["flag_id"]),
+            feature_key=row["feature_key"],
+            name=row["name"] or row["feature_key"],
+            description=row["description"],
+            is_enabled_globally=bool(row["is_enabled_globally"]),
+            min_tier=row["min_tier"],
+            rollout_percentage=row["rollout_percentage"] or 0,
+            enabled_firms=row["enabled_firms"] or 0,
+            usage_this_month=row["usage_this_month"] or 0,
+        ))
+    return flags
 
 
 @router.post("/features")
@@ -839,21 +921,47 @@ async def adjust_rollout(
 @require_platform_admin
 async def get_system_health(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Get system health status."""
+    import time
+
+    # Check DB connectivity
+    db_status = "healthy"
+    db_latency = 0
+    try:
+        t0 = time.monotonic()
+        await session.execute(text("SELECT 1"))
+        db_latency = round((time.monotonic() - t0) * 1000)
+    except Exception:
+        db_status = "degraded"
+
+    # Active and failed jobs from DB
+    active_jobs = 0
+    failed_jobs_1h = 0
+    try:
+        r = await session.execute(text(
+            "SELECT COUNT(*) FROM background_jobs WHERE status = 'running'"
+        ))
+        active_jobs = r.scalar() or 0
+        r2 = await session.execute(text(
+            "SELECT COUNT(*) FROM background_jobs WHERE status = 'failed' AND updated_at >= NOW() - INTERVAL '1 hour'"
+        ))
+        failed_jobs_1h = r2.scalar() or 0
+    except Exception:
+        pass
+
+    overall = "healthy" if db_status == "healthy" else "degraded"
     return SystemHealth(
-        status="healthy",
+        status=overall,
         services={
-            "api": {"status": "healthy", "latency_ms": 45},
-            "database": {"status": "healthy", "connections": 25},
-            "redis": {"status": "healthy", "memory_mb": 128},
-            "celery": {"status": "healthy", "workers": 4},
-            "ocr": {"status": "healthy", "queue_size": 12},
+            "api": {"status": "healthy", "latency_ms": db_latency},
+            "database": {"status": db_status, "latency_ms": db_latency},
         },
-        error_rate_1h=0.02,
-        avg_response_time_ms=87,
-        active_jobs=45,
-        failed_jobs_1h=2,
+        error_rate_1h=0.0,
+        avg_response_time_ms=db_latency,
+        active_jobs=active_jobs,
+        failed_jobs_1h=failed_jobs_1h,
     )
 
 

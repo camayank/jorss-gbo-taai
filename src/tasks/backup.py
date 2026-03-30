@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def run_database_backup(self):
         logger.error("DATABASE_URL not set — cannot run backup")
         return {"status": "error", "message": "DATABASE_URL not configured"}
 
-    backup_dir = os.environ.get("BACKUP_DIR", "/tmp/backups")
+    backup_dir = os.environ.get("BACKUP_DIR", "/app/data/backups")
     os.makedirs(backup_dir, exist_ok=True)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -67,6 +68,48 @@ def run_database_backup(self):
             backup_file,
             file_size,
         )
+
+        # Offsite upload to S3 if configured
+        local_file_path = Path(backup_file)
+        s3_bucket = os.environ.get("BACKUP_S3_BUCKET")
+        if s3_bucket and local_file_path.exists():
+            try:
+                import boto3
+                s3 = boto3.client(
+                    "s3",
+                    region_name=os.environ.get("AWS_S3_REGION", "us-east-1")
+                )
+                s3_key = (
+                    f"backups/{datetime.now().strftime('%Y/%m/%d')}/"
+                    f"{local_file_path.name}"
+                )
+                s3.upload_file(
+                    str(local_file_path),
+                    s3_bucket,
+                    s3_key
+                )
+                logger.info(
+                    f"Backup uploaded to s3://{s3_bucket}/{s3_key}"
+                )
+
+                # Delete local file after successful S3 upload
+                # only if explicitly configured
+                if os.environ.get(
+                    "BACKUP_DELETE_LOCAL_AFTER_UPLOAD", "false"
+                ).lower() == "true":
+                    local_file_path.unlink()
+                    logger.info("Local backup deleted after S3 upload")
+
+            except ImportError:
+                logger.warning(
+                    "boto3 not installed — skipping S3 backup upload"
+                )
+            except Exception as e:
+                logger.critical(
+                    f"S3 backup upload FAILED: {e} — "
+                    f"local backup retained at {local_file_path}"
+                )
+                # Never fail the backup task because of S3 failure
 
         return {
             "status": "success",

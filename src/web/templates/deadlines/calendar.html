@@ -780,5 +780,34 @@
             closeModal();
         }
     });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        try {
+            const r = await fetch(`/api/cpa/deadlines/calendar/${year}/${month}`);
+            if (!r.ok) throw new Error(r.status);
+            const data = await r.json();
+            const deadlines = data.deadlines || data.items || data || [];
+            const byDay = {};
+            deadlines.forEach(d => {
+                const day = new Date(d.due_date || d.deadline_date).getDate();
+                if (!byDay[day]) byDay[day] = [];
+                byDay[day].push(d);
+            });
+            document.querySelectorAll('[data-day], .calendar-day, .cal-day').forEach(cell => {
+                const day = parseInt(cell.dataset.day || cell.textContent);
+                if (byDay[day]) {
+                    const dot = document.createElement('div');
+                    dot.style.cssText = 'width:6px;height:6px;border-radius:50%;background:#C9A84C;margin:2px auto;';
+                    cell.appendChild(dot);
+                    cell.title = byDay[day].map(d => d.title || 'Deadline').join(', ');
+                }
+            });
+        } catch (e) {
+            console.error('Deadlines calendar load error:', e);
+        }
+    });
 </script>
 {% endblock %}

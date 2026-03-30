@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Self-Employment Tax Calculator 2025 — AI Tax Advisor</title>
+  <meta name="description" content="Free self-employment tax calculator for 2025. Calculate SE tax, deductible half, and quarterly estimated payments instantly.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f8fafc; margin: 0; color: #1e293b; }
+    .nav { background: #0B1D3A; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; }
+    .nav a { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 0.88rem; }
+    .nav a:hover { color: white; }
+    .nav-brand { color: white; font-weight: 700; font-size: 1rem; }
+    .hero { background: linear-gradient(135deg, #0B1D3A, #132B50); color: white; padding: 3rem 1.5rem; text-align: center; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: 2.25rem; margin: 0 0 0.75rem; line-height: 1.2; }
+    .hero p { color: rgba(255,255,255,0.75); font-size: 1.05rem; max-width: 540px; margin: 0 auto; }
+    .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .card h2 { color: #0B1D3A; font-family: 'Playfair Display', serif; font-size: 1.3rem; margin: 0 0 1.25rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    label { display: block; font-weight: 600; font-size: 0.88rem; color: #0B1D3A; margin-bottom: 0.4rem; }
+    input, select { width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.95rem; }
+    input:focus, select:focus { outline: none; border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .btn-calc { width: 100%; padding: 0.9rem; background: #C9A84C; color: #0B1D3A; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; font-family: inherit; }
+    .btn-calc:hover { background: #b8973d; }
+    .results { display: none; }
+    .result-row { display: flex; justify-content: space-between; align-items: center; padding: 0.875rem 0; border-bottom: 1px solid #f1f5f9; }
+    .result-row:last-child { border-bottom: none; }
+    .result-label { color: #64748b; font-size: 0.95rem; }
+    .result-value { font-weight: 700; color: #0B1D3A; font-size: 1.05rem; }
+    .result-value.highlight { color: #16a34a; font-size: 1.2rem; }
+    .cta-card { background: linear-gradient(135deg, #0B1D3A, #132B50); color: white; border-radius: 12px; padding: 2rem; text-align: center; margin-top: 2rem; }
+    .cta-card h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin: 0 0 0.5rem; }
+    .cta-card p { color: rgba(255,255,255,0.75); margin: 0 0 1.5rem; }
+    .cta-btn { display: inline-block; background: #C9A84C; color: #0B1D3A; padding: 0.875rem 2.5rem; border-radius: 50px; font-weight: 700; font-size: 1rem; text-decoration: none; }
+    .cta-btn:hover { background: #b8973d; }
+    @media (max-width: 540px) { .form-row { grid-template-columns: 1fr; } .hero h1 { font-size: 1.75rem; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/landing">← Home</a>
+  <span class="nav-brand">AI Tax Advisor</span>
+  <a href="/login">Sign in</a>
+</nav>
+
+<div class="hero">
+  <h1>Self-Employment Tax Calculator 2025</h1>
+  <p>Calculate your SE tax, deductible half, and quarterly estimated payments — free, instant, no signup.</p>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Enter Your Details</h2>
+    <div class="form-row">
+      <div>
+        <label for="se-income">Net Self-Employment Income</label>
+        <input type="number" id="se-income" placeholder="85000" min="0" step="100">
+      </div>
+      <div>
+        <label for="w2-income">Other W-2 Income (if any)</label>
+        <input type="number" id="w2-income" placeholder="0" min="0" step="100">
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label for="filing-status">Filing Status</label>
+        <select id="filing-status">
+          <option value="single">Single</option>
+          <option value="mfj">Married Filing Jointly</option>
+          <option value="hoh">Head of Household</option>
+        </select>
+      </div>
+      <div>
+        <label for="state">State</label>
+        <select id="state">
+          <option value="none">No state income tax</option>
+          <option value="ca">California (~9.3%)</option>
+          <option value="ny">New York (~6.5%)</option>
+          <option value="tx">Texas (no income tax)</option>
+          <option value="fl">Florida (no income tax)</option>
+          <option value="il">Illinois (4.95%)</option>
+          <option value="other">Other state</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-calc" onclick="calculate()">Calculate My SE Tax →</button>
+  </div>
+
+  <div class="card results" id="results">
+    <h2>Your 2025 SE Tax Estimate</h2>
+    <div id="result-rows"></div>
+  </div>
+
+  <div class="cta-card">
+    <h3>Want a Complete Tax Analysis?</h3>
+    <p>Our AI finds every deduction and strategy specific to your situation — takes 5 minutes, completely free.</p>
+    <a href="/lead-magnet" class="cta-btn">Get My Free Tax Health Score →</a>
+  </div>
+</div>
+
+<script>
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function calculate() {
+  const seIncome = parseFloat(document.getElementById('se-income').value) || 0;
+  const w2Income = parseFloat(document.getElementById('w2-income').value) || 0;
+
+  if (seIncome <= 0) {
+    alert('Please enter your self-employment income.');
+    return;
+  }
+
+  // 2025 constants
+  const SS_WAGE_BASE = 176100;
+  const SE_RATE = 0.9235;
+  const SS_RATE = 0.124;
+  const MC_RATE = 0.029;
+  const ADD_MC_RATE = 0.009;
+  const ADD_MC_THRESHOLD = { single: 200000, mfj: 250000, hoh: 200000 };
+
+  const filingStatus = document.getElementById('filing-status').value;
+
+  // Net SE earnings
+  const netSE = seIncome * SE_RATE;
+
+  // SS tax (capped at wage base minus W-2 wages)
+  const ssWageBase = Math.max(0, SS_WAGE_BASE - w2Income);
+  const ssTaxable = Math.min(netSE, ssWageBase);
+  const ssTax = ssTaxable * SS_RATE;
+
+  // Medicare tax (uncapped)
+  const mcTax = netSE * MC_RATE;
+
+  // Additional Medicare (0.9% over threshold)
+  const addMcThreshold = ADD_MC_THRESHOLD[filingStatus] || ADD_MC_THRESHOLD.single;
+  const totalWages = seIncome + w2Income;
+  const addMcTaxable = Math.max(0, totalWages - addMcThreshold);
+  const addMcTax = addMcTaxable * ADD_MC_RATE;
+
+  // Total SE tax
+  const totalSETax = ssTax + mcTax + addMcTax;
+
+  // Deductible half
+  const deductibleHalf = totalSETax / 2;
+
+  // QBI deduction estimate (20% of SE income - SE tax deduction)
+  const qbiBase = seIncome - deductibleHalf;
+  const qbiDeduction = qbiBase * 0.20;
+
+  // Quarterly payment
+  const quarterly = totalSETax / 4;
+
+  const rows = [
+    ['Net SE Earnings (92.35% of income)', fmt(netSE), false],
+    ['Social Security Tax (12.4%)', fmt(ssTax), false],
+    ['Medicare Tax (2.9%)', fmt(mcTax), false],
+    addMcTax > 0 ? ['Additional Medicare Tax (0.9%)', fmt(addMcTax), false] : null,
+    ['Total Self-Employment Tax', fmt(totalSETax), true],
+    ['Deductible Half (reduces your AGI)', fmt(deductibleHalf), false],
+    ['Potential QBI Deduction (20%)', fmt(qbiDeduction), false],
+    ['Estimated Quarterly Payment', fmt(quarterly), false],
+  ].filter(Boolean);
+
+  document.getElementById('result-rows').innerHTML = rows.map(([label, value, highlight]) => `
+    <div class="result-row">
+      <span class="result-label">${label}</span>
+      <span class="result-value${highlight ? ' highlight' : ''}">${value}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
