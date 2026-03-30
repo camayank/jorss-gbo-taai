@@ -638,9 +638,62 @@
             color: var(--text-dark);
         }
 
+        /* Document Header */
+        .doc-header {
+            background: #fff;
+            border-bottom: 2px solid var(--primary-color);
+            padding: 20px 32px 16px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .doc-header-left { flex: 1; min-width: 200px; }
+        .doc-header-firm { font-size: 1rem; font-weight: 700; color: var(--primary-color); margin-bottom: 2px; }
+        .doc-header-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-color); margin-bottom: 8px; }
+        .doc-header-meta { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; }
+        .doc-header-right { text-align: right; }
+
+        /* Download PDF bar */
+        .download-pdf-bar {
+            background: var(--primary-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .download-pdf-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 7px 18px;
+            border-radius: 5px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .download-pdf-btn:hover { opacity: 0.9; }
+
+        /* Document footer */
+        .doc-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 32px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .doc-footer strong { color: var(--text-dark); }
+
         /* Print Styles */
         @media print {
-            .cta-section {
+            .cta-section, .share-section, .download-pdf-bar {
                 display: none;
             }
         }
@@ -696,7 +749,33 @@
         <div class="report-date">Generated on {{ now().strftime('%B %d, %Y') if now else 'Today' }}</div>
     </header>
 
+    <!-- Download PDF bar -->
+    <div class="download-pdf-bar">
+        <button class="download-pdf-btn" onclick="window.print()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+            Download / Print Report
+        </button>
+    </div>
+
     <div class="container">
+
+        <!-- Document Header -->
+        <div class="doc-header">
+            <div class="doc-header-left">
+                <div class="doc-header-label">Confidential Tax Analysis</div>
+                <div class="doc-header-firm">{{ cpa.firm_name or cpa.display_name or 'Your Tax Advisor' }}</div>
+                <div class="doc-header-meta">
+                    Prepared for: {{ session_data.get('first_name', '') if session_data else '' or 'Valued Client' }}<br>
+                    Tax Year: 2025 &nbsp;·&nbsp; Analysis Date: {{ now().strftime('%B %d, %Y') if now else '' }}
+                </div>
+            </div>
+            <div class="doc-header-right doc-header-meta">
+                {% if cpa.email %}<div>{{ cpa.email }}</div>{% endif %}
+                {% if cpa.phone %}<div>{{ cpa.phone }}</div>{% endif %}
+            </div>
+        </div>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 0;">
+
         <!-- Savings Summary -->
         <div class="savings-card">
             {% set score = report.tax_health_score if report and report.tax_health_score else {
@@ -819,7 +898,7 @@
                         <line x1="12" y1="8" x2="12" y2="8"/>
                     </svg>
                 </div>
-                Tax Insights for You
+                Tax Optimization Findings
             </h2>
 
             {% if report and report.insights %}
@@ -1028,6 +1107,13 @@
                 </p>
             </div>
         </div>
+    </div>
+
+    <!-- Document Footer -->
+    <div class="doc-footer">
+        <strong>Planning purposes only.</strong> This analysis is based on information provided and is for tax planning purposes only.
+        Results are estimates and may not reflect your actual tax liability. Consult a licensed CPA before making tax decisions.
+        {% if cpa.email %} &nbsp;·&nbsp; Contact: <a href="mailto:{{ cpa.email }}" style="color:inherit;">{{ cpa.email }}</a>{% endif %}
     </div>
 
     <!-- Footer -->
