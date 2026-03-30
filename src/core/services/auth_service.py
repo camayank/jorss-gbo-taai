@@ -155,6 +155,7 @@ class RegisterRequest(BaseModel):
     user_type: UserType = UserType.CONSUMER
     # For CPA team registration
     firm_id: Optional[str] = None
+    firm_name: Optional[str] = None
     cpa_role: Optional[CPARole] = None
     # For CPA client registration
     assigned_cpa_id: Optional[str] = None

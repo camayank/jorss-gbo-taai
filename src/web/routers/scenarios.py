@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from rbac.dependencies import require_auth
 
@@ -57,6 +57,13 @@ class CreateScenarioRequest(BaseModel):
     adjustments: Optional[List[Dict[str, Any]]] = Field(None, description="Alias for modifications (frontend compat)")
     filing_status: Optional[str] = Field(None, description="Alias: mapped to scenario_type='filing_status' if scenario_type missing")
     description: Optional[str] = Field(None, description="Optional description")
+    base_return_id: Optional[str] = Field(None, exclude=True)
+
+    @model_validator(mode='after')
+    def _copy_alias(self):
+        if self.base_return_id and not self.return_id:
+            self.return_id = self.base_return_id
+        return self
 
 
 class WhatIfScenarioRequest(BaseModel):

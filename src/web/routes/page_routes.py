@@ -248,7 +248,7 @@ def cpa_landing_page(request: Request):
     """CPA Landing Page - Marketing page for CPA lead generation platform."""
     from config.branding import get_branding_config
     branding = get_branding_config()
-    return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
+    return templates.TemplateResponse("cpa_landing.html", {"request": request, "branding": branding})
 
 
 @router.get("/terms", response_class=HTMLResponse)

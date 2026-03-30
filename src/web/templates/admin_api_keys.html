@@ -749,5 +749,33 @@
       });
     });
   </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  const container = document.querySelector('tbody, .keys-list, #apiKeyList, table');
+  try {
+    const resp = await fetch('/api/v1/admin/api-keys', {
+      headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
+    });
+    if (!resp.ok) throw new Error(resp.status);
+    const data = await resp.json();
+    const keys = data.api_keys || data.keys || data.items || data || [];
+    if (!container || !keys.length) return;
+    const tbody = container.tagName === 'TBODY' ? container : container.querySelector('tbody');
+    if (!tbody) return;
+    tbody.innerHTML = keys.map(k => `
+      <tr>
+        <td>${k.name || k.key_name || ''}</td>
+        <td><code>${k.key_prefix || k.api_key_preview || (k.api_key || '').substring(0, 12) + '...' || ''}</code></td>
+        <td><span class="badge ${k.is_active ? 'active' : 'inactive'}">${k.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td>${k.created_at ? new Date(k.created_at).toLocaleDateString() : ''}</td>
+        <td>${k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    console.warn('API keys load failed:', e);
+  }
+});
+</script>
 </body>
 </html>

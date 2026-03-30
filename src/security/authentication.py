@@ -124,8 +124,7 @@ class RedisRevocationBackend(TokenRevocationBackend):
             return True  # Deny if Redis unavailable (fail closed)
 
         try:
-            key = f"revoked_token:{jti}"
-            return redis_client.exists(key) > 0
+            return redis_client.sismember("revoked_jtis", jti)
         except Exception as e:
             # SECURITY: Fail-closed on errors
             logger.error(f"Redis revocation check failed: {e} - denying access")
@@ -138,11 +137,9 @@ class RedisRevocationBackend(TokenRevocationBackend):
             return
 
         try:
-            key = f"revoked_token:{jti}"
-            # Calculate TTL (time until token expires)
             ttl = max(1, exp - int(time.time()))
-            # Store revocation with TTL (auto-cleanup after token expires)
-            redis_client.setex(key, ttl, "revoked")
+            redis_client.sadd("revoked_jtis", jti)
+            redis_client.expire("revoked_jtis", ttl)
             logger.info(f"Token revoked in Redis: {jti[:8]}... (TTL: {ttl}s)")
         except Exception as e:
             logger.error(f"Redis token revocation failed: {e}")
@@ -182,7 +179,11 @@ class AuthenticationManager:
             use_redis: Use Redis for token revocation (recommended for production)
             redis_url: Redis URL (defaults to REDIS_URL env var)
         """
-        self._secret_key = secret_key or os.environ.get("JWT_SECRET_KEY")
+        self._secret_key = (
+            secret_key
+            or os.environ.get("JWT_SECRET_KEY")
+            or os.environ.get("JWT_SECRET")
+        )
 
         if not self._secret_key:
             env = os.environ.get("APP_ENVIRONMENT", "development")

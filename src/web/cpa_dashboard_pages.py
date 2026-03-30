@@ -1427,6 +1427,12 @@ async def cpa_return_queue_page(
     except Exception as e:
         logger.warning(f"Could not load returns from database: {e}")
 
+    for r in returns:
+        key = r.get("status", "pending_review")
+        if key in counts:
+            counts[key] += 1
+    counts["total"] = len(returns)
+
     return templates.TemplateResponse(
         "cpa/return_queue.html",
         {

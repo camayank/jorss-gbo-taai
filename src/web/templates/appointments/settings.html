@@ -329,6 +329,11 @@
     </style>
 </head>
 <body>
+<nav style="position:sticky;top:0;z-index:200;background:#0B1D3A;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;font-family:'DM Sans',sans-serif;">
+  <a href="/cpa/dashboard" style="color:#C9A84C;text-decoration:none;font-weight:600;font-size:0.9rem;">← Dashboard</a>
+  <span style="color:#fff;font-size:0.85rem;opacity:0.7;">Appointments</span>
+  <a href="/cpa/leads" style="color:#fff;text-decoration:none;font-size:0.8rem;opacity:0.6;">Leads</a>
+</nav>
     <header class="page-header">
         <div class="header-content">
             <a href="/appointments/calendar" class="back-link">
@@ -607,5 +612,46 @@
             showToast('Settings saved successfully!', 'success');
         }
     </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  // Load saved settings
+  try {
+    const resp = await fetch('/api/cpa/appointments/settings', {
+      headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const meetingUrl = document.querySelector('[name="meeting_url"], #meetingUrl, #meeting_url, [name="zoom_url"]');
+      if (meetingUrl && data.meeting_url) meetingUrl.value = data.meeting_url;
+    }
+  } catch(e) {}
+
+  // Wire save button
+  const form = document.querySelector('form, .settings-form');
+  if (!form) return;
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const body = {};
+    fd.forEach((v, k) => body[k] = v);
+    const btn = form.querySelector('button[type=submit], .save-btn, .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    try {
+      const resp = await fetch('/api/cpa/appointments/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')},
+        body: JSON.stringify(body)
+      });
+      if (resp.ok) {
+        if (btn) { btn.textContent = '✓ Saved'; setTimeout(() => { btn.disabled = false; btn.textContent = 'Save Settings'; }, 2000); }
+      } else { throw new Error('Failed'); }
+    } catch(e) {
+      alert('Could not save. Please try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Save Settings'; }
+    }
+  });
+});
+</script>
 </body>
 </html>

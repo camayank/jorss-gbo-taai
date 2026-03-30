@@ -18,8 +18,11 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Query, status, Re
 from typing import Optional
 import logging
 import os
+import re
 import time
+import uuid
 from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 
 from ..services.auth_service import (
     get_auth_service,
@@ -270,6 +273,24 @@ async def verify_magic_link(
 # REGISTRATION ENDPOINTS
 # =============================================================================
 
+async def create_cpa_profile_record(
+    db, cpa_id, firm_id, cpa_slug, firm_name, email, display_name
+):
+    """Create a CPA profile record with slug. Fail-soft — caller handles exceptions."""
+    from database.models import CPAProfile
+    profile = CPAProfile(
+        cpa_id=cpa_id,
+        firm_id=firm_id,
+        cpa_slug=cpa_slug,
+        firm_name=firm_name,
+        contact_email=email,
+        display_name=display_name,
+        is_active=True,
+    )
+    db.add(profile)
+    db.commit()
+
+
 @router.post("/register", response_model=AuthResponse)
 async def register(
     request: RegisterRequest,
@@ -299,6 +320,105 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=response.message
         )
+
+    # Auto-create Firm + Subscription for CPA signups (fail-soft)
+    _user_type_str = str(getattr(request.user_type, 'value', request.user_type))
+    if _user_type_str in ('cpa_team', 'cpa') and request.firm_name:
+        try:
+            from database.models import Firm, Subscription, SubscriptionPlan, User
+            from database.db import SessionLocal
+            db = SessionLocal()
+            try:
+                # Look up the newly created user
+                user = db.query(User).filter(User.email == request.email).first()
+                if not user:
+                    raise ValueError(f"User not found after registration: {request.email}")
+
+                firm_id = str(uuid.uuid4())
+                trial_end = datetime.now(timezone.utc) + timedelta(days=14)
+
+                # Create firm
+                firm = Firm(
+                    firm_id=firm_id,
+                    name=request.firm_name,
+                    email=request.email,
+                    subscription_tier='starter',
+                    subscription_status='trial',
+                    trial_ends_at=trial_end,
+                    is_active=True,
+                    created_at=datetime.now(timezone.utc),
+                )
+                db.add(firm)
+
+                # Link user to firm
+                user.firm_id = firm_id
+
+                # Find starter plan
+                starter_plan = db.query(SubscriptionPlan).filter(
+                    SubscriptionPlan.code == 'starter'
+                ).first()
+
+                if starter_plan:
+                    sub = Subscription(
+                        subscription_id=str(uuid.uuid4()),
+                        firm_id=firm_id,
+                        plan_id=starter_plan.plan_id,
+                        status='trialing',
+                        trial_end=trial_end,
+                        current_period_start=datetime.now(timezone.utc),
+                        current_period_end=trial_end,
+                    )
+                    db.add(sub)
+
+                db.commit()
+
+                # F3 — Generate unique CPA slug
+                try:
+                    base_slug = (
+                        f"{request.firm_name or ''}-"
+                        f"{request.first_name or ''}"
+                    ).lower()
+                    base_slug = re.sub(r'[^a-z0-9-]', '-', base_slug)
+                    base_slug = re.sub(r'-+', '-', base_slug).strip('-')
+                    base_slug = base_slug[:40] or 'advisor'
+
+                    slug = base_slug
+                    counter = 1
+                    existing = db.execute(
+                        "SELECT cpa_slug FROM cpa_profiles WHERE cpa_slug = :s",
+                        {"s": slug}
+                    ).fetchone()
+                    while existing:
+                        slug = f"{base_slug}-{counter}"
+                        counter += 1
+                        existing = db.execute(
+                            "SELECT cpa_slug FROM cpa_profiles WHERE cpa_slug = :s",
+                            {"s": slug}
+                        ).fetchone()
+
+                    await create_cpa_profile_record(
+                        db=db,
+                        cpa_id=user.id,
+                        firm_id=firm_id,
+                        cpa_slug=slug,
+                        firm_name=request.firm_name,
+                        email=request.email,
+                        display_name=f"{request.first_name or ''} {request.last_name or ''}".strip(),
+                    )
+                except Exception as slug_error:
+                    logger.warning(
+                        f"CPA slug generation failed for {request.email}: "
+                        f"{slug_error} — firm still created"
+                    )
+
+            finally:
+                db.close()
+
+        except Exception as firm_error:
+            logger.warning(
+                f"Auto-create firm failed for {request.email}: "
+                f"{firm_error} — registration still succeeded"
+            )
 
     return response
 

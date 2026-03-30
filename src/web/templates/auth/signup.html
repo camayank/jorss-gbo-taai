@@ -463,6 +463,14 @@
                             </div>
                         </div>
 
+                        <div id="firm-name-group" style="display:none">
+                            <label class="form-label" for="firmName">Firm Name</label>
+                            <input type="text" id="firmName" name="firmName"
+                                   class="form-input"
+                                   placeholder="Smith &amp; Associates CPA"
+                                   autocomplete="organization">
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label" for="email">Email Address</label>
                             <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
@@ -471,7 +479,7 @@
                         <div class="form-group">
                             <label class="form-label" for="password">Password</label>
                             <div class="input-wrapper">
-                                <input type="password" id="password" name="password" class="form-input" placeholder="Create a strong password" required minlength="8" autocomplete="new-password">
+                                <input type="password" id="password" name="password" class="form-input" placeholder="Create a strong password" required minlength="12" autocomplete="new-password">
                                 <span class="input-icon" id="toggle-password">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="eye-icon">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -606,12 +614,16 @@
             const nextUrl = isSafeRedirect(urlParams.get('next')) ? urlParams.get('next') : '/intelligent-advisor';
             document.getElementById('next-url').value = nextUrl;
 
-            // Show firmName field for CPA signup
-            if (urlParams.get('type') === 'cpa') {
-                const firmGroup = document.getElementById('firm-name-group');
-                const firmInput = document.getElementById('firmName');
-                if (firmGroup) firmGroup.style.display = '';
-                if (firmInput) firmInput.required = true;
+            const isCPASignup = new URLSearchParams(
+                window.location.search
+            ).get('role') === 'cpa';
+
+            if (isCPASignup) {
+                document.querySelector('.auth-title').textContent = 'Create Your CPA Account';
+                document.querySelector('.auth-subtitle').textContent = 'Start your 14-day free trial. No credit card required.';
+                document.querySelector('#submit-btn .btn-text').textContent = 'Create CPA Account';
+                document.getElementById('firm-name-group').style.display = 'block';
+                document.getElementById('firmName').required = true;
             }
 
             if (urlParams.get('oauth_success') === 'true') {
@@ -684,15 +696,18 @@
             submitBtn.disabled = true;
             errorAlert.classList.remove('show');
 
+            const isCPASignup = new URLSearchParams(window.location.search).get('role') === 'cpa';
             const formData = new FormData(this);
             const data = {
                 first_name: formData.get('firstName'),
                 last_name: formData.get('lastName'),
                 email: formData.get('email'),
                 password: formData.get('password'),
-                user_type: new URLSearchParams(window.location.search).get('type') === 'cpa' ? 'cpa_team' : 'consumer',
-                firm_name: new URLSearchParams(window.location.search).get('type') === 'cpa' ? formData.get('firmName') || '' : undefined
+                user_type: isCPASignup ? 'cpa_team' : 'consumer',
             };
+            if (isCPASignup) {
+                data.firm_name = document.getElementById('firmName')?.value || '';
+            }
 
             try {
                 const headers = { 'Content-Type': 'application/json' };
@@ -711,8 +726,12 @@
 
                 if (response.ok && result.success) {
                     persistAuthSession(result);
-                    const nextUrl = document.getElementById('next-url').value;
-                    window.location.href = nextUrl;
+                    if (isCPASignup) {
+                        window.location.href = '/cpa/onboarding';
+                    } else {
+                        const nextUrl = document.getElementById('next-url').value;
+                        window.location.href = nextUrl || '/intelligent-advisor';
+                    }
                 } else {
                     document.getElementById('error-message').textContent = result.detail || result.message || 'Registration failed';
                     errorAlert.classList.add('show');
