@@ -273,7 +273,7 @@
                        value="{{ cpa.email or '' }}"
                        style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; box-sizing:border-box">
             </div>
-            <button type="submit"
+            <button type="submit" onclick="saveStep1()"
                     style="background:#C9A84C; color:#0B1D3A; border:none; padding:0.75rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.95rem">
                 Save &amp; Continue →
             </button>
@@ -381,6 +381,36 @@
             btn.textContent = 'Save & Continue →';
         }
     });
+
+    async function saveStep1() {
+      const firmName = document.getElementById('s1-firm-name')?.value?.trim()
+        || document.querySelector('input[name="firm_name"], #firmName')?.value?.trim();
+      const email = document.getElementById('s1-email')?.value?.trim()
+        || document.querySelector('input[name="email"], input[type="email"]')?.value?.trim();
+      const msg = document.getElementById('s1-msg') || document.getElementById('ob-step1-msg');
+      if (!firmName) {
+        if (msg) { msg.style.display='block'; msg.style.color='#dc2626'; msg.textContent='Please enter your firm name.'; }
+        return;
+      }
+      const btn = document.querySelector('[onclick="saveStep1()"], #saveStep1Btn');
+      if (btn) { btn.disabled=true; btn.textContent='Saving...'; }
+      try {
+        const resp = await fetch('/api/cpa/branding/my-branding', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')
+          },
+          body: JSON.stringify({ firm_name: firmName, email: email, display_name: firmName })
+        });
+        if (!resp.ok) throw new Error('Save failed');
+        if (msg) { msg.style.display='block'; msg.style.color='#16a34a'; msg.textContent='✓ Saved! Refreshing...'; }
+        setTimeout(() => location.reload(), 800);
+      } catch(e) {
+        if (msg) { msg.style.display='block'; msg.style.color='#dc2626'; msg.textContent='Could not save. Please try again.'; }
+        if (btn) { btn.disabled=false; btn.textContent='Save & Continue'; }
+      }
+    }
 
     function copyEmbedSnippet(event) {
         event.preventDefault();

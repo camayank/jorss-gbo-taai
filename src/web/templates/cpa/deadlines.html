@@ -294,11 +294,7 @@ document.addEventListener('alpine:init', () => {
             { key: 'week', label: 'This Week' },
             { key: 'month', label: 'This Month' }
         ],
-        clientList: [
-            'Johnson Family Trust', 'Acme Corp', 'Sarah Mitchell', 'Rivera Holdings LLC',
-            'David & Karen Chen', 'Greenfield Partners', 'Thompson Estate', 'Lakewood Medical Group',
-            'Patricia Owens', 'Baxter Industries'
-        ],
+        clientList: [],
         form: { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' },
         deadlines: [],
 
@@ -407,18 +403,7 @@ document.addEventListener('alpine:init', () => {
         _seedDemoData() {
             const today = new Date();
             const d = (offset) => { const dt = new Date(today); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0, 10); };
-            this.deadlines = [
-                { id: 'demo-1', title: 'Individual Return - Form 1040', client: 'Johnson Family Trust', type: 'Individual', due: d(-5), status: 'pending', notes: '' },
-                { id: 'demo-2', title: 'Corporate Return - Form 1120', client: 'Acme Corp', type: 'Corporate', due: d(-2), status: 'in_progress', notes: '' },
-                { id: 'demo-3', title: 'S-Corp Return - Form 1120-S', client: 'Rivera Holdings LLC', type: 'S-Corp', due: d(1), status: 'in_progress', notes: '' },
-                { id: 'demo-4', title: 'Partnership Return - Form 1065', client: 'Greenfield Partners', type: 'Partnership', due: d(3), status: 'pending', notes: '' },
-                { id: 'demo-5', title: 'Individual Return - Form 1040', client: 'Sarah Mitchell', type: 'Individual', due: d(5), status: 'pending', notes: '' },
-                { id: 'demo-6', title: 'Trust Return - Form 1041', client: 'Thompson Estate', type: 'Trust', due: d(12), status: 'pending', notes: '' },
-                { id: 'demo-7', title: 'Quarterly Estimated Tax - Q2', client: 'David & Karen Chen', type: 'Individual', due: d(18), status: 'pending', notes: '' },
-                { id: 'demo-8', title: 'Corporate Return - Form 1120', client: 'Lakewood Medical Group', type: 'Corporate', due: d(-10), status: 'filed', notes: 'Filed electronically' },
-                { id: 'demo-9', title: 'Individual Return - Form 1040', client: 'Patricia Owens', type: 'Individual', due: d(0), status: 'extended', notes: 'Extended to Oct 15' },
-                { id: 'demo-10', title: 'S-Corp Return - Form 1120-S', client: 'Baxter Industries', type: 'S-Corp', due: d(25), status: 'pending', notes: '' },
-            ];
+            this.deadlines = [];
         },
 
         _getFirmId() {
@@ -660,6 +645,34 @@ document.addEventListener('alpine:init', () => {
             setTimeout(() => { t.visible = false; setTimeout(() => { this.toasts = this.toasts.filter(x => x.id !== id); }, 350); }, 3000);
         }
     }));
+});
+
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const resp = await fetch('/api/cpa/clients', {
+      headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const clients = data.clients || data.items || data || [];
+    // Find the Alpine or Vue component and update clientList
+    const comp = document.querySelector('[x-data], [data-component]');
+    if (comp && comp.__x) {
+      comp.__x.$data.clientList = clients.map(c => c.name || c.client_name || c.email || '');
+    } else if (comp && comp._component) {
+      comp._component.clientList = clients.map(c => c.name || c.client_name || '');
+    } else {
+      // Fallback: populate any client datalist or select
+      const dl = document.querySelector('#clientList, datalist, select[name="client"]');
+      if (dl) {
+        clients.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.name || c.client_name || '';
+          dl.appendChild(opt);
+        });
+      }
+    }
+  } catch(e) {}
 });
 </script>
 {% endblock %}

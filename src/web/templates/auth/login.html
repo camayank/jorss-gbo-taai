@@ -717,7 +717,15 @@
 
                     persistAuthSession(result);
                     const nextUrl = document.getElementById('next-url').value;
-                    window.location.href = nextUrl;
+                    const userType = result.user?.user_type || result.user_type || '';
+                    const userRole = result.user?.role || result.role || '';
+                    const isCPAUser = ['cpa_team','cpa','partner','cpa_admin'].includes(userType.toLowerCase())
+                      || ['cpa','partner'].includes(userRole.toLowerCase());
+                    if (isCPAUser && !nextUrl.includes('/cpa')) {
+                      window.location.href = '/cpa/dashboard';
+                    } else {
+                      window.location.href = nextUrl;
+                    }
                 } else {
                     document.getElementById('error-message').textContent =
                         result.detail || result.message || 'Invalid email or password';
