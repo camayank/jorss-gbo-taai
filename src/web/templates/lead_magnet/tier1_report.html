@@ -1112,8 +1112,10 @@
         async function submitCallback(e) {
             e.preventDefault();
             const phone = document.getElementById('callback-phone').value;
+            const _sid = '{{ session_id }}' || new URLSearchParams(window.location.search).get('session_id') || '';
+            if (!_sid) { alert('Session expired. Please start over.'); return; }
             try {
-                const resp = await fetch('/api/cpa/lead-magnet/{{ session_id }}/contact', {
+                const resp = await fetch('/api/cpa/lead-magnet/' + _sid + '/contact', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone: phone })

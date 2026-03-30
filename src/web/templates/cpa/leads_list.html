@@ -850,5 +850,46 @@
             showToast('Error: ' + error.message, 'error');
         }
     }
+
+    // Load leads from API if server-side context was empty
+    document.addEventListener('DOMContentLoaded', async function() {
+      const tbody = document.querySelector('.leads-table tbody');
+      if (!tbody || tbody.querySelector('tr[data-lead-id]')) return; // Already has rows
+      try {
+        const resp = await fetch('/api/cpa/leads?page=1&per_page=50', {
+          headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const leads = data.leads || data.items || data || [];
+        if (!leads.length) return;
+        tbody.innerHTML = leads.map(lead => `
+          <tr onclick="viewLead('${lead.id}')" data-lead-id="${lead.id}">
+            <td onclick="event.stopPropagation()">
+              <input type="checkbox" class="lead-checkbox" value="${lead.id}" onchange="updateBulkActions()">
+            </td>
+            <td>
+              <div class="lead-info">
+                <div class="lead-avatar">${((lead.name || lead.email || '?')[0]).toUpperCase()}</div>
+                <div>
+                  <div class="lead-name">${lead.name || (lead.email || '').split('@')[0]}</div>
+                  <div class="lead-email">${lead.email || ''}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="state-badge ${(lead.state||'').toLowerCase().replace(/ /g,'_')}">${lead.state_display || (lead.state||'').replace(/_/g,' ')}</span></td>
+            <td><span class="temp-badge ${(lead.temperature||'cold').toLowerCase()}">${lead.temperature ? lead.temperature.charAt(0).toUpperCase()+lead.temperature.slice(1) : 'Cold'}</span></td>
+            <td><div class="savings-value">$${(lead.estimated_savings||0).toLocaleString()}</div></td>
+            <td><span class="complexity-badge ${(lead.complexity||'').toLowerCase()}">${lead.complexity || '—'}</span></td>
+            <td style="color:var(--text-muted);font-size:0.9rem">${lead.age || 'Today'}</td>
+            <td onclick="event.stopPropagation()">
+              <div class="actions-cell">
+                <button class="action-btn" title="View" onclick="viewLead('${lead.id}')">👁</button>
+                <button class="action-btn" title="Engage" onclick="engageLead('${lead.id}')">✉</button>
+              </div>
+            </td>
+          </tr>`).join('');
+      } catch(e) {}
+    });
 </script>
 {% endblock %}

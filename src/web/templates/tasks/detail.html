@@ -565,13 +565,13 @@ Key items to verify:
 
             <div class="sidebar-card">
                 <div class="field-label">Linked Client</div>
-                <a href="#" class="client-link">
-                    <div class="client-avatar">JS</div>
+                <div class="client-link" id="task-client-info" style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;">
+                    <div class="client-avatar" id="task-client-avatar" style="width:36px;height:36px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:#475569">—</div>
                     <div>
-                        <div class="client-name">John Smith</div>
-                        <div class="client-email">john.smith@email.com</div>
+                        <div class="client-name" id="task-client-name" style="font-weight:600;color:#0B1D3A">—</div>
+                        <div class="client-email" id="task-client-email" style="font-size:0.82rem;color:#64748b"></div>
                     </div>
-                </a>
+                </div>
             </div>
 
             <div class="sidebar-card">
@@ -605,6 +605,19 @@ Key items to verify:
 
             const descEl = document.querySelector('.description-editor');
             if (descEl) descEl.value = t.description || '';
+
+            const clientName = t.client_name || t.assigned_client || '';
+            const clientEmail = t.client_email || '';
+            const nameEl = document.getElementById('task-client-name');
+            const emailEl = document.getElementById('task-client-email');
+            const avatarEl = document.getElementById('task-client-avatar');
+            const infoEl = document.getElementById('task-client-info');
+            if (clientName && nameEl) {
+                nameEl.textContent = clientName;
+                if (emailEl) emailEl.textContent = clientEmail;
+                if (avatarEl) avatarEl.textContent = clientName[0].toUpperCase();
+                if (infoEl && t.client_id) infoEl.style.cursor = 'pointer', infoEl.onclick = () => window.location.href = '/cpa/leads/' + t.client_id;
+            }
         } catch (e) {
             console.error('Task detail load error:', e);
         }

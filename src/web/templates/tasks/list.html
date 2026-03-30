@@ -576,7 +576,9 @@
             if (!container) return;
             container.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:#64748b">Loading tasks...</td></tr>`;
             try {
-                const r = await fetch('/api/cpa/tasks?include_completed=true');
+                const r = await fetch('/api/cpa/tasks?include_completed=true', {
+                    headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
+                });
                 if (!r.ok) throw new Error(r.status);
                 const data = await r.json();
                 const tasks = data.tasks || data.items || data || [];

@@ -668,6 +668,19 @@ def clients_redirect():
     return RedirectResponse(url="/cpa/clients", status_code=301)
 
 
+@router.get("/documents/library", response_class=HTMLResponse)
+def documents_library_page(request: Request):
+    """Document library page."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    from config.branding import get_branding_config
+    return templates.TemplateResponse("documents/library.html", {
+        "request": request,
+        "branding": get_branding_config(),
+    })
+
+
 @router.get("/documents", include_in_schema=False)
 def documents_redirect():
     return RedirectResponse(url="/documents/library", status_code=301)

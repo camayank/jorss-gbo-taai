@@ -260,3 +260,51 @@
 </div>
 {% endif %}
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  const grid = document.querySelector('.clients-grid');
+  const emptyState = document.querySelector('.empty-state')?.closest('.card');
+  try {
+    const resp = await fetch('/api/cpa/clients', {
+      headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const clients = data.clients || data.items || data || [];
+    if (!clients.length) return;
+    // Hide server-side empty state if we got real clients
+    if (emptyState && grid === null) emptyState.style.display = 'none';
+    // If no grid rendered server-side, build one
+    if (!grid) {
+      const container = document.querySelector('.page-content, main, .content-area, .content');
+      if (!container) return;
+      const newGrid = document.createElement('div');
+      newGrid.className = 'clients-grid';
+      newGrid.innerHTML = clients.map(c => `
+        <div class="client-card">
+          <div class="client-card-header">
+            <div class="client-avatar">${(c.name || c.email || 'C')[0].toUpperCase()}</div>
+            <div>
+              <div class="client-name">${c.name || 'Client'}</div>
+              <div class="client-email">${c.email || ''}</div>
+            </div>
+          </div>
+          <div class="client-details">
+            ${c.phone ? `<div class="client-detail"><span>📞</span> ${c.phone}</div>` : ''}
+            <div class="client-detail"><span>📅</span> Client since ${c.created_at ? c.created_at.slice(0,10) : 'N/A'}</div>
+            <div class="client-detail"><span class="status-indicator active">✓ Active</span></div>
+          </div>
+          <div class="client-actions">
+            <a href="/cpa/leads/${c.id || c.client_id}" class="btn btn-secondary">View Details</a>
+            <a href="mailto:${c.email}?subject=Tax Advisory — ${c.name || 'Client'}" class="btn btn-primary" style="text-decoration:none;text-align:center;">Contact</a>
+          </div>
+        </div>`).join('');
+      if (emptyState) emptyState.replaceWith(newGrid);
+      else container.prepend(newGrid);
+    }
+  } catch(e) {}
+});
+</script>
+{% endblock %}

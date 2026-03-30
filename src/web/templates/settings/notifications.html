@@ -960,5 +960,53 @@
         // Enable master toggle
         document.querySelector('.master-toggle input[type="checkbox"]').checked = true;
     });
+
+    // Wire save button
+    const saveBtn = document.querySelector('.save-btn, button[type="submit"], .btn-primary');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const masterToggle = document.querySelector('.master-toggle input[type="checkbox"]');
+            const digestSelected = document.querySelector('input[name="digest"]:checked');
+            const quietHoursToggle = document.querySelector('.quiet-hours-header input[type="checkbox"]');
+            const timeInputs = document.querySelectorAll('.quiet-hours-content .time-input');
+            const channels = {};
+            document.querySelectorAll('.notification-item').forEach(item => {
+                const name = item.querySelector('.notification-name');
+                if (!name) return;
+                const key = name.textContent.trim().toLowerCase().replace(/\s+/g, '_');
+                channels[key] = {};
+                item.querySelectorAll('.channel-option').forEach(ch => {
+                    const label = ch.querySelector('.channel-label')?.textContent.trim().toLowerCase();
+                    if (label) channels[key][label] = ch.querySelector('.checkbox')?.classList.contains('checked') || false;
+                });
+            });
+            const payload = {
+                master_enabled: masterToggle ? masterToggle.checked : true,
+                digest_frequency: digestSelected ? digestSelected.value : 'daily',
+                quiet_hours: {
+                    enabled: quietHoursToggle ? quietHoursToggle.checked : false,
+                    from: timeInputs[0]?.value || '22:00',
+                    to: timeInputs[1]?.value || '07:00',
+                },
+                notifications: channels,
+            };
+            const orig = saveBtn.textContent;
+            saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
+            try {
+                const resp = await fetch('/api/cpa/notifications/preferences', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')},
+                    body: JSON.stringify(payload)
+                });
+                if (!resp.ok) throw new Error('Failed');
+                saveBtn.textContent = '✓ Saved';
+                setTimeout(() => { saveBtn.disabled = false; saveBtn.textContent = orig; }, 2000);
+            } catch(e) {
+                saveBtn.textContent = 'Error — try again';
+                setTimeout(() => { saveBtn.disabled = false; saveBtn.textContent = orig; }, 2500);
+            }
+        });
+    }
 </script>
 {% endblock %}
