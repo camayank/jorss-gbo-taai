@@ -770,3 +770,50 @@ async def universal_report_page(
         )
         apply_variant_cookie(response, variant_id)
         return response
+
+
+# =============================================================================
+# TIER 2 LOCKED — Dedicated route for users who haven't unlocked Tier 2
+# =============================================================================
+
+@lead_magnet_pages_router.get("/locked", response_class=HTMLResponse)
+async def tier_two_locked(
+    request: Request,
+    session: Optional[str] = None,
+    cpa: Optional[str] = None,
+    reason: Optional[str] = None,
+):
+    """
+    Tier 2 locked page — shown when user hasn't unlocked full analysis.
+
+    URL: /lead-magnet/locked?session=xxx&cpa=slug&reason=no_contact
+    """
+    session_id = session or request.cookies.get("tax_session_id") or ""
+    session_data = {}
+
+    if session_id:
+        try:
+            session_data = await get_session_data(session_id) or {}
+        except Exception:
+            pass
+
+    if not cpa and session_data.get("cpa_slug"):
+        cpa = session_data["cpa_slug"]
+
+    cpa_profile = await get_cpa_profile_for_page(cpa)
+    variant_id = resolve_variant_id(request, session_data=session_data)
+
+    response = templates.TemplateResponse(
+        "lead_magnet/tier2_locked.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "session_id": session_id,
+            "session_data": session_data,
+            "reason": reason or "not_unlocked",
+            "deadline_context": get_deadline_context(),
+            "variant_id": variant_id,
+        }
+    )
+    apply_variant_cookie(response, variant_id)
+    return response

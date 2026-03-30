@@ -786,3 +786,62 @@ def tax_brackets_page(request: Request):
     return templates.TemplateResponse(
         "tax_brackets.html", {"request": request}
     )
+
+
+# =========================================================================
+# CPA TAX TOOLS (capital gains, K-1 basis, rental depreciation)
+# =========================================================================
+
+@router.get("/capital-gains", response_class=HTMLResponse)
+def capital_gains_page(request: Request):
+    """Capital gains tax calculator — CPA/client tool."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    user_context = _ui_user_context(request)
+    return templates.TemplateResponse(
+        "capital_gains.html",
+        {"request": request, "user": user_context, "page_title": "Capital Gains Calculator"}
+    )
+
+
+@router.get("/k1-basis", response_class=HTMLResponse)
+def k1_basis_page(request: Request):
+    """K-1 basis tracker — CPA/client tool."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    user_context = _ui_user_context(request)
+    return templates.TemplateResponse(
+        "k1_basis.html",
+        {"request": request, "user": user_context, "page_title": "K-1 Basis Tracker"}
+    )
+
+
+@router.get("/rental-depreciation", response_class=HTMLResponse)
+def rental_depreciation_page(request: Request):
+    """Rental property depreciation calculator — CPA/client tool."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    user_context = _ui_user_context(request)
+    return templates.TemplateResponse(
+        "rental_depreciation.html",
+        {"request": request, "user": user_context, "page_title": "Rental Depreciation Calculator"}
+    )
+
+
+# =========================================================================
+# UPGRADE / PRICING REDIRECT
+# =========================================================================
+
+@router.get("/upgrade", include_in_schema=False)
+def upgrade_redirect():
+    """Redirect to CPA pricing page — used by locked strategy card CTAs."""
+    return RedirectResponse(url="/for-cpas#pricing", status_code=302)
+
+
+@router.get("/pricing", include_in_schema=False)
+def pricing_redirect():
+    """Redirect to CPA pricing page."""
+    return RedirectResponse(url="/for-cpas#pricing", status_code=302)
