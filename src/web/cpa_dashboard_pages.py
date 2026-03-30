@@ -1646,3 +1646,29 @@ async def cpa_return_review_page(
             "ai_recommendations": ai_recommendations,
         }
     )
+
+
+# =============================================================================
+# NOTIFICATIONS PAGE
+# =============================================================================
+
+@router.get("/notifications", response_class=HTMLResponse)
+async def cpa_notifications_page(request: Request):
+    """CPA Notifications center — lists all notifications with read/unread state."""
+    try:
+        current_user = await require_cpa_auth(request)
+    except Exception:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login?next=/cpa/notifications", status_code=302)
+
+    cpa_profile = await get_cpa_profile_from_context(request)
+    return templates.TemplateResponse(
+        "cpa/notifications.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "current_user": current_user,
+            "active_page": "notifications",
+            "page_title": "Notifications",
+        }
+    )

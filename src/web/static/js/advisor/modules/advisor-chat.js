@@ -753,7 +753,26 @@ export async function sendMessage() {
   const input = document.getElementById('userInput');
   let text = input.value.trim();
 
-  if (!text || isProcessing) return;
+  if (!text || isProcessing) {
+    if (!text) {
+      // Show inline hint instead of toast
+      let hint = document.getElementById('emptyMsgHint');
+      if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'emptyMsgHint';
+        hint.style.cssText = 'font-size:0.8rem;color:var(--amber,#c4975a);padding:4px 12px;text-align:center;';
+        hint.textContent = 'Please share your answer to continue your analysis.';
+        input.closest('.input-container')?.parentNode?.appendChild(hint);
+      }
+      hint.style.display = 'block';
+      setTimeout(() => { if (hint) hint.style.display = 'none'; }, 3000);
+    }
+    return;
+  }
+
+  // Clear inline hint if present
+  const hint = document.getElementById('emptyMsgHint');
+  if (hint) hint.style.display = 'none';
 
   text = sanitizeInput(text);
 
@@ -920,7 +939,12 @@ export async function processAIResponse(userMessage) {
           var msgs = document.getElementById('messages');
           if (msgs) msgs.parentNode.insertBefore(resultsLink, msgs.nextSibling);
         }
-        resultsLink.href = '/results?session_id=' + sessionId;
+        if (!sessionId) {
+          resultsLink.href = '#';
+          resultsLink.onclick = (e) => { e.preventDefault(); showToast('Complete your analysis first to generate your report.', 'warning'); };
+        } else {
+          resultsLink.href = '/results?session_id=' + sessionId;
+        }
       }
       if (data.strategies && data.strategies.length > 0) {
         setTaxStrategies(data.strategies);
@@ -1079,9 +1103,10 @@ export async function processAIResponse(userMessage) {
       });
 
       if (premiumCount > 0 && !premiumUnlocked) {
+        const bookingUrl = (typeof window.__cpaBookingUrl !== 'undefined' && window.__cpaBookingUrl) ? window.__cpaBookingUrl : '/for-cpas';
         aiResponse += '<div class="cpa-soft-prompt"><div class="cpa-soft-prompt__text">Unlock ' + premiumCount + ' CPA-recommended strategies to see your full savings potential</div>';
-        aiResponse += '<div class="cpa-soft-prompt__actions"><button class="cpa-soft-prompt__btn-primary" data-action="unlock-premium">Unlock All Strategies</button>';
-        aiResponse += '<button class="cpa-soft-prompt__btn-secondary" data-action="generate_report">Generate Report First</button></div></div>';
+        aiResponse += '<div class="cpa-soft-prompt__actions"><a class="cpa-soft-prompt__btn-primary" href="/upgrade">Unlock All Strategies →</a>';
+        aiResponse += '<a class="cpa-soft-prompt__btn-secondary" href="' + bookingUrl + '">Talk to a CPA</a></div></div>';
       }
     }
 

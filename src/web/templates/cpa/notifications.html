@@ -1,0 +1,132 @@
+{% extends 'cpa/base.html' %}
+
+{% block title %}Notifications — CPA Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.5rem; font-weight: 700; color: #0B1D3A; margin: 0 0 0.25rem;">Notifications</h1>
+    <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Stay up to date on leads, deadlines, and messages.</p>
+  </div>
+  <button id="markAllReadBtn"
+          onclick="markAllRead()"
+          style="background: #0B1D3A; color: #fff; border: none; padding: 0.6rem 1.25rem; border-radius: 6px; font-weight: 600; font-size: 0.875rem; cursor: pointer;">
+    Mark All as Read
+  </button>
+</div>
+
+<!-- Notification List -->
+<div id="notifList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+  <!-- Loading skeleton -->
+  <div id="notifLoading" style="padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem;">
+    Loading notifications…
+  </div>
+</div>
+
+<!-- Empty State (hidden until confirmed empty) -->
+<div id="notifEmpty" style="display: none; text-align: center; padding: 4rem 2rem;">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin: 0 auto 1rem; display: block;">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+  </svg>
+  <p style="font-size: 1rem; font-weight: 600; color: #334155; margin: 0 0 0.5rem;">No notifications yet</p>
+  <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">New leads, messages, and deadline alerts will appear here.</p>
+</div>
+
+<style>
+.notif-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: box-shadow 0.15s;
+}
+.notif-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.notif-item.unread { border-left: 3px solid #C9A84C; background: #fefce8; }
+.notif-item.unread:hover { box-shadow: 0 2px 8px rgba(201,168,76,0.15); }
+.notif-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 1rem;
+}
+.notif-item.unread .notif-icon { background: rgba(201,168,76,0.12); }
+.notif-title { font-size: 0.9rem; font-weight: 600; color: #1e293b; margin: 0 0 0.2rem; }
+.notif-body { font-size: 0.82rem; color: #64748b; margin: 0 0 0.25rem; line-height: 1.5; }
+.notif-time { font-size: 0.75rem; color: #94a3b8; }
+.notif-unread-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #C9A84C; flex-shrink: 0; margin-top: 6px;
+}
+</style>
+
+<script>
+const ICON_MAP = {
+  lead:    '🎯',
+  message: '💬',
+  deadline:'⏰',
+  system:  '⚙️',
+  payment: '💳',
+  default: '🔔',
+};
+
+function renderNotifications(items) {
+  const list = document.getElementById('notifList');
+  document.getElementById('notifLoading').remove();
+
+  if (!items || items.length === 0) {
+    document.getElementById('notifEmpty').style.display = 'block';
+    return;
+  }
+
+  items.forEach(n => {
+    const isUnread = !n.read;
+    const icon = ICON_MAP[n.type] || ICON_MAP.default;
+    const time = n.created_at ? new Date(n.created_at).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    }) : '';
+
+    const item = document.createElement('div');
+    item.className = 'notif-item' + (isUnread ? ' unread' : '');
+    item.dataset.id = n.id || '';
+    item.innerHTML = `
+      <div class="notif-icon">${icon}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="notif-title">${n.title || n.message || 'Notification'}</div>
+        ${n.body ? `<div class="notif-body">${n.body}</div>` : ''}
+        <div class="notif-time">${time}</div>
+      </div>
+      ${isUnread ? '<div class="notif-unread-dot"></div>' : ''}
+    `;
+    list.appendChild(item);
+  });
+}
+
+async function markAllRead() {
+  try {
+    await fetch('/api/cpa/notifications/read-all', { method: 'POST', credentials: 'same-origin' });
+    document.querySelectorAll('.notif-item.unread').forEach(el => {
+      el.classList.remove('unread');
+      const dot = el.querySelector('.notif-unread-dot');
+      if (dot) dot.remove();
+    });
+    document.getElementById('markAllReadBtn').textContent = 'All Read ✓';
+  } catch (e) {
+    console.warn('Could not mark all as read:', e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const resp = await fetch('/api/cpa/notifications', { credentials: 'same-origin' });
+    if (!resp.ok) throw new Error('API error');
+    const data = await resp.json();
+    const items = data.notifications || data.items || data || [];
+    renderNotifications(items);
+  } catch (e) {
+    document.getElementById('notifLoading').textContent = 'Could not load notifications. Please refresh.';
+  }
+});
+</script>
+{% endblock %}

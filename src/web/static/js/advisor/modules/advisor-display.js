@@ -350,18 +350,18 @@ export const SmartNudgeSystem = {
   showIdleNudge() {
     const nudges = [
       {
-        icon: '\uD83D\uDCA1',
-        title: 'Need help?',
-        message: 'I noticed you paused. Would you like me to explain something differently?',
-        primaryAction: { label: 'Yes, help me', value: 'help_me' },
-        secondaryAction: { label: 'I\'m fine', value: 'dismiss' }
+        icon: '⏳',
+        title: 'Your strategy is almost ready.',
+        message: 'Answer the next question to complete your tax analysis and see your savings.',
+        primaryAction: { label: 'Continue my analysis →', value: 'continue' },
+        secondaryAction: { label: 'I\'ll come back', value: 'dismiss' }
       },
       {
-        icon: '\uD83E\uDD14',
-        title: 'Stuck on something?',
-        message: 'Feel free to ask any question, or I can guide you step by step.',
-        primaryAction: { label: 'Guide me', value: 'guide_me' },
-        secondaryAction: { label: 'Just thinking', value: 'dismiss' }
+        icon: '💰',
+        title: 'Don\'t leave savings on the table.',
+        message: 'Your personalized tax report is a few questions away. Let\'s finish it.',
+        primaryAction: { label: 'Keep going', value: 'continue' },
+        secondaryAction: { label: 'Not right now', value: 'dismiss' }
       }
     ];
 
@@ -692,7 +692,7 @@ export function renderStrategyCard(strategy, index) {
   }
 
   if (isLocked) {
-    html += '<div class="lock-overlay"><button class="lock-overlay__btn" data-action="unlock-premium">Unlock Full Analysis</button></div>';
+    html += '<div class="lock-overlay"><a class="lock-overlay__btn" href="/upgrade">Unlock Full Analysis →</a></div>';
   }
 
   html += '</div>';
@@ -1130,6 +1130,8 @@ export const PHASE_MAPPING = {
 export function updateProgress(percentage, missingFields, completionHint) {
   const progressFill = document.getElementById('progressFill');
   const progressText = document.getElementById('progressText');
+  const progressBar = document.getElementById('advisorProgressBar');
+  if (progressBar && percentage > 0) progressBar.style.display = 'block';
   if (progressFill) progressFill.style.width = percentage + '%';
   if (progressText) progressText.textContent = `${Math.round(percentage)}% Complete`;
 

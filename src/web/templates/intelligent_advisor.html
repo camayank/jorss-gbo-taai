@@ -1058,8 +1058,28 @@ body.dark-mode .freeform-hints { background: var(--stone-100); }
     <div class="loading-subtext" id="loadingSubtext">This may take a few moments</div>
   </div>
 
+  <!-- Analysis Progress Bar -->
+  <div id="advisorProgressBar" style="display:none; background:var(--white,#fff); border-bottom:1px solid var(--stone-100,#f1f0ec); padding:8px 20px;">
+    <div style="max-width:820px; margin:0 auto; display:flex; align-items:center; gap:12px;">
+      <span id="progressText" style="font-size:0.75rem; font-weight:600; color:var(--amber,#c4975a); white-space:nowrap; min-width:110px;">0% Complete</span>
+      <div style="flex:1; height:4px; background:var(--stone-100,#f1f0ec); border-radius:2px; overflow:hidden;">
+        <div id="progressFill" style="height:100%; width:0%; background:var(--amber,#c4975a); border-radius:2px; transition:width 0.5s ease;"></div>
+      </div>
+    </div>
+  </div>
+
   <main class="advisor-main" id="main-content">
     <div id="messages" role="log" aria-live="polite" aria-label="Tax advisor conversation">
+
+      <!-- Session Resume Banner — shown by JS if prior session cookie exists -->
+      <div id="sessionResumeBanner" style="display:none; margin:16px 0; padding:16px 20px; background:var(--amber-bg,#fdf8f0); border:1px solid var(--amber,#c4975a); border-radius:10px;">
+        <p style="margin:0 0 4px; font-weight:700; color:var(--charcoal,#1a1a18); font-size:0.95rem;">Welcome back. Your analysis is in progress.</p>
+        <p style="margin:0 0 12px; font-size:0.85rem; color:var(--stone-500,#78716c);">We saved your progress. Pick up where you left off.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button onclick="restoreSession()" style="background:var(--amber,#c4975a); color:#fff; border:none; padding:9px 20px; border-radius:6px; font-weight:700; font-size:0.9rem; cursor:pointer;">Continue Where You Left Off →</button>
+          <button onclick="clearConversation(); document.getElementById('sessionResumeBanner').style.display='none';" style="background:none; color:var(--stone-500,#78716c); border:none; padding:9px 0; font-size:0.85rem; cursor:pointer; text-decoration:underline;">Start Fresh</button>
+        </div>
+      </div>
 
       <div class="message ai">
         <div class="avatar ai">

@@ -242,8 +242,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 11. Initialize session (backend is source of truth — no client-side restore banner)
+  // 11. Initialize session; show resume banner if prior session cookie exists
   if (checkAdvisorConsent()) {
+    const priorSession = sessionStorage.getItem('tax_session_id')
+      || document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('tax_session_id='))?.split('=')[1];
+    const resumeBanner = document.getElementById('sessionResumeBanner');
+    if (priorSession && resumeBanner) {
+      resumeBanner.style.display = 'block';
+    }
     initializeSession();
     startAutoSave();
   }

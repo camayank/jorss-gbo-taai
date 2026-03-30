@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact — AI Tax Advisor</title>
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <style>
+    body { font-family: 'DM Sans', sans-serif;
+           background: #f8fafc; margin: 0; }
+    .nav { background: #0B1D3A; height: 52px;
+           display: flex; align-items: center;
+           justify-content: space-between; padding: 0 1.5rem; }
+    .nav a { color: rgba(255,255,255,0.75); text-decoration: none;
+             font-size: 0.88rem; }
+    .nav-brand { color: white; font-weight: 700; font-size: 1rem; }
+    .container { max-width: 640px; margin: 3rem auto;
+                 padding: 0 1.5rem; }
+    h1 { color: #0B1D3A; font-size: 2rem;
+         font-family: 'Playfair Display', serif; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 2rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    label { display: block; font-weight: 600; color: #0B1D3A;
+            margin-bottom: 0.4rem; font-size: 0.9rem; }
+    input, select, textarea {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1px solid #cbd5e1; border-radius: 8px;
+      font-family: inherit; font-size: 0.95rem;
+      box-sizing: border-box; background: white;
+      transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: #C9A84C;
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    textarea { min-height: 120px; resize: vertical; }
+    .btn-submit {
+      width: 100%; padding: 0.9rem;
+      background: #C9A84C; color: #0B1D3A;
+      border: none; border-radius: 8px;
+      font-weight: 700; font-size: 1rem;
+      cursor: pointer; margin-top: 0.5rem; }
+    .btn-submit:hover { background: #b8973d; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr;
+             gap: 1rem; margin-top: 3rem; }
+    .card { background: white; border: 1px solid #e2e8f0;
+            border-radius: 12px; padding: 1.25rem;
+            text-decoration: none; color: inherit; }
+    .card:hover { border-color: #C9A84C; }
+    .card-title { font-weight: 700; color: #0B1D3A;
+                  margin-bottom: 0.25rem; }
+    .card-sub { font-size: 0.85rem; color: #64748b; }
+    .success { background: #f0fdf4; border: 1px solid #86efac;
+               border-radius: 8px; padding: 1rem;
+               color: #166534; display: none; margin-top: 1rem; }
+    @media(max-width:480px){ .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/landing">← Home</a>
+  <span class="nav-brand">AI Tax Advisor</span>
+  <a href="/for-cpas">For CPAs</a>
+</nav>
+
+<div class="container">
+  <h1>Get in Touch</h1>
+  <p class="subtitle">
+    Questions about your taxes, the platform, or working with a CPA?
+    We'll get back to you within one business day.
+  </p>
+
+  <form id="contact-form">
+    <div class="form-group">
+      <label for="name">Your Name</label>
+      <input type="text" id="name" name="name"
+             placeholder="Jane Smith" required>
+    </div>
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email"
+             placeholder="jane@example.com" required>
+    </div>
+    <div class="form-group">
+      <label for="subject">Subject</label>
+      <select id="subject" name="subject">
+        <option value="general">General Question</option>
+        <option value="cpa">CPA / Partnership Inquiry</option>
+        <option value="support">Technical Support</option>
+        <option value="billing">Billing</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="message">Message</label>
+      <textarea id="message" name="message"
+                placeholder="Tell us how we can help..."
+                required></textarea>
+    </div>
+    <button type="submit" class="btn-submit">Send Message</button>
+    <div class="success" id="success-msg">
+      ✓ Message sent! We'll be in touch within one business day.
+    </div>
+  </form>
+
+  <div class="cards">
+    <a href="/for-cpas" class="card">
+      <div class="card-title">For CPAs</div>
+      <div class="card-sub">
+        Learn how to offer AI Tax Advisor to your clients
+      </div>
+    </a>
+    <a href="/lead-magnet" class="card">
+      <div class="card-title">For Taxpayers</div>
+      <div class="card-sub">
+        Get your free Tax Health Score now
+      </div>
+    </a>
+  </div>
+</div>
+
+<script>
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('.btn-submit');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  const body = {
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    subject: document.getElementById('subject').value,
+    message: document.getElementById('message').value,
+  };
+  try {
+    await fetch('/api/core/contact', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    }).catch(() => {});
+    document.getElementById('success-msg').style.display = 'block';
+    e.target.reset();
+    btn.textContent = '✓ Sent';
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
+});
+</script>
+
+</body>
+</html>

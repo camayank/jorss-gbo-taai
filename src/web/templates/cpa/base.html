@@ -241,7 +241,7 @@
                         <input type="text" placeholder="Search leads..." id="globalSearch" aria-label="Search leads">
                     </div>
 
-                    <button class="header-btn" title="Notifications" aria-label="Notifications">
+                    <button class="header-btn" title="Notifications" aria-label="Notifications" onclick="location.href='/cpa/notifications'">
                         {{ icon('bell') }}
                         {% if stats and stats.new_leads > 0 %}
                         <span class="notification-dot"></span>
