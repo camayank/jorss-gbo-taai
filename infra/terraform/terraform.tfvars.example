@@ -1,0 +1,6 @@
+aws_region    = "us-east-1"
+environment   = "staging"
+app_name      = "jorss-gbo"
+db_username   = "postgres"
+db_password   = "CHANGE-ME-use-ssm-in-production"
+container_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/jorss-gbo-staging-app:latest"
