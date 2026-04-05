@@ -1068,6 +1068,25 @@ async def cpa_analytics(
     except Exception as e:
         logger.warning(f"Could not build advisor drop-off funnel: {e}")
 
+    # Get audit-based analytics
+    audit_tax_savings = {"total_savings": 0, "by_client": [], "avg_savings": 0, "count": 0}
+    audit_return_metrics = {"total_returns": 0, "avg_processing_days": 0, "submitted_count": 0, "accepted_count": 0, "acceptance_rate": 0}
+    audit_lead_funnel = {"magnet_leads": 0, "assigned_clients": 0, "conversion_rate": 0}
+    audit_recommendations = {"total_recommendations": 0, "accepted_count": 0, "acceptance_rate": 0}
+
+    try:
+        from cpa_panel.services.pipeline_service import get_pipeline_service
+        service = get_pipeline_service()
+        tenant_id = get_tenant_id_from_user(current_user)
+
+        audit_tax_savings = service.get_tax_savings_metrics(tenant_id)
+        audit_return_metrics = service.get_return_processing_metrics(tenant_id)
+        audit_lead_funnel = service.get_lead_conversion_funnel_audit(tenant_id)
+        audit_recommendations = service.get_recommendation_acceptance_metrics(tenant_id)
+
+    except Exception as e:
+        logger.warning(f"Failed to get audit analytics: {e}")
+
     return templates.TemplateResponse(
         "cpa/analytics.html",
         {
@@ -1081,6 +1100,10 @@ async def cpa_analytics(
             "ai_practice_summary": ai_practice_summary,
             "recent_advisor_sessions": recent_advisor_sessions,
             "advisor_dropoff": advisor_dropoff,
+            "audit_tax_savings": audit_tax_savings,
+            "audit_return_metrics": audit_return_metrics,
+            "audit_lead_funnel": audit_lead_funnel,
+            "audit_recommendations": audit_recommendations,
             "active_page": "analytics",
         }
     )
