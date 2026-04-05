@@ -294,6 +294,61 @@
     </div>
 </div>
 
+<!-- Audit-Based Metrics Section -->
+<div style="margin-bottom: var(--space-8);">
+    <h3 style="margin-bottom: var(--space-6); font-weight: var(--font-semibold); font-size: 1.2rem;">Performance from Audit Data</h3>
+
+    <div class="metrics-grid">
+        <!-- Tax Savings Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-title">Total Tax Savings</span>
+                <div class="metric-icon">💰</div>
+            </div>
+            <div class="metric-value">${{ '{:,.0f}'.format(audit_tax_savings.total_savings or 0) }}</div>
+            <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+                {{ audit_tax_savings.count or 0 }} clients
+            </div>
+        </div>
+
+        <!-- Return Processing Time Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-title">Avg. Return Processing</span>
+                <div class="metric-icon">📋</div>
+            </div>
+            <div class="metric-value">{{ audit_return_metrics.avg_processing_days or 0 }} days</div>
+            <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+                {{ audit_return_metrics.acceptance_rate or 0 }}% acceptance rate
+            </div>
+        </div>
+
+        <!-- Lead to Client Conversion Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-title">Lead → Client Conversion</span>
+                <div class="metric-icon">📈</div>
+            </div>
+            <div class="metric-value">{{ audit_lead_funnel.conversion_rate or 0 }}%</div>
+            <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+                {{ audit_lead_funnel.assigned_clients or 0 }}/{{ audit_lead_funnel.magnet_leads or 0 }} leads
+            </div>
+        </div>
+
+        <!-- Recommendation Acceptance Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-title">Recommendations Accepted</span>
+                <div class="metric-icon">✓</div>
+            </div>
+            <div class="metric-value">{{ audit_recommendations.acceptance_rate or 0 }}%</div>
+            <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+                {{ audit_recommendations.accepted_count or 0 }}/{{ audit_recommendations.total_recommendations or 0 }}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Charts -->
 <div class="charts-grid">
     <!-- Lead Funnel -->
