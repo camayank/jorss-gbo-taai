@@ -1652,6 +1652,94 @@ class MFAPendingSetup(Base):
     )
 
 
+class AnalyticsEventRecord(Base):
+    """
+    Analytics Event Record - Append-only event log for CPA dashboard metrics.
+
+    Persists all journey events (profile complete, document processed, return submitted, etc.)
+    for analytics and reporting. Provides foundation for:
+    - CPA dashboard metrics (processing times, completion rates, etc.)
+    - Audit trails of client journey progression
+    - Future data warehouse/BI export (CDC to Snowflake/BigQuery)
+    """
+    __tablename__ = "analytics_events"
+
+    # Primary Key
+    event_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Multi-tenant and user context
+    tenant_id = Column(String(100), nullable=False, index=True, comment="Firm/CPA tenant")
+    user_id = Column(String(100), nullable=False, index=True, comment="Client user ID")
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Event classification (wide schema - one column per event type)
+    event_type = Column(String(100), nullable=False, index=True, comment="Type: AdvisorProfileComplete, DocumentProcessed, etc.")
+
+    # Core IDs referenced by event
+    session_id = Column(String(100), nullable=True, index=True, comment="Client session/conversation ID")
+    return_id = Column(String(100), nullable=True, index=True, comment="Tax return being prepared")
+    document_id = Column(String(100), nullable=True, comment="Document being processed")
+    scenario_id = Column(String(100), nullable=True, comment="What-if scenario ID")
+    report_id = Column(String(100), nullable=True, comment="Generated report ID")
+    lead_id = Column(String(100), nullable=True, comment="Lead/CPA pipeline stage")
+
+    # Event-specific fields (wide schema for flexibility)
+    # AdvisorProfileComplete
+    profile_completeness = Column(Numeric(5, 2), nullable=True, comment="Percentage complete 0-100")
+    extracted_forms = Column(String(500), nullable=True, comment="CSV of form types extracted")
+
+    # AdvisorMessageSent
+    message_text = Column(String(1000), nullable=True, comment="First 1000 chars of message")
+
+    # DocumentProcessed
+    document_type = Column(String(100), nullable=True, comment="Form type: W2, 1099, Schedule C, etc.")
+    fields_extracted = Column(Integer, nullable=True, comment="Number of fields extracted from doc")
+
+    # ReturnDraftSaved
+    return_completeness = Column(Numeric(5, 2), nullable=True, comment="Return completion percentage")
+
+    # ScenarioCreated
+    scenario_name = Column(String(200), nullable=True, comment="What-if scenario name")
+    scenario_savings = Column(Numeric(12, 2), nullable=True, comment="Estimated tax savings")
+
+    # ReviewCompleted
+    cpa_id = Column(String(100), nullable=True, comment="CPA performing review")
+    review_status = Column(String(50), nullable=True, comment="approved/rejected/requested_changes")
+    review_notes = Column(String(1000), nullable=True, comment="CPA review notes")
+
+    # ReportGenerated
+    report_type = Column(String(100), nullable=True, comment="advisory_report, tax_return_summary, etc.")
+    download_url = Column(String(500), nullable=True, comment="Report download link")
+
+    # LeadStateChanged
+    lead_previous_state = Column(String(100), nullable=True, comment="From state")
+    lead_new_state = Column(String(100), nullable=True, comment="To state")
+    lead_trigger = Column(String(50), nullable=True, comment="manual/score_threshold/time_based")
+
+    # Generic payload (fallback for extensibility)
+    event_payload = Column(JSONB, nullable=True, comment="Complete event data as JSON")
+
+    # Timing and audit
+    occurred_at = Column(DateTime, nullable=False, index=True, comment="When event occurred (event timestamp)")
+    received_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True, comment="When event was persisted")
+    processed_at = Column(DateTime, nullable=True, comment="When event was processed for analytics")
+
+    # Materialization state (for incremental refresh of views)
+    is_materialized = Column(Boolean, default=False, index=True, comment="Has event been included in analytics views")
+    materialized_at = Column(DateTime, nullable=True, comment="When event was added to materialized views")
+
+    # Audit trail
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    __table_args__ = (
+        Index('ix_analytics_tenant_user_time', 'tenant_id', 'user_id', 'received_at'),
+        Index('ix_analytics_event_type_time', 'event_type', 'received_at'),
+        Index('ix_analytics_return_id', 'return_id', 'received_at'),
+        Index('ix_analytics_session_id', 'session_id', 'received_at'),
+        Index('ix_analytics_materialized', 'is_materialized', 'received_at'),
+    )
+
+
 # =============================================================================
 # DATABASE UTILITY FUNCTIONS
 # =============================================================================

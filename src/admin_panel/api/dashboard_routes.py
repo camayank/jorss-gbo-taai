@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.rbac import get_current_user, get_current_firm, TenantContext
 from ..models.user import UserPermission
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 router = APIRouter(tags=["Dashboard"])
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class ActivityFeed(BaseModel):
 async def get_dashboard(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get firm admin dashboard overview.
@@ -299,7 +299,7 @@ async def get_dashboard(
 async def get_dashboard_alerts(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     unread_only: bool = Query(False, description="Show only unread alerts"),
     limit: int = Query(20, ge=1, le=100),
@@ -410,7 +410,7 @@ async def mark_alert_read(
     alert_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Mark an alert as read."""
     # Skip dynamic alerts (they don't persist)
@@ -439,7 +439,7 @@ async def mark_alert_read(
 async def get_activity_feed(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
     user_id: Optional[str] = Query(None, description="Filter by user"),
     limit: int = Query(20, ge=1, le=100),
@@ -521,7 +521,7 @@ async def get_activity_feed(
 async def get_stats_summary(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     period: str = Query("month", description="time period: day, week, month, quarter, year"),
 ):
     """

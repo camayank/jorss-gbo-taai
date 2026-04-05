@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class UpdatePaymentSettingsRequest(BaseModel):
 @router.get("/", response_model=PaymentSettings)
 async def get_payment_settings(
     cpa_id: str = Query(..., description="CPA ID"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get CPA payment settings.
@@ -153,7 +153,7 @@ async def get_payment_settings(
 async def update_payment_settings(
     cpa_id: str,
     request: UpdatePaymentSettingsRequest,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Update CPA payment settings.
@@ -214,7 +214,7 @@ async def update_payment_settings(
 @router.get("/stripe/connect-url")
 async def get_stripe_connect_url(
     cpa_id: str = Query(..., description="CPA ID"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get Stripe Connect OAuth URL for CPA onboarding.
@@ -281,7 +281,7 @@ async def stripe_connect_callback(
     state: Optional[str] = None,
     error: Optional[str] = None,
     error_description: Optional[str] = None,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Stripe Connect OAuth callback.
@@ -435,7 +435,7 @@ async def stripe_connect_callback(
 @router.post("/stripe/disconnect")
 async def disconnect_stripe(
     cpa_id: str,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Disconnect Stripe account from CPA profile.
@@ -475,7 +475,7 @@ async def disconnect_stripe(
 @router.get("/stripe/account-status")
 async def get_stripe_account_status(
     cpa_id: str,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get detailed Stripe account status.
@@ -539,7 +539,7 @@ class CreatePaymentIntentRequest(BaseModel):
 async def create_payment_intent(
     cpa_id: str,
     request: CreatePaymentIntentRequest,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Create a payment intent for client payment.
@@ -609,7 +609,7 @@ async def get_payment_history(
     cpa_id: str,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get payment history for CPA.
@@ -675,7 +675,7 @@ class CreateCheckoutRequest(BaseModel):
 async def create_checkout_session(
     cpa_id: str,
     request: CreateCheckoutRequest,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Create a Stripe Checkout session for client payment.
@@ -755,7 +755,7 @@ async def create_checkout_session(
 @router.post("/stripe/webhook")
 async def stripe_webhook(
     request: Request,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Stripe webhook endpoint for payment events.

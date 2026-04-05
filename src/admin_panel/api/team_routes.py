@@ -31,7 +31,7 @@ from ..auth.rbac import (
 )
 from ..models.user import UserRole, UserPermission
 from ..auth.password import hash_password
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 router = APIRouter(prefix="/team", tags=["Team Management"])
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class TeamMemberUpdate(BaseModel):
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
     job_title: Optional[str] = Field(None, max_length=100)
-    role: Optional[UserRole] = None
+    role: Optional[str] = None
     credentials: Optional[List[str]] = None
     license_state: Optional[str] = Field(None, max_length=2)
     license_number: Optional[str] = Field(None, max_length=50)
@@ -148,7 +148,7 @@ async def list_team_members(
     firm_id: str = Depends(get_current_firm),
     include_inactive: bool = Query(False),
     role: Optional[UserRole] = Query(None),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     List all team members in the firm.
@@ -228,7 +228,7 @@ async def add_team_member(
     member: TeamMemberCreate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Add a new team member to the firm.
@@ -359,7 +359,7 @@ async def get_team_member(
     user_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get details of a specific team member."""
     query = text("""
@@ -409,7 +409,7 @@ async def update_team_member(
     update: TeamMemberUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update a team member's details."""
     # Verify user belongs to firm
@@ -446,7 +446,7 @@ async def update_team_member(
         params["job_title"] = update.job_title
     if update.role is not None:
         updates.append("role = :role")
-        params["role"] = update.role.value
+        params["role"] = update.role.value if hasattr(update.role, 'value') else update.role
     if update.credentials is not None:
         updates.append("credentials = :credentials")
         params["credentials"] = json.dumps(update.credentials)
@@ -506,7 +506,7 @@ async def deactivate_team_member(
     user_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Deactivate a team member.
@@ -572,7 +572,7 @@ async def send_invitation(
     invitation: InvitationCreate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Send an invitation to join the firm.
@@ -673,7 +673,7 @@ async def list_invitations(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     status_filter: Optional[str] = Query(None, alias="status"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """List all invitations for the firm."""
     # Build query with optional status filter
@@ -729,7 +729,7 @@ async def revoke_invitation(
     invitation_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Revoke a pending invitation."""
     # Verify invitation exists and belongs to firm
@@ -774,7 +774,7 @@ async def resend_invitation(
     invitation_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Resend an invitation email and extend expiration."""
     # Verify invitation exists and belongs to firm
@@ -839,7 +839,7 @@ async def get_team_member_performance(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     period: str = Query("month", description="day, week, month, quarter, year"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get performance metrics for a team member.

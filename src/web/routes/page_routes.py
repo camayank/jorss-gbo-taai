@@ -842,9 +842,3 @@ def rental_depreciation_page(request: Request):
 def upgrade_redirect():
     """Redirect to CPA pricing page — used by locked strategy card CTAs."""
     return RedirectResponse(url="/for-cpas#pricing", status_code=302)
-
-
-@router.get("/pricing", include_in_schema=False)
-def pricing_redirect():
-    """Redirect to CPA pricing page."""
-    return RedirectResponse(url="/for-cpas#pricing", status_code=302)

@@ -25,6 +25,10 @@ matplotlib>=3.9.0,<4.0.0
 scikit-learn>=1.5.0,<2.0.0
 joblib>=1.4.0
 
+# Semantic search & embeddings
+sentence-transformers>=2.7.0,<3.0.0
+faiss-cpu>=1.8.0,<2.0.0
+
 # Web framework (for API)
 fastapi>=0.115.0,<1.0.0
 sentry-sdk[fastapi]>=2.0.0

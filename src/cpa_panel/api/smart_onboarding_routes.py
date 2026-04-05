@@ -19,9 +19,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from database.connection import get_async_session
+    from database.async_engine import get_db_session
 except ImportError:
     async def get_async_session():
         raise HTTPException(status_code=503, detail="Database session dependency unavailable")
+    get_db_session = get_async_session
 from ..services.smart_onboarding_service import (
     get_smart_onboarding_service,
     OnboardingStatus,
@@ -333,7 +335,7 @@ async def submit_answers(session_id: str, request: SubmitAnswersRequest):
 async def create_client(
     session_id: str,
     request: CreateClientRequest,
-    db_session: AsyncSession = Depends(get_async_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ):
     """
     Create a client from the onboarding session.

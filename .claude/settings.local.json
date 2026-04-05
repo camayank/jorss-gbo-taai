@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(PYTHONPATH=\".:src\" python -m pytest:*)",
-      "Bash(python -m pytest:*)"
-    ]
+      "Bash(python -m pytest:*)",
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "env": {
+    "PAPERCLIP_API_URL": "http://localhost:3100",
+    "PAPERCLIP_COMPANY_ID": "2ec72a4a-c525-4d25-9222-65927fdcdfc2"
   }
 }

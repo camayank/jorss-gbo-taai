@@ -22,6 +22,7 @@ from .models import (
     CreditRecord,
     CarryforwardLedgerRecord,
     CarryforwardType,
+    AnalyticsEventRecord,
     DependentRecord,
     StateReturnRecord,
     AuditLogRecord,

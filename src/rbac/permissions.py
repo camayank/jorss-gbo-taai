@@ -478,6 +478,7 @@ ROLE_PERMISSIONS: dict[Role, FrozenSet[Permission]] = {
         Permission.TEAM_MANAGE,
         Permission.TEAM_REMOVE,
         # Client
+        Permission.CLIENT_VIEW_OWN,
         Permission.CLIENT_VIEW_ALL,
         Permission.CLIENT_CREATE,
         Permission.CLIENT_EDIT,

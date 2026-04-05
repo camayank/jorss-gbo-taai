@@ -29,7 +29,7 @@ from ..auth.rbac import (
     require_permission,
 )
 from ..models.user import UserPermission
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 
 router = APIRouter(tags=["Workflow Management"])
@@ -128,7 +128,7 @@ class DeadlineItem(BaseModel):
 async def get_workflow_overview(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get workflow pipeline overview."""
     # Get counts by stage
@@ -212,7 +212,7 @@ async def get_workflow_queue(
     sort_order: str = Query("asc", description="Sort order"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get workflow queue with filtering.
@@ -305,7 +305,7 @@ async def get_workflow_item_details(
     return_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get detailed workflow status for a return."""
     query = text("""
@@ -371,7 +371,7 @@ async def advance_workflow_stage(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     notes: Optional[str] = Query(None, description="Notes for advancement"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Advance a return to the next workflow stage."""
     # Define stage progression
@@ -446,7 +446,7 @@ async def return_to_previous_stage(
     reason: str = Query(..., description="Reason for returning"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Return a return to a previous stage."""
     # Validate stage
@@ -520,7 +520,7 @@ async def assign_return(
     user_id: str = Query(..., description="User ID to assign to"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Assign or reassign a return to a team member."""
     # Verify target user belongs to firm
@@ -563,7 +563,7 @@ async def update_return_priority(
     priority: str = Query(..., description="New priority level"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update return priority."""
     # Validate priority
@@ -610,7 +610,7 @@ async def update_return_priority(
 async def list_tasks(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     status_filter: Optional[str] = Query(None, alias="status"),
     assigned_to: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
@@ -697,7 +697,7 @@ async def create_task(
     title: str = Query(..., max_length=200),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     description: Optional[str] = Query(None),
     priority: str = Query("normal"),
     assigned_to: Optional[str] = Query(None),
@@ -769,7 +769,7 @@ async def update_task(
     task_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     status_update: Optional[str] = Query(None, alias="status"),
     priority: Optional[str] = Query(None),
     assigned_to: Optional[str] = Query(None),
@@ -854,7 +854,7 @@ async def delete_task(
     task_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Delete a task."""
     # Soft delete by marking as cancelled
@@ -888,7 +888,7 @@ async def delete_task(
 async def get_deadlines(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     days_ahead: int = Query(30, ge=1, le=365, description="Days to look ahead"),
     deadline_type: Optional[str] = Query(None, description="Filter by type"),
     assigned_to: Optional[str] = Query(None),
@@ -978,7 +978,7 @@ async def get_deadlines(
 async def get_deadline_calendar(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     year: int = Query(default=None, description="Year"),
     month: int = Query(default=None, ge=1, le=12, description="Month"),
 ):
@@ -1080,7 +1080,7 @@ async def get_deadline_calendar(
 async def get_review_queue(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     reviewer_id: Optional[str] = Query(None, description="Filter by reviewer"),
     priority: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
@@ -1167,7 +1167,7 @@ async def claim_for_review(
     return_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Claim a return for review."""
     now = datetime.now(timezone.utc)
@@ -1229,7 +1229,7 @@ async def complete_review(
     return_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     approved: bool = Query(..., description="Whether review is approved"),
     notes: Optional[str] = Query(None),
     return_to_preparer: bool = Query(False),

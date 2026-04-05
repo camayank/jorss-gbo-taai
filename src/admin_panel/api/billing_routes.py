@@ -31,7 +31,7 @@ from ..auth.rbac import (
     require_permission,
 )
 from ..models.user import UserPermission
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 from calculator.decimal_math import money, to_decimal
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
@@ -348,7 +348,7 @@ class BillingPortalRequest(BaseModel):
 async def get_current_subscription(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get current subscription details.
@@ -437,7 +437,7 @@ async def get_usage_metrics(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     period: str = Query("current", description="current, previous, or YYYY-MM"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get usage metrics for the billing period.
@@ -599,7 +599,7 @@ async def get_usage_metrics(
 @router.get("/plans", response_model=List[SubscriptionPlan])
 async def get_available_plans(
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get all available subscription plans.
@@ -653,7 +653,7 @@ async def create_checkout_session(
     payload: CheckoutSessionRequest,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Create Stripe Checkout session for a subscription plan purchase."""
     if not _stripe_enabled():
@@ -763,7 +763,7 @@ async def create_billing_portal_session(
     payload: BillingPortalRequest,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Create Stripe billing portal session for self-serve plan management."""
     if not _stripe_enabled():
@@ -825,7 +825,7 @@ async def preview_upgrade(
     target_plan_code: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Preview an upgrade to a different plan.
@@ -979,7 +979,7 @@ async def upgrade_plan(
     billing_cycle: str = Query("monthly", description="monthly or annual"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Upgrade to a higher plan.
@@ -1137,7 +1137,7 @@ async def downgrade_plan(
     target_plan_code: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Downgrade to a lower plan.
@@ -1277,7 +1277,7 @@ async def list_invoices(
     firm_id: str = Depends(get_current_firm),
     limit: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get invoice history.
@@ -1343,7 +1343,7 @@ async def get_invoice(
     invoice_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get details of a specific invoice."""
     query = text("""
@@ -1395,7 +1395,7 @@ async def update_payment_method(
     payment_method_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Update payment method.
@@ -1519,7 +1519,7 @@ async def update_payment_method(
 @router.post("/webhook/stripe")
 async def stripe_webhook(
     request: Request,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Inbound Stripe webhook endpoint.

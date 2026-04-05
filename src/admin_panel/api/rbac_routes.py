@@ -101,16 +101,31 @@ class RoleResponse(BaseModel):
 
 class CreateRoleRequest(BaseModel):
     """Request to create a custom role."""
-    code: str = Field(..., min_length=2, max_length=100, pattern=r"^[a-z][a-z0-9_]*$")
+    code: Optional[str] = Field(None, min_length=2, max_length=100)
     name: str = Field(..., min_length=2, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
-    permission_codes: List[str] = Field(..., min_items=1)
+    permission_codes: Optional[List[str]] = Field(None)
+    permissions: Optional[List[str]] = Field(None)  # alias for permission_codes
     parent_role_code: Optional[str] = None
+
+    def get_permission_codes(self) -> List[str]:
+        return self.permission_codes or self.permissions or []
+
+    def get_code(self) -> str:
+        if self.code:
+            return self.code
+        # Generate code from name
+        import re
+        return re.sub(r'[^a-z0-9_]', '_', self.name.lower().strip())[:100]
 
 
 class UpdateRolePermissionsRequest(BaseModel):
     """Request to update role permissions."""
-    permission_codes: List[str] = Field(..., min_items=0)
+    permission_codes: Optional[List[str]] = Field(None)
+    permissions: Optional[List[str]] = Field(None)  # alias for permission_codes
+
+    def get_permission_codes(self) -> List[str]:
+        return self.permission_codes or self.permissions or []
 
 
 class UserRoleAssignmentResponse(BaseModel):
@@ -125,7 +140,8 @@ class UserRoleAssignmentResponse(BaseModel):
 
 class AssignRoleRequest(BaseModel):
     """Request to assign a role to a user."""
-    role_id: str
+    role_id: Optional[str] = None
+    roles: Optional[List[str]] = None  # list of role codes/ids
     is_primary: bool = False
     expires_at: Optional[datetime] = None
     notes: Optional[str] = None
@@ -304,10 +320,10 @@ async def create_role(
         role_service = get_role_service(db)
 
         result = await role_service.create_custom_role(
-            code=request.code,
+            code=request.get_code(),
             name=request.name,
             description=request.description,
-            permission_codes=request.permission_codes,
+            permission_codes=request.get_permission_codes(),
             firm_id=ctx.firm_id,
             subscription_tier=ctx.subscription_tier,
             created_by=ctx.user_id,
@@ -351,7 +367,7 @@ async def create_role(
 
 @router.get("/roles/{role_id}", response_model=RoleResponse)
 async def get_role(
-    role_id: UUID,
+    role_id: str,
     ctx: RBACContext = Depends(get_rbac_context),
 ):
     """Get role details by ID."""

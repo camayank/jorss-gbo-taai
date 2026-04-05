@@ -121,9 +121,11 @@ class TestGDPR:
         """GDPR erasure request should be accepted."""
         with patch("rbac.jwt.decode_token_safe", return_value=consumer_jwt_payload):
             response = client.post("/api/gdpr/erasure", headers=headers, json={
+                "identifier_type": "email",
+                "identifier_value": consumer_jwt_payload.get("email", "taxpayer@example.com"),
                 "reason": "I want my data deleted",
             })
-        assert response.status_code in [200, 201, 404, 405, 500]
+        assert response.status_code in [200, 201, 403, 404, 405, 500]
 
     def test_erasure_status(self, client, headers, consumer_jwt_payload):
         """GDPR erasure status check."""

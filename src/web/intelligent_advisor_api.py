@@ -24,10 +24,13 @@ from enum import Enum
 from uuid import UUID
 import asyncio
 import functools
+import json
 import logging
 import os
 import re
 import time
+
+from src.rules.rule_engine import get_rule_engine, RuleContext, RuleSeverity
 
 _raw_logger = logging.getLogger(__name__)
 
@@ -210,6 +213,71 @@ def _build_memory_context(profile: dict) -> str:
         return ""
     parts = [f"{k.replace('_', ' ')}={v}" for k, v in facts.items()]
     return "Known facts about this taxpayer: " + ", ".join(parts)
+
+
+def _build_rule_violations_context(profile: dict) -> str:
+    """Build rule violations JSON to inject into system prompt as context injection."""
+    try:
+        # Create RuleContext from profile
+        filing_status_map = {
+            "single": "single",
+            "married_filing_jointly": "married_filing_jointly",
+            "married_filing_separately": "married_filing_separately",
+            "head_of_household": "head_of_household",
+            "qualifying_widow": "qualifying_widow",
+        }
+        filing_status = filing_status_map.get(profile.get("filing_status", "single"), "single")
+
+        context = RuleContext(
+            tax_year=2025,
+            filing_status=filing_status,
+            adjusted_gross_income=profile.get("total_income", 0),
+            taxable_income=profile.get("total_income", 0),  # Will be adjusted for deductions
+            earned_income=profile.get("business_income", 0) + profile.get("wages", 0),
+            age=profile.get("age", 0),
+            is_blind=profile.get("is_blind", False),
+            num_dependents=profile.get("dependents", 0),
+            wages=profile.get("wages", 0),
+            self_employment_income=profile.get("business_income", 0),
+            investment_income=profile.get("investment_income", 0),
+            capital_gains=profile.get("capital_gains", 0),
+            dividend_income=profile.get("dividend_income", 0),
+            itemized_deductions=profile.get("mortgage_interest", 0) + profile.get("charitable_donations", 0),
+            retirement_contributions=profile.get("retirement_contributions", 0),
+            hsa_contributions=profile.get("hsa_contributions", 0),
+            state=profile.get("state", None),
+        )
+
+        # Evaluate rules to get violations
+        rule_engine = get_rule_engine(tax_year=2025)
+        rule_results = rule_engine.evaluate_all(context)
+
+        # Filter to only non-passing rules (violations) that have meaningful severity
+        violations = [
+            result for result in rule_results
+            if not result.passed and result.severity in (RuleSeverity.WARNING, RuleSeverity.ERROR, RuleSeverity.CRITICAL)
+        ]
+
+        if not violations:
+            return ""
+
+        # Serialize violations to JSON format
+        violations_json = [
+            {
+                "rule": result.rule_name,
+                "severity": result.severity.value,
+                "message": result.message,
+                "recommendation": result.recommendation,
+                "irs_reference": result.irs_reference,
+            }
+            for result in violations[:10]  # Limit to 10 most important violations
+        ]
+
+        return f"APPLICABLE TAX RULES & VIOLATIONS:\n{json.dumps(violations_json, indent=2)}"
+
+    except Exception as e:
+        logger.warning(f"Failed to build rule violations context: {e}")
+        return ""
 
 
 def _get_next_question(profile: dict, session: dict = None) -> tuple:
@@ -9858,6 +9926,7 @@ async def chat_stream(request: ChatRequest):
             session = await chat_engine.get_or_create_session(request.session_id)
             profile = session.get("profile", {})
             memory_ctx = _build_memory_context(profile)
+            violations_ctx = _build_rule_violations_context(profile)
 
             filing_status = profile.get("filing_status", "unknown").replace("_", " ")
             income_type = (profile.get("income_type") or "mixed income").replace("_", " ")
@@ -9868,13 +9937,15 @@ async def chat_stream(request: ChatRequest):
                 for s in strategies_list[:3]
             ) if strategies_list else "  (none detected yet)"
 
+            violations_section = f"\n\n{violations_ctx}" if violations_ctx else ""
+
             system_prompt = f"""ROLE: You are a senior tax strategist with 20+ years of experience advising {filing_status} taxpayers with {income_type} income in {state}. You speak directly and concisely — like a trusted expert in a private meeting, not a disclaimer machine.
 
 TAXPAYER CONTEXT:
 {memory_ctx}
 
 TOP STRATEGIES IDENTIFIED:
-{top_3_text}
+{top_3_text}{violations_section}
 
 RULES:
 1. Keep your response under 180 words — every word must earn its place.

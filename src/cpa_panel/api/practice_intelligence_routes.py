@@ -27,9 +27,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from database.connection import get_async_session
+    from database.async_engine import get_db_session
 except ImportError:
     async def get_async_session():
         raise HTTPException(status_code=503, detail="Database session dependency unavailable")
+    get_db_session = get_async_session
 from ..practice_intelligence import (
     PracticeIntelligenceService,
     get_intelligence_service,
@@ -143,7 +145,7 @@ router = APIRouter(prefix="/intelligence", tags=["practice-intelligence"])
 @router.get("/metrics")
 async def get_portfolio_metrics(
     request: Request,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Get portfolio metrics for the tenant.
@@ -233,7 +235,7 @@ async def calculate_portfolio_metrics(
 @router.get("/advisory-mix")
 async def get_advisory_mix(
     request: Request,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Metric 1: Get advisory vs compliance mix.
@@ -259,7 +261,7 @@ async def get_advisory_mix(
 @router.get("/complexity-distribution")
 async def get_complexity_distribution(
     request: Request,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Metric 2: Get complexity tier distribution.
@@ -289,7 +291,7 @@ async def get_complexity_distribution(
 @router.get("/yoy-surface")
 async def get_yoy_surface(
     request: Request,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     current_year: Optional[int] = None,
     prior_year: Optional[int] = None,
 ) -> Dict[str, Any]:

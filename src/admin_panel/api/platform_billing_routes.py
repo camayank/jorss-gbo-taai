@@ -22,7 +22,7 @@ from ..services.platform_billing_config import (
     get_platform_billing_config,
     PaymentMethod,
 )
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ async def get_subscription_tiers(
 @require_platform_admin
 async def get_revenue_metrics(
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get platform revenue metrics.
@@ -271,7 +271,7 @@ async def calculate_platform_fee(
 @require_platform_admin
 async def get_pending_payments(
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     limit: int = Query(50, ge=1, le=200),
 ):
     """
@@ -339,7 +339,7 @@ async def record_manual_payment(
     reference: Optional[str] = None,
     notes: Optional[str] = None,
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Record a manual payment (bank transfer, check, etc.).
@@ -438,7 +438,7 @@ async def record_manual_payment(
 @require_platform_admin
 async def get_cpa_stripe_accounts(
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     connected_only: bool = Query(False, description="Only show CPAs with connected Stripe"),
     limit: int = Query(50, ge=1, le=200),
 ):

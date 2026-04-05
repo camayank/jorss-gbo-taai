@@ -25,10 +25,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from database.connection import get_async_session
+    from database.async_engine import get_db_session
 except ImportError:
     async def _mock_session():
         yield None
     get_async_session = _mock_session
+    get_db_session = _mock_session
 
 import logging
 
@@ -63,7 +65,7 @@ class ClientLoginResponse(BaseModel):
 @router.post("/login", response_model=ClientLoginResponse)
 async def client_login(
     request: ClientLoginRequest,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Client login via magic link.
@@ -142,7 +144,7 @@ async def client_login(
 @router.post("/verify-token")
 async def verify_client_token(
     token: str = Query(...),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Verify a client token is valid.
@@ -187,7 +189,7 @@ class ClientContext(BaseModel):
 
 async def get_current_client(
     authorization: Optional[str] = Header(None),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ) -> ClientContext:
     """
     Get current authenticated client from token.
@@ -356,7 +358,7 @@ class DashboardResponse(BaseModel):
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_client_dashboard(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Get all dashboard data for the authenticated client.
@@ -610,7 +612,7 @@ async def get_client_dashboard(
 @router.get("/returns", response_model=List[ReturnInfo])
 async def get_client_returns(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get all tax returns for the client."""
     if not client.firm_id:
@@ -655,7 +657,7 @@ async def get_client_returns(
 async def get_return_details(
     return_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get detailed information about a specific return."""
     if not client.firm_id:
@@ -714,7 +716,7 @@ async def get_return_details(
 async def download_return(
     return_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get download URL for a filed return."""
     if not client.firm_id:
@@ -753,7 +755,7 @@ async def download_return(
 @router.get("/documents/requests", response_model=List[DocumentRequest])
 async def get_document_requests(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get all document requests for the client."""
     if not client.firm_id:
@@ -791,7 +793,7 @@ async def get_document_requests(
 @router.get("/documents/uploaded", response_model=List[UploadedDocument])
 async def get_uploaded_documents(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get all documents uploaded by the client."""
     if not client.firm_id:
@@ -838,7 +840,7 @@ async def upload_document(
     request_id: Optional[str] = None,
     doc_type: Optional[str] = None,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Upload a document.
@@ -943,7 +945,7 @@ async def get_messages(
     client: ClientContext = Depends(get_current_client),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get messages between client and CPA."""
     query = text("""
@@ -990,7 +992,7 @@ class SendMessageRequest(BaseModel):
 async def send_message(
     request: SendMessageRequest,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Send a message to the CPA."""
     msg_id = str(uuid4())
@@ -1064,7 +1066,7 @@ async def send_message(
 @router.post("/messages/read")
 async def mark_messages_read(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Mark all messages as read."""
     now = datetime.now(timezone.utc)
@@ -1103,7 +1105,7 @@ class BillingResponse(BaseModel):
 @router.get("/billing", response_model=BillingResponse)
 async def get_billing(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get billing summary and invoices."""
     invoices = []
@@ -1154,7 +1156,7 @@ async def get_billing(
 async def get_invoice_details(
     invoice_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get detailed invoice information (scoped to this client)."""
     query = text("""
@@ -1195,7 +1197,7 @@ async def get_invoice_details(
 async def pay_invoice(
     invoice_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Initiate payment for an invoice.
@@ -1233,7 +1235,7 @@ async def pay_invoice(
 async def get_receipt(
     invoice_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get download URL for a payment receipt."""
     # Verify invoice exists, is paid, and belongs to this client
@@ -1269,7 +1271,7 @@ async def get_receipt(
 @router.get("/profile")
 async def get_client_profile(
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get client profile information."""
     # Get full client info
@@ -1335,7 +1337,7 @@ class UpdateProfileRequest(BaseModel):
 async def update_client_profile(
     request: UpdateProfileRequest,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Update client profile information."""
     # Get current profile_data
@@ -1390,7 +1392,7 @@ async def update_client_profile(
 async def get_notifications(
     client: ClientContext = Depends(get_current_client),
     unread_only: bool = Query(False),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get notifications for the client."""
     query = text("""
@@ -1432,7 +1434,7 @@ async def get_notifications(
 async def mark_notification_read(
     notification_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Mark a notification as read."""
     try:
@@ -1460,7 +1462,7 @@ async def mark_notification_read(
 async def get_client_scenarios(
     return_id: str,
     client: ClientContext = Depends(get_current_client),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Get what-if scenarios for a client's return.

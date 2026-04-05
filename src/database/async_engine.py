@@ -236,6 +236,31 @@ async def get_async_session(
         await session.close()
 
 
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    FastAPI dependency that provides an async database session.
+
+    Use this with FastAPI's Depends():
+        session: AsyncSession = Depends(get_db_session)
+
+    For context manager usage, use get_async_session() instead.
+
+    Yields:
+        AsyncSession: Database session that auto-commits/rollbacks.
+    """
+    session_factory = get_async_session_factory()
+    session = session_factory()
+
+    try:
+        yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
+
+
 async def check_database_connection(
     settings: Optional[DatabaseSettings] = None
 ) -> bool:

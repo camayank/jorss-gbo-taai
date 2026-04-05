@@ -25,9 +25,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from database.connection import get_async_session
+    from database.async_engine import get_db_session
 except ImportError:
     async def get_async_session():
         raise HTTPException(status_code=503, detail="Database session dependency unavailable")
+    get_db_session = get_async_session
 from ..client_visibility import ClientVisibilityService, ClientVisibilityData
 from .common import format_success_response, format_error_response
 
@@ -177,7 +179,7 @@ async def get_client_status(
     request: Request,
     session_id: str,
     access_token: Optional[str] = None,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Get client visibility data for a session.
@@ -224,7 +226,7 @@ async def upload_document(
     file: UploadFile = File(...),
     document_type: Optional[str] = None,
     access_token: Optional[str] = None,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Upload a document for a session.
@@ -317,7 +319,7 @@ async def get_document_status(
     request: Request,
     session_id: str,
     access_token: Optional[str] = None,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Get document status for a session.
@@ -357,7 +359,7 @@ async def setup_client_visibility(
     request: Request,
     session_id: str,
     body: Dict[str, Any],
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Set up client visibility data for a session.
@@ -439,7 +441,7 @@ async def update_client_status(
     request: Request,
     session_id: str,
     body: Dict[str, Any],
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ) -> Dict[str, Any]:
     """
     Update the client-visible status for a session.

@@ -30,7 +30,7 @@ from ..auth.rbac import (
     require_firm_admin,
 )
 from ..models.user import UserPermission
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
 
@@ -124,7 +124,7 @@ async def list_clients(
     sort_order: str = Query("desc", description="Sort order: asc or desc"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     List clients for the firm.
@@ -207,7 +207,7 @@ async def get_client(
     client_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get detailed information about a client."""
     query = text("""
@@ -275,7 +275,7 @@ async def get_unassigned_clients(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     limit: int = Query(50, ge=1, le=200),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get list of unassigned clients."""
     query = text("""
@@ -333,7 +333,7 @@ async def assign_clients(
     request: AssignmentRequest,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Assign clients to a team member.
@@ -404,7 +404,7 @@ async def reassign_client(
     reason: Optional[str] = Query(None, description="Reason for reassignment"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Reassign a client to a different team member."""
     # Get current assignment
@@ -501,7 +501,7 @@ async def reassign_client(
 async def get_assignment_summary(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get summary of client assignments across team."""
     # Get total clients count
@@ -563,7 +563,7 @@ async def update_client_status(
     new_status: str = Query(..., description="New status value"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update a client's status."""
     # Validate status
@@ -617,7 +617,7 @@ async def bulk_update_status(
     request: BulkStatusRequest,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update status for multiple clients at once."""
     # Validate status
@@ -670,7 +670,7 @@ async def update_client_priority(
     priority: str = Query(..., description="New priority level"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update a client's priority level."""
     # Validate priority
@@ -727,7 +727,7 @@ async def update_client_priority(
 async def get_client_metrics(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get client metrics for dashboard."""
     # Get total count and by status
@@ -817,7 +817,7 @@ async def get_client_revenue_summary(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     period: str = Query("year", description="Period: month, quarter, year"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get revenue summary by client."""
     # Determine date range
@@ -912,7 +912,7 @@ async def search_clients(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     limit: int = Query(20, ge=1, le=50),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Quick search for clients by name, email, or ID."""
     search_term = f"%{q}%"
@@ -972,7 +972,7 @@ async def export_clients(
     firm_id: str = Depends(get_current_firm),
     format: str = Query("csv", description="Export format: csv, xlsx"),
     include_sensitive: bool = Query(False, description="Include sensitive data"),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Export client list.
@@ -1061,7 +1061,7 @@ async def export_clients(
 async def list_client_tags(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get all tags used across clients."""
     # Query to extract and count tags from JSONB array
@@ -1098,7 +1098,7 @@ async def update_client_tags(
     tags: List[str] = Query(..., description="New tags list"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update tags for a client."""
     # Verify client belongs to firm

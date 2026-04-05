@@ -25,7 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError, ProgrammingError, OperationalError
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -358,7 +358,7 @@ async def _get_document_request(session: AsyncSession, request_id: str) -> Optio
 @router.get("", response_model=List[DocumentSummary])
 async def list_documents(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     category: Optional[DocumentCategory] = None,
     status_filter: Optional[DocumentStatus] = Query(None, alias="status"),
     tax_year: Optional[int] = None,
@@ -436,7 +436,7 @@ async def list_documents(
 @router.get("/my")
 async def get_my_documents(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     category: Optional[DocumentCategory] = None,
     tax_year: Optional[int] = None,
     limit: int = Query(50, le=100),
@@ -462,7 +462,7 @@ async def get_my_documents(
 async def get_document(
     document_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get a specific document."""
     query = text("""
@@ -499,7 +499,7 @@ async def get_document(
 async def upload_document(
     metadata: UploadDocumentRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Upload a document.
@@ -603,7 +603,7 @@ async def update_document(
     description: Optional[str] = None,
     tax_year: Optional[int] = None,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Update document metadata."""
     # Fetch existing document
@@ -673,7 +673,7 @@ async def update_document(
 async def delete_document(
     document_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Delete a document."""
     # Fetch existing document
@@ -721,7 +721,7 @@ async def verify_document(
     document_id: str,
     notes: Optional[str] = None,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Verify a document.
@@ -793,7 +793,7 @@ async def reject_document(
     document_id: str,
     reason: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Reject a document.
@@ -865,7 +865,7 @@ async def reject_document(
 @router.get("/requests/pending", response_model=List[DocumentRequest])
 async def get_pending_document_requests(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Get pending document requests for the current user.
@@ -935,7 +935,7 @@ async def get_pending_document_requests(
 async def create_document_request(
     request: CreateDocumentRequestInput,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Create a document request.
@@ -1011,7 +1011,7 @@ async def create_document_request(
 @router.get("/analytics/summary")
 async def get_document_analytics(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     tax_year: Optional[int] = None
 ):
     """Get document analytics with role-based filtering."""

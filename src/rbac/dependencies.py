@@ -71,10 +71,12 @@ async def get_auth_context(
 
     # Parse JWT token and create context
     try:
-        from .jwt import decode_token  # Import here to avoid circular imports
+        from .jwt import decode_token_safe  # Import here to avoid circular imports
 
         token = credentials.credentials
-        payload = decode_token(token)
+        payload = decode_token_safe(token)
+        if payload is None:
+            return AuthContext.anonymous()
 
         # Determine user type and create appropriate context
         user_type = UserType(payload.get("user_type", "client"))
@@ -119,13 +121,6 @@ async def get_auth_context(
         request.state.auth_context = ctx
         return ctx
 
-    except jwt.ExpiredSignatureError:
-        # Token expired - this is expected, return anonymous
-        return AuthContext.anonymous()
-    except jwt.InvalidTokenError as e:
-        # Invalid token format/signature - log for monitoring
-        logger.debug(f"Invalid JWT token: {e}")
-        return AuthContext.anonymous()
     except (ValueError, KeyError, TypeError) as e:
         # Malformed token payload - log for debugging
         logger.debug(f"Malformed token payload: {e}")

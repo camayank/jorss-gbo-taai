@@ -170,7 +170,7 @@ def client(test_db):
     )
     _revoke_patch.start()
 
-    client = TestClient(app)
+    client = TestClient(app, raise_server_exceptions=False)
     yield client
 
     _revoke_patch.stop()

@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +237,7 @@ def _map_status_to_workflow(status_str: str) -> str:
 @router.get("", response_model=List[TaxReturnSummary])
 async def list_tax_returns(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     tax_year: Optional[int] = None,
     status: Optional[TaxReturnStatus] = None,
     return_type: Optional[TaxReturnType] = None,
@@ -315,7 +315,7 @@ async def list_tax_returns(
 @router.get("/my")
 async def get_my_tax_returns(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     tax_year: Optional[int] = None,
     limit: int = Query(50, le=100),
     offset: int = 0
@@ -343,7 +343,7 @@ async def get_my_tax_returns(
 async def get_tax_return(
     return_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get a specific tax return.
@@ -411,7 +411,7 @@ async def get_tax_return(
 async def create_tax_return(
     request: CreateTaxReturnRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Create a new tax return.
@@ -500,7 +500,7 @@ async def update_tax_return(
     return_id: str,
     request: UpdateTaxReturnRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Update a tax return.
@@ -591,7 +591,7 @@ async def update_tax_return(
 async def submit_tax_return(
     return_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Submit tax return for review.
@@ -656,7 +656,7 @@ async def submit_tax_return(
 async def delete_tax_return(
     return_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Delete a tax return.
@@ -712,7 +712,7 @@ async def delete_tax_return(
 @router.get("/analytics/summary")
 async def get_tax_return_analytics(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     tax_year: Optional[int] = None
 ):
     """

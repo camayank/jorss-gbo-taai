@@ -31,7 +31,7 @@ from ..auth.jwt_handler import (
 )
 from ..auth.password import verify_password, validate_password_strength, hash_password
 from ..auth.rbac import get_current_user, TenantContext
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
@@ -197,7 +197,7 @@ class MfaVerifyRequest(BaseModel):
 async def login(
     request: Request,
     credentials: LoginRequest,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Authenticate user and return tokens.
@@ -444,7 +444,7 @@ async def _update_login_success(session: AsyncSession, user: dict, ip_address: s
 async def logout(
     request: Request,
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Logout user and invalidate tokens.
@@ -532,7 +532,7 @@ async def refresh_token(
 async def change_password(
     request: PasswordChangeRequest,
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Change user's password.
@@ -599,7 +599,7 @@ async def change_password(
 @router.post("/password/reset")
 async def request_password_reset(
     reset_request: PasswordResetRequest,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Request password reset email.
@@ -654,7 +654,7 @@ async def request_password_reset(
 @router.post("/password/reset/confirm")
 async def confirm_password_reset(
     reset_confirm: PasswordResetConfirm,
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Confirm password reset with token.
@@ -731,7 +731,7 @@ async def confirm_password_reset(
 async def verify_mfa(
     mfa_request: MfaVerifyRequest,
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Verify MFA code.
@@ -777,7 +777,7 @@ async def verify_mfa(
 @router.post("/mfa/setup")
 async def setup_mfa(
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Setup MFA for user account.
@@ -818,7 +818,7 @@ async def setup_mfa(
 async def confirm_mfa_setup(
     mfa_request: MfaVerifyRequest,
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Confirm MFA setup by verifying a code.
@@ -904,7 +904,7 @@ class DisableMfaRequest(BaseModel):
 async def disable_mfa(
     disable_request: DisableMfaRequest,
     user: TenantContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Disable MFA for user account.

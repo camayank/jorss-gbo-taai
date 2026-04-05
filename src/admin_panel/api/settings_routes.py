@@ -36,7 +36,7 @@ from ..auth.rbac import (
     require_firm_admin,
 )
 from ..models.user import UserPermission
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 logger = logging.getLogger(__name__)
@@ -193,7 +193,7 @@ class AllSettings(BaseModel):
 async def get_all_settings(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Get all firm settings.
@@ -266,7 +266,7 @@ async def get_all_settings(
 async def get_onboarding_status(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get launch onboarding checklist status for the current firm."""
     firm_result = await session.execute(
@@ -326,7 +326,7 @@ async def get_onboarding_status(
 async def get_firm_profile(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get firm profile information."""
     query = text("""
@@ -361,7 +361,7 @@ async def update_firm_profile(
     update: FirmProfileUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update firm profile information."""
     # Build update fields
@@ -425,7 +425,7 @@ async def update_integrations(
     update: IntegrationSettingsUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update integration settings used for lead routing and onboarding."""
     current_result = await session.execute(
@@ -476,7 +476,7 @@ async def update_integrations(
 async def get_branding_settings(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get firm branding settings."""
     query = text("SELECT branding FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
@@ -505,7 +505,7 @@ async def update_branding_settings(
     update: BrandingUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update firm branding settings."""
     # Get current branding
@@ -560,7 +560,7 @@ async def upload_logo(
     file: UploadFile = File(...),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Upload firm logo.
@@ -638,7 +638,7 @@ async def upload_logo(
 async def get_security_settings(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get firm security settings."""
     query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
@@ -666,7 +666,7 @@ async def update_security_settings(
     update: SecuritySettingsUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update firm security settings."""
     # Check if IP whitelist is requested - Enterprise only
@@ -773,7 +773,7 @@ async def _check_api_access(session: AsyncSession, firm_id: str) -> bool:
 async def list_api_keys(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     List all API keys for the firm.
@@ -823,7 +823,7 @@ async def create_api_key(
     request: ApiKeyCreate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Create a new API key.
@@ -905,7 +905,7 @@ async def revoke_api_key(
     key_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Revoke an API key."""
     # Check if firm has API access

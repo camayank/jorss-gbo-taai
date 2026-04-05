@@ -41,6 +41,7 @@ import os
 _DB_AVAILABLE = False
 try:
     from database.connection import get_async_session
+    from database.async_engine import get_db_session
     _DB_AVAILABLE = True
 except ImportError:
     pass
@@ -73,6 +74,7 @@ if not _DB_AVAILABLE:
             yield None
 
         get_async_session = _mock_session
+        get_db_session = _mock_session
 
 router = APIRouter(prefix="/recommendations", tags=["Core Tax Recommendations"])
 
@@ -402,7 +404,7 @@ async def list_recommendations(
     user_id: Optional[str] = None,
     limit: int = Query(50, le=100),
     offset: int = 0,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     List tax recommendations with role-based filtering.
@@ -484,7 +486,7 @@ async def get_my_recommendations(
     status: Optional[RecommendationStatus] = None,
     limit: int = Query(50, le=100),
     offset: int = 0,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get current user's recommendations."""
     return await list_recommendations(
@@ -502,7 +504,7 @@ async def get_actionable_recommendations(
     context: UserContext = Depends(get_current_user),
     limit: int = Query(50, le=100),
     offset: int = 0,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get recommendations that need action (new or in_progress)."""
     await _ensure_recommendations_table(session)
@@ -556,7 +558,7 @@ async def get_actionable_recommendations(
 async def get_recommendation(
     recommendation_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get a specific recommendation with full details."""
     await _ensure_recommendations_table(session)
@@ -600,7 +602,7 @@ async def get_recommendation(
 async def create_recommendation(
     request: CreateRecommendationRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Create a manual recommendation.
@@ -673,7 +675,7 @@ async def update_recommendation(
     recommendation_id: str,
     request: UpdateRecommendationRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Update a recommendation status."""
     await _ensure_recommendations_table(session)
@@ -721,7 +723,7 @@ async def update_recommendation(
 async def delete_recommendation(
     recommendation_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Delete a recommendation (CPAs only)."""
     if context.user_type not in [UserType.CPA_TEAM, UserType.PLATFORM_ADMIN]:
@@ -763,7 +765,7 @@ async def complete_action_item(
     recommendation_id: str,
     step: int,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Mark an action item as complete."""
     await _ensure_recommendations_table(session)
@@ -845,7 +847,7 @@ async def dismiss_recommendation(
     recommendation_id: str,
     reason: Optional[str] = None,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Dismiss a recommendation."""
     await _ensure_recommendations_table(session)
@@ -889,7 +891,7 @@ async def dismiss_recommendation(
 async def generate_recommendations(
     tax_return_id: Optional[str] = None,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Generate AI-powered tax recommendations.
@@ -954,7 +956,7 @@ def _set_cached_analytics(cache_key: str, data: Dict[str, Any]) -> None:
 @router.get("/analytics/summary")
 async def get_recommendation_analytics(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     force_refresh: bool = Query(False, description="Bypass cache")
 ):
     """

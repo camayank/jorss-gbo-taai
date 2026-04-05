@@ -25,7 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -355,7 +355,7 @@ async def _can_access_conversation_db(context: UserContext, session: AsyncSessio
 @router.get("/conversations", response_model=List[Conversation])
 async def list_conversations(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     type_filter: Optional[ConversationType] = None,
     limit: int = Query(50, le=100),
     offset: int = 0
@@ -431,7 +431,7 @@ async def list_conversations(
 async def get_conversation(
     conversation_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get a specific conversation."""
     await _ensure_messaging_tables(session)
@@ -474,7 +474,7 @@ async def get_conversation(
 async def create_conversation(
     request: CreateConversationRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Create a new conversation.
@@ -629,7 +629,7 @@ async def create_conversation(
 async def list_messages(
     conversation_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     before: Optional[datetime] = None,
     limit: int = Query(50, le=100)
 ):
@@ -678,7 +678,7 @@ async def send_message(
     conversation_id: str,
     request: SendMessageRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Send a message in a conversation.
@@ -808,7 +808,7 @@ async def send_message(
 async def mark_conversation_read(
     conversation_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Mark all messages in a conversation as read.
@@ -854,7 +854,7 @@ async def mark_conversation_read(
 @router.get("/notifications", response_model=List[Notification])
 async def list_notifications(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     unread_only: bool = False,
     type_filter: Optional[NotificationType] = None,
     limit: int = Query(50, le=100),
@@ -899,7 +899,7 @@ async def list_notifications(
 @router.get("/notifications/unread-count")
 async def get_unread_count(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get count of unread notifications."""
     await _ensure_messaging_tables(session)
@@ -922,7 +922,7 @@ async def get_unread_count(
 async def mark_notification_read(
     notification_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Mark a notification as read."""
     await _ensure_messaging_tables(session)
@@ -965,7 +965,7 @@ async def mark_notification_read(
 @router.post("/notifications/mark-all-read")
 async def mark_all_notifications_read(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Mark all notifications as read."""
     await _ensure_messaging_tables(session)
@@ -994,7 +994,7 @@ async def mark_all_notifications_read(
 async def delete_notification(
     notification_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Delete a notification."""
     await _ensure_messaging_tables(session)
@@ -1034,7 +1034,7 @@ async def send_quick_message(
     recipient_id: str,
     message: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Send a quick message to a user.

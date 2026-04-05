@@ -194,6 +194,15 @@ class AuthContext:
         """Is this a CPA firm staff member?"""
         return self.role == Role.STAFF
 
+    @property
+    def tenant_id(self) -> Optional[str]:
+        """Tenant identifier: firm_id for firm users, user_id for clients, None for platform admins."""
+        if self.firm_id:
+            return str(self.firm_id)
+        if self.user_id:
+            return str(self.user_id)
+        return None
+
     # =========================================================================
     # Access Checks
     # =========================================================================

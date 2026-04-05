@@ -1,7 +1,8 @@
 """
 IRS Publication RAG (Retrieval-Augmented Generation).
 
-Provides offline retrieval of curated IRS publication excerpts using TF-IDF.
+Provides offline retrieval of curated IRS publication excerpts using semantic embeddings.
+Uses sentence-transformers (all-MiniLM-L6-v2) + FAISS for efficient vector similarity search.
 No external downloads, no API calls — works entirely from embedded text.
 
 Covers key publications:
@@ -31,24 +32,23 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+import faiss
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# JSON data loader — replaces hardcoded _IRS_CHUNKS list
-# ---------------------------------------------------------------------------
 
 # Locate the data directory relative to this file:
 #   src/services/irs_rag.py  →  ../../data/irs_publications/
 _DATA_DIR = Path(__file__).parent.parent.parent / "data" / "irs_publications"
+
+# Locate the embeddings cache directory for FAISS indices
+_EMBEDDINGS_CACHE_DIR = Path(__file__).parent.parent.parent / ".cache" / "irs_embeddings"
 
 
 def _load_chunks(tax_year: int = 2025) -> List[dict]:
@@ -66,15 +66,10 @@ def _load_chunks(tax_year: int = 2025) -> List[dict]:
     return chunks
 
 
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# IRSChunk dataclass
-# ---------------------------------------------------------------------------
-
 @dataclass
 class IRSChunk:
+    """Represents a single IRS publication excerpt."""
+
     id: str
     pub: str
     topic: str
@@ -86,51 +81,97 @@ class IRSChunk:
         return f"[{self.pub} — {self.topic}]\n{self.text}"
 
 
-# ---------------------------------------------------------------------------
-# IRS RAG engine
-# ---------------------------------------------------------------------------
-
-class IRSRag:
+class SemanticIRSRag:
     """
-    TF-IDF retrieval over curated IRS publication excerpts.
+    Semantic retrieval over curated IRS publication excerpts using sentence-transformers + FAISS.
 
-    Thread-safe after __init__; vectorizer is fit once.
-    Data is loaded from data/irs_publications/{tax_year}.json — no code
-    changes needed when tax year thresholds are updated annually.
+    Uses all-MiniLM-L6-v2 for semantic embeddings and FAISS for efficient similarity search.
+    Indexes are cached locally for fast startup. Thread-safe after __init__.
     """
+
+    # Model to use for semantic embeddings
+    _MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
     def __init__(self, tax_year: int = 2025) -> None:
         self._tax_year = tax_year
         self._chunks = [IRSChunk(**c) for c in _load_chunks(tax_year)]
-        self._corpus = [f"{c.topic} {' '.join(c.tags)} {c.text}" for c in self._chunks]
 
-        self._vectorizer = TfidfVectorizer(
-            ngram_range=(1, 2),
-            min_df=1,
-            stop_words="english",
-            sublinear_tf=True,
+        if not self._chunks:
+            logger.warning("No IRS chunks loaded — RAG will return empty results")
+            self._model = None
+            self._faiss_index = None
+            return
+
+        # Create embeddings cache directory
+        _EMBEDDINGS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Load model
+        logger.debug(f"Loading embedding model: {self._MODEL_NAME}")
+        self._model = SentenceTransformer(self._MODEL_NAME)
+
+        # Try to load cached embeddings, otherwise compute
+        cache_path = _EMBEDDINGS_CACHE_DIR / f"{tax_year}.faiss"
+        if cache_path.exists():
+            logger.debug(f"Loading cached FAISS index from {cache_path}")
+            self._faiss_index = faiss.read_index(str(cache_path))
+        else:
+            # Compute embeddings for all chunks
+            logger.debug(f"Computing embeddings for {len(self._chunks)} chunks")
+            corpus_texts = [
+                f"{c['topic']} {' '.join(c['tags'])} {c['text']}"
+                for c in _load_chunks(tax_year)
+            ]
+            embeddings = self._model.encode(corpus_texts, convert_to_numpy=True)
+
+            # Create and populate FAISS index
+            dimension = embeddings.shape[1]
+            self._faiss_index = faiss.IndexFlatL2(dimension)
+            self._faiss_index.add(embeddings.astype(np.float32))
+
+            # Cache the index
+            faiss.write_index(self._faiss_index, str(cache_path))
+            logger.debug(f"Cached FAISS index to {cache_path}")
+
+        logger.debug(
+            "SemanticIRSRag: indexed %d chunks with semantic embeddings",
+            len(self._chunks),
         )
-        self._tfidf_matrix = self._vectorizer.fit_transform(self._corpus)
-        logger.debug("IRSRag: indexed %d chunks", len(self._chunks))
 
     def retrieve(self, query: str, top_k: int = 3) -> List[IRSChunk]:
-        """Return top_k most relevant IRS chunks for a query."""
+        """Return top_k most relevant IRS chunks using semantic similarity."""
+        if not self._chunks or self._model is None or self._faiss_index is None:
+            return []
+
         try:
-            q_vec = self._vectorizer.transform([query])
-            scores = cosine_similarity(q_vec, self._tfidf_matrix).flatten()
-            top_idx = np.argsort(scores)[::-1][:top_k]
+            # Embed the query
+            query_embedding = self._model.encode([query], convert_to_numpy=True)
+
+            # Search in FAISS index
+            # FAISS uses L2 distance, so smaller distances = more similar
+            distances, indices = self._faiss_index.search(
+                query_embedding.astype(np.float32), top_k
+            )
+
             results = []
-            for i in top_idx:
-                if scores[i] > 0.01:
-                    chunk = self._chunks[i]
-                    chunk = IRSChunk(
-                        id=chunk.id, pub=chunk.pub, topic=chunk.topic,
-                        tags=chunk.tags, text=chunk.text, score=float(scores[i]),
+            for dist, idx in zip(distances[0], indices[0]):
+                if idx < len(self._chunks):
+                    chunk_data = self._chunks[idx]
+                    # Convert L2 distance to a similarity-like score (0-1 range)
+                    # Smaller distances = higher similarity
+                    similarity_score = 1.0 / (1.0 + float(dist))
+                    results.append(
+                        IRSChunk(
+                            id=chunk_data.id,
+                            pub=chunk_data.pub,
+                            topic=chunk_data.topic,
+                            tags=chunk_data.tags,
+                            text=chunk_data.text,
+                            score=similarity_score,
+                        )
                     )
-                    results.append(chunk)
             return results
         except Exception as e:
-            logger.warning("IRSRag.retrieve failed: %s", e)
+            logger.warning("SemanticIRSRag.retrieve failed: %s", e)
             return []
 
     def format_for_prompt(self, query: str, top_k: int = 3) -> str:
@@ -162,11 +203,11 @@ class IRSRag:
         return "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
-# Singleton accessor
-# ---------------------------------------------------------------------------
+# Alias for backward compatibility
+IRSRag = SemanticIRSRag
+
 
 @lru_cache(maxsize=4)
-def get_irs_rag(tax_year: int = 2025) -> IRSRag:
-    """Return a cached IRSRag instance for the given tax year."""
-    return IRSRag(tax_year=tax_year)
+def get_irs_rag(tax_year: int = 2025) -> SemanticIRSRag:
+    """Return a cached SemanticIRSRag instance for the given tax year."""
+    return SemanticIRSRag(tax_year=tax_year)

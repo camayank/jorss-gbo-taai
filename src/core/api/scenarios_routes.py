@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
-from database.async_engine import get_async_session
+from database.async_engine import get_async_session, get_db_session
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
 
@@ -376,7 +376,7 @@ def _calculate_projection(variables: List[ScenarioVariable], baseline: TaxProjec
 @router.get("", response_model=List[ScenarioSummary])
 async def list_scenarios(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     scenario_type: Optional[ScenarioType] = None,
     status_filter: Optional[ScenarioStatus] = Query(None, alias="status"),
     tax_year: Optional[int] = None,
@@ -448,7 +448,7 @@ async def list_scenarios(
 @router.get("/my")
 async def get_my_scenarios(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(get_db_session),
     tax_year: Optional[int] = None,
     limit: int = Query(50, le=100),
     offset: int = 0
@@ -472,7 +472,7 @@ async def get_my_scenarios(
 async def get_scenario(
     scenario_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Get a specific scenario with full details."""
     query = text("""
@@ -509,7 +509,7 @@ async def get_scenario(
 async def create_scenario(
     request: CreateScenarioRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Create a new tax scenario.
@@ -580,7 +580,7 @@ async def update_scenario(
     scenario_id: str,
     request: UpdateScenarioRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Update a scenario."""
     # Fetch existing scenario
@@ -653,7 +653,7 @@ async def update_scenario(
 async def delete_scenario(
     scenario_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Delete a scenario."""
     # Fetch existing scenario to check permissions
@@ -701,7 +701,7 @@ async def add_variable(
     scenario_id: str,
     request: AddVariableRequest,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Add a variable to a scenario."""
     # Fetch existing scenario
@@ -778,7 +778,7 @@ async def remove_variable(
     scenario_id: str,
     variable_name: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Remove a variable from a scenario."""
     # Fetch existing scenario
@@ -843,7 +843,7 @@ async def remove_variable(
 async def calculate_scenario(
     scenario_id: str,
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """
     Calculate tax projections for a scenario.
@@ -969,7 +969,7 @@ async def compare_scenarios(
     scenario_id: str,
     compare_to: str = Query(..., description="ID of scenario to compare"),
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Compare two scenarios side by side."""
     # Fetch both scenarios
