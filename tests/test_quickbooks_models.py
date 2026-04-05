@@ -10,7 +10,7 @@ Verifies:
 
 import pytest
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from src.integrations.quickbooks.config import QB_CONFIG, QuickBooksConfig
 from src.database import QuickBooksTokenRecord, QuickBooksConnectionRecord, Base
@@ -21,8 +21,9 @@ class TestQuickBooksConfig:
 
     def test_config_constants_exist(self):
         """Verify all required OAuth constants are defined."""
-        assert QB_CONFIG.AUTH_ENDPOINT == "https://appcenter.intuit.com/connect/oauth2"
-        assert QB_CONFIG.TOKEN_ENDPOINT == "https://oauth.platform.intuit.com/oauth2/tokens/introspect"
+        assert QB_CONFIG.AUTHORIZATION_URI == "https://appcenter.intuit.com/connect/oauth2"
+        assert QB_CONFIG.TOKEN_URI == "https://oauth.platform.intuit.com/oauth2/tokens"
+        assert QB_CONFIG.REVOKE_URI == "https://developer.intuit.com/v2/oauth?action=revoke"
         assert QB_CONFIG.API_BASE_URL == "https://quickbooks.api.intuit.com"
 
     def test_config_token_lifetime(self):
@@ -164,6 +165,56 @@ class TestQuickBooksModels:
         """Verify connection relationship to token is defined."""
         # This just verifies the relationship is defined on the class
         assert hasattr(QuickBooksConnectionRecord, 'token')
+
+    def test_token_last_used_at_field(self):
+        """Verify token has last_used_at field."""
+        assert hasattr(QuickBooksTokenRecord, 'last_used_at')
+        token = QuickBooksTokenRecord(
+            connection_id=uuid4(),
+            access_token_encrypted="test",
+            refresh_token_encrypted="test",
+            token_type="Bearer",
+            scope="test",
+            realm_id="1234567890",
+            issued_at=datetime.now(timezone.utc),
+            expires_at=datetime.now(timezone.utc),
+        )
+        # Initially should be None
+        assert token.last_used_at is None
+
+    def test_token_is_expired_method(self):
+        """Verify token is_expired() method works correctly."""
+        assert hasattr(QuickBooksTokenRecord, 'is_expired')
+
+        # Create a token that is not expired
+        future_expires = datetime.now(timezone.utc).replace(year=datetime.now(timezone.utc).year + 1)
+
+        token = QuickBooksTokenRecord(
+            connection_id=uuid4(),
+            access_token_encrypted="test",
+            refresh_token_encrypted="test",
+            token_type="Bearer",
+            scope="test",
+            realm_id="1234567890",
+            issued_at=datetime.now(timezone.utc),
+            expires_at=future_expires,
+        )
+        assert token.is_expired() is False
+
+        # Create a token that is expired
+        past_expires = datetime.now(timezone.utc) - timedelta(hours=1)
+
+        expired_token = QuickBooksTokenRecord(
+            connection_id=uuid4(),
+            access_token_encrypted="test",
+            refresh_token_encrypted="test",
+            token_type="Bearer",
+            scope="test",
+            realm_id="1234567890",
+            issued_at=datetime.now(timezone.utc),
+            expires_at=past_expires,
+        )
+        assert expired_token.is_expired() is True
 
     def test_model_table_names(self):
         """Verify table names are correctly set."""

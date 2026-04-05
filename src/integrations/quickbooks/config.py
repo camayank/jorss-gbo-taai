@@ -20,8 +20,9 @@ class QuickBooksConfig:
     """QuickBooks OAuth2 Configuration Constants."""
 
     # Authorization Endpoints
-    AUTH_ENDPOINT: Final[str] = "https://appcenter.intuit.com/connect/oauth2"
-    TOKEN_ENDPOINT: Final[str] = "https://oauth.platform.intuit.com/oauth2/tokens/introspect"
+    AUTHORIZATION_URI: Final[str] = "https://appcenter.intuit.com/connect/oauth2"
+    TOKEN_URI: Final[str] = "https://oauth.platform.intuit.com/oauth2/tokens"
+    REVOKE_URI: Final[str] = "https://developer.intuit.com/v2/oauth?action=revoke"
     API_BASE_URL: Final[str] = "https://quickbooks.api.intuit.com"
 
     # API Version
@@ -72,7 +73,7 @@ class QuickBooksConfig:
             "state": state,
         }
         query_string = "&".join(f"{k}={v}" for k, v in params.items())
-        return f"{cls.AUTH_ENDPOINT}?{query_string}"
+        return f"{cls.AUTHORIZATION_URI}?{query_string}"
 
 
 # OAuth Configuration Instance

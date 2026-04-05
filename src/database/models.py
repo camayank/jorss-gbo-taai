@@ -1692,6 +1692,7 @@ class QuickBooksTokenRecord(Base):
     is_valid = Column(Boolean, default=True, index=True, comment="Token validity flag")
     last_refreshed_at = Column(DateTime, nullable=True, comment="UTC timestamp of last successful refresh")
     last_refreshed_status = Column(String(50), nullable=True, comment="Status of last refresh attempt: success, failed, pending")
+    last_used_at = Column(DateTime(timezone=True), nullable=True, comment="UTC timestamp of last token usage")
 
     # Audit Trail
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -1707,6 +1708,15 @@ class QuickBooksTokenRecord(Base):
 
     def __repr__(self):
         return f"<QuickBooksToken(connection={self.connection_id}, realm={self.realm_id}, expires={self.expires_at})>"
+
+    def is_expired(self) -> bool:
+        """
+        Check if the token has expired.
+
+        Returns:
+            True if token_expires_at is in the past, False if valid
+        """
+        return datetime.now(timezone.utc) > self.expires_at
 
 
 class QuickBooksConnectionRecord(Base):
