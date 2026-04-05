@@ -186,7 +186,41 @@ def get_secure_serializer() -> SecureSerializer:
         _secure_serializer = get_serializer()
     return _secure_serializer
 
-app = FastAPI(title="US Tax Preparation Agent (Tax Year 2025)")
+app = FastAPI(
+    title="AI Tax Advisor API",
+    description=(
+        "REST API for the AI Tax Advisor platform — CPA dashboard, tax return filing, "
+        "document management, real-time advisory, and billing.\n\n"
+        "## Authentication\n\n"
+        "Most endpoints require a **JWT Bearer token** obtained from "
+        "`POST /api/core/auth/login` or `POST /api/core/auth/magic-link`:\n\n"
+        "```\nAuthorization: Bearer <token>\n```\n\n"
+        "Service-to-service calls may use an **API Key**:\n\n"
+        "```\nX-API-Key: <key>\n```"
+    ),
+    version="1.0.0",
+    # Disable default docs so we can serve auth-protected versions below
+    docs_url=None,
+    redoc_url=None,
+    openapi_tags=[
+        {"name": "Auth", "description": "JWT login, magic link, refresh, logout"},
+        {"name": "OAuth2", "description": "Google and Microsoft OAuth2 login flows"},
+        {"name": "Users", "description": "User profiles and preferences"},
+        {"name": "Tax Returns", "description": "Tax return CRUD and submission"},
+        {"name": "Documents", "description": "Document upload, storage, and verification"},
+        {"name": "Scenarios", "description": "Tax planning what-if scenarios"},
+        {"name": "Recommendations", "description": "AI-powered tax recommendations"},
+        {"name": "Billing", "description": "Subscriptions, invoices, and payments"},
+        {"name": "Messaging", "description": "Conversations and notifications"},
+        {"name": "Premium Reports", "description": "Tiered advisory reports"},
+        {"name": "CPA Panel", "description": "CPA firm management and client portal"},
+        {"name": "Admin", "description": "Platform administration"},
+        {"name": "Health", "description": "Health checks and metrics"},
+        {"name": "Advisory", "description": "AI advisory and intelligent recommendations"},
+        {"name": "Audit", "description": "Audit trail and compliance"},
+        {"name": "Filing", "description": "Guided and unified filing workflows"},
+    ],
+)
 
 # =============================================================================
 # ENVIRONMENT DETECTION
@@ -432,6 +466,111 @@ try:
     logger.info("Registered: Upload Routes")
 except ImportError as e:
     logger.debug(f"Upload routes not available: {e}")
+
+
+
+# =============================================================================
+# OPENAPI / SWAGGER DOCUMENTATION
+# =============================================================================
+# /docs and /redoc require X-API-Key header in production.
+# In development they are open so engineers can explore freely.
+# The schema is also served at /openapi.json with the same protection.
+
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi as _get_openapi
+
+
+def _custom_openapi():
+    """Return OpenAPI schema with security scheme definitions injected."""
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = _get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        tags=app.openapi_tags,
+        routes=app.routes,
+    )
+
+    # Inject canonical security scheme names used across the platform
+    schema.setdefault("components", {})
+    schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": (
+                "JWT token from `POST /api/core/auth/login` or "
+                "`POST /api/core/auth/magic-link`. "
+                "Header: `Authorization: Bearer <token>`"
+            ),
+        },
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "Service-to-service API key. Set via platform admin console.",
+        },
+    }
+
+    # Declare both schemes as accepted global security options
+    schema["security"] = [{"BearerAuth": []}, {"ApiKeyAuth": []}]
+
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = _custom_openapi  # type: ignore[method-assign]
+
+
+def _docs_api_key_ok(request: Request) -> bool:
+    """Return True if caller is allowed to view API docs."""
+    # Always open in development
+    if _is_dev:
+        return True
+    api_key = request.headers.get("X-API-Key", "")
+    docs_key = os.environ.get("DOCS_API_KEY") or os.environ.get("API_KEY", "")
+    return bool(api_key and docs_key and api_key == docs_key)
+
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_ui(request: Request):
+    """Swagger UI — open in dev, requires X-API-Key in production."""
+    if not _docs_api_key_ok(request):
+        return JSONResponse(
+            {"detail": "API docs require X-API-Key header in production"},
+            status_code=401,
+        )
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title=f"{app.title} — Swagger UI",
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_ui(request: Request):
+    """ReDoc reference — open in dev, requires X-API-Key in production."""
+    if not _docs_api_key_ok(request):
+        return JSONResponse(
+            {"detail": "API docs require X-API-Key header in production"},
+            status_code=401,
+        )
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title=f"{app.title} — ReDoc",
+    )
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def openapi_schema_endpoint(request: Request):
+    """OpenAPI JSON schema — open in dev, requires X-API-Key in production."""
+    if not _docs_api_key_ok(request):
+        return JSONResponse(
+            {"detail": "OpenAPI schema requires X-API-Key header in production"},
+            status_code=401,
+        )
+    return JSONResponse(app.openapi())
 
 
 # =============================================================================
