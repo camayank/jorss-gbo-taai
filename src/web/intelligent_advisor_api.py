@@ -1079,7 +1079,7 @@ class IntelligentChatEngine:
         # Track last access time for memory eviction
         self._session_access_times: Dict[str, datetime] = {}
         # Lock for async-safe operations
-        self._lock = asyncio.Lock()
+        self._lock = None  # Created lazily to avoid event loop issues at import time
         # L2 persistence layers
         self._redis_persistence = None  # Async Redis (preferred, shared across workers)
         self._sqlite_persistence: Optional[SessionPersistence] = None  # Sync SQLite (fallback)
@@ -1090,6 +1090,13 @@ class IntelligentChatEngine:
                 logger.info("Intelligent Advisor: SQLite persistence enabled (fallback)")
             except Exception as e:
                 logger.warning(f"Could not initialize SQLite persistence: {e}")
+
+    def _get_lock(self) -> "asyncio.Lock":
+        """Get (or lazily create) the async lock."""
+        if self._lock is None:
+            import asyncio as _asyncio
+            self._lock = _asyncio.Lock()
+        return self._lock
 
     async def _ensure_redis(self):
         """Lazily initialize Redis persistence on first async call."""
@@ -1286,7 +1293,7 @@ class IntelligentChatEngine:
         Args:
             tenant_id: Optional tenant hint for scoped DB lookups.
         """
-        async with self._lock:
+        async with self._get_lock():
             # Periodically clean up stale in-memory sessions
             await self._cleanup_stale_sessions()
 
@@ -1374,7 +1381,7 @@ class IntelligentChatEngine:
         """
         session = await self.get_or_create_session(session_id)
 
-        async with self._lock:
+        async with self._get_lock():
             # Apply updates
             for key, value in updates.items():
                 if key == "profile" and isinstance(value, dict):
@@ -1433,7 +1440,7 @@ class IntelligentChatEngine:
         Returns:
             True if session was deleted
         """
-        async with self._lock:
+        async with self._get_lock():
             # Remove from memory — get tenant_id before popping
             old_session = self.sessions.pop(session_id, None)
             removed = old_session is not None
@@ -3521,7 +3528,16 @@ SIMPLE_CATEGORIES = {
     "earned_income_credit", "student_loan_interest",
 }
 
-_tier_classification_semaphore = asyncio.Semaphore(3)
+_tier_classification_semaphore = None
+
+
+def _get_tier_semaphore():
+    """Get (or lazily create) the tier classification semaphore."""
+    global _tier_classification_semaphore
+    if _tier_classification_semaphore is None:
+        import asyncio as _asyncio
+        _tier_classification_semaphore = _asyncio.Semaphore(3)
+    return _tier_classification_semaphore
 
 
 async def _classify_strategy_tier(
@@ -3554,7 +3570,7 @@ async def _classify_strategy_tier(
         try:
             from services.ai.tax_reasoning_service import get_tax_reasoning_service
             reasoning = get_tax_reasoning_service()
-            async with _tier_classification_semaphore:
+            async with _get_tier_semaphore():
                 result = await reasoning.analyze(
                     problem=f"Does '{strategy.title}' require professional CPA review for this taxpayer?",
                     context=_summarize_profile(profile),

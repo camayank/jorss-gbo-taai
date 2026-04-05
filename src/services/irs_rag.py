@@ -32,10 +32,11 @@ from __future__ import annotations
 
 import json
 import logging
+import hashlib
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -49,6 +50,14 @@ _DATA_DIR = Path(__file__).parent.parent.parent / "data" / "irs_publications"
 
 # Locate the embeddings cache directory for FAISS indices
 _EMBEDDINGS_CACHE_DIR = Path(__file__).parent.parent.parent / ".cache" / "irs_embeddings"
+
+# Global tracking for index warm status (used by health checks)
+_index_warming_status = {
+    "warming": False,
+    "warm": False,
+    "error": None,
+    "tax_years_ready": set(),
+}
 
 
 def _load_chunks(tax_year: int = 2025) -> List[dict]:
@@ -64,6 +73,57 @@ def _load_chunks(tax_year: int = 2025) -> List[dict]:
     chunks = data.get("chunks", [])
     logger.debug("Loaded %d IRS publication chunks for tax year %d", len(chunks), tax_year)
     return chunks
+
+
+def _compute_data_hash(tax_year: int = 2025) -> str:
+    """Compute SHA256 hash of IRS data file to detect corpus changes."""
+    path = _DATA_DIR / f"{tax_year}.json"
+    if not path.exists():
+        return ""
+    try:
+        with path.open("rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except Exception as e:
+        logger.warning("Failed to compute data hash: %s", e)
+        return ""
+
+
+def _get_hash_file_path(tax_year: int = 2025) -> Path:
+    """Return path to the stored data hash file."""
+    return _EMBEDDINGS_CACHE_DIR / f"{tax_year}.hash"
+
+
+def _needs_index_rebuild(tax_year: int = 2025) -> bool:
+    """Check if index needs to be rebuilt due to corpus changes."""
+    current_hash = _compute_data_hash(tax_year)
+    if not current_hash:
+        return False
+
+    hash_file = _get_hash_file_path(tax_year)
+    if not hash_file.exists():
+        return True
+
+    try:
+        with hash_file.open("r") as f:
+            stored_hash = f.read().strip()
+        return current_hash != stored_hash
+    except Exception as e:
+        logger.warning("Failed to read stored hash: %s", e)
+        return True
+
+
+def _save_data_hash(tax_year: int = 2025) -> None:
+    """Save current data hash to file."""
+    current_hash = _compute_data_hash(tax_year)
+    if not current_hash:
+        return
+
+    hash_file = _get_hash_file_path(tax_year)
+    try:
+        with hash_file.open("w") as f:
+            f.write(current_hash)
+    except Exception as e:
+        logger.warning("Failed to save data hash: %s", e)
 
 
 @dataclass
@@ -95,11 +155,12 @@ class SemanticIRSRag:
     def __init__(self, tax_year: int = 2025) -> None:
         self._tax_year = tax_year
         self._chunks = [IRSChunk(**c) for c in _load_chunks(tax_year)]
+        self._model = None
+        self._faiss_index = None
+        self._is_warm = False
 
         if not self._chunks:
             logger.warning("No IRS chunks loaded — RAG will return empty results")
-            self._model = None
-            self._faiss_index = None
             return
 
         # Create embeddings cache directory
@@ -111,15 +172,42 @@ class SemanticIRSRag:
 
         # Try to load cached embeddings, otherwise compute
         cache_path = _EMBEDDINGS_CACHE_DIR / f"{tax_year}.faiss"
+
+        # Check if index needs rebuild due to data changes
+        if _needs_index_rebuild(tax_year):
+            logger.info(f"IRS corpus changed for tax year {tax_year} — rebuilding index")
+            if cache_path.exists():
+                cache_path.unlink()
+
         if cache_path.exists():
             logger.debug(f"Loading cached FAISS index from {cache_path}")
-            self._faiss_index = faiss.read_index(str(cache_path))
-        else:
+            try:
+                self._faiss_index = faiss.read_index(str(cache_path))
+                self._is_warm = True
+            except Exception as e:
+                logger.warning(f"Failed to load FAISS index: {e} — will rebuild")
+                cache_path.unlink()
+                self._faiss_index = None
+
+        if self._faiss_index is None:
             # Compute embeddings for all chunks
             logger.debug(f"Computing embeddings for {len(self._chunks)} chunks")
+            self._build_index_lazy(cache_path)
+
+        logger.debug(
+            "SemanticIRSRag: indexed %d chunks with semantic embeddings",
+            len(self._chunks),
+        )
+
+    def _build_index_lazy(self, cache_path: Path) -> None:
+        """Build index lazily (can be called during init or async warming)."""
+        if self._model is None or not self._chunks:
+            return
+
+        try:
             corpus_texts = [
-                f"{c['topic']} {' '.join(c['tags'])} {c['text']}"
-                for c in _load_chunks(tax_year)
+                f"{c.topic} {' '.join(c.tags)} {c.text}"
+                for c in self._chunks
             ]
             embeddings = self._model.encode(corpus_texts, convert_to_numpy=True)
 
@@ -130,12 +218,16 @@ class SemanticIRSRag:
 
             # Cache the index
             faiss.write_index(self._faiss_index, str(cache_path))
+            _save_data_hash(self._tax_year)
             logger.debug(f"Cached FAISS index to {cache_path}")
+            self._is_warm = True
+        except Exception as e:
+            logger.error(f"Failed to build FAISS index: {e}")
+            self._faiss_index = None
 
-        logger.debug(
-            "SemanticIRSRag: indexed %d chunks with semantic embeddings",
-            len(self._chunks),
-        )
+    def is_warm(self) -> bool:
+        """Check if index has been loaded or built."""
+        return self._is_warm and self._faiss_index is not None
 
     def retrieve(self, query: str, top_k: int = 3) -> List[IRSChunk]:
         """Return top_k most relevant IRS chunks using semantic similarity."""
@@ -211,3 +303,76 @@ IRSRag = SemanticIRSRag
 def get_irs_rag(tax_year: int = 2025) -> SemanticIRSRag:
     """Return a cached SemanticIRSRag instance for the given tax year."""
     return SemanticIRSRag(tax_year=tax_year)
+
+
+async def warm_irs_indices(tax_years: Optional[List[int]] = None) -> dict:
+    """
+    Pre-warm FAISS indices for specified tax years.
+
+    Called during application startup to pre-load indices into memory,
+    eliminating cold-start latency on first query.
+
+    Args:
+        tax_years: List of tax years to warm. Defaults to [2025, 2024]
+
+    Returns:
+        Status dict with warming results
+    """
+    import asyncio
+
+    if tax_years is None:
+        tax_years = [2025, 2024]
+
+    _index_warming_status["warming"] = True
+    _index_warming_status["error"] = None
+    _index_warming_status["tax_years_ready"] = set()
+
+    try:
+        for tax_year in tax_years:
+            try:
+                logger.info(f"Warming FAISS index for tax year {tax_year}...")
+                # Load in executor to avoid blocking event loop
+                rag = await asyncio.to_thread(get_irs_rag, tax_year)
+                if rag.is_warm():
+                    _index_warming_status["tax_years_ready"].add(tax_year)
+                    logger.info(f"✓ FAISS index warmed for tax year {tax_year}")
+                else:
+                    logger.warning(f"⚠ FAISS index not fully warmed for tax year {tax_year}")
+            except Exception as e:
+                logger.error(f"✗ Failed to warm index for tax year {tax_year}: {e}")
+
+        if _index_warming_status["tax_years_ready"]:
+            _index_warming_status["warm"] = True
+            logger.info(
+                f"✓ Index warming complete: {len(_index_warming_status['tax_years_ready'])} "
+                f"tax year(s) ready"
+            )
+        else:
+            _index_warming_status["error"] = "No tax years successfully warmed"
+            logger.warning("⚠ Index warming incomplete: no tax years ready")
+
+        return {
+            "success": bool(_index_warming_status["warm"]),
+            "ready_tax_years": list(_index_warming_status["tax_years_ready"]),
+            "error": _index_warming_status["error"],
+        }
+    except Exception as e:
+        _index_warming_status["error"] = str(e)
+        logger.error(f"Index warming failed: {e}")
+        return {
+            "success": False,
+            "ready_tax_years": list(_index_warming_status["tax_years_ready"]),
+            "error": str(e),
+        }
+    finally:
+        _index_warming_status["warming"] = False
+
+
+def get_warming_status() -> dict:
+    """Get current index warming status for health checks."""
+    return {
+        "warming": _index_warming_status["warming"],
+        "warm": _index_warming_status["warm"],
+        "error": _index_warming_status["error"],
+        "ready_tax_years": list(_index_warming_status["tax_years_ready"]),
+    }

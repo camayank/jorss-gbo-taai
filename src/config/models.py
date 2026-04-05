@@ -23,10 +23,10 @@ _DEFAULTS = {
         "multimodal": "gpt-4o",
     },
     "anthropic": {
-        "fast": "claude-3-5-haiku-20241022",
-        "standard": "claude-sonnet-4-20250514",
-        "complex": "claude-opus-4-20250514",
-        "extraction": "claude-sonnet-4-20250514",
+        "fast": "claude-haiku-4-5-20251001",
+        "standard": "claude-sonnet-4-6",
+        "complex": "claude-opus-4-6",
+        "extraction": "claude-sonnet-4-6",
     },
     "google": {
         "fast": "gemini-1.5-flash",

@@ -77,8 +77,14 @@ class ConnectionManager:
         # Index by session for session-specific updates
         self._session_subscriptions: Dict[str, Set[UUID]] = {}
 
-        # Broadcast lock for thread safety
-        self._lock = asyncio.Lock()
+        # Broadcast lock for thread safety (created lazily)
+        self._lock = None
+
+    def _get_lock(self):
+        if self._lock is None:
+            import asyncio as _asyncio
+            self._lock = _asyncio.Lock()
+        return self._lock
 
     async def connect(
         self,
@@ -112,7 +118,7 @@ class ConnectionManager:
             user_role=user_role,
         )
 
-        async with self._lock:
+        async with self._get_lock():
             # Remove any existing connection for this user
             if user_id in self._connections:
                 old_conn = self._connections[user_id]
@@ -144,7 +150,7 @@ class ConnectionManager:
 
     async def disconnect(self, user_id: UUID):
         """Disconnect a user's WebSocket connection."""
-        async with self._lock:
+        async with self._get_lock():
             if user_id in self._connections:
                 connection = self._connections[user_id]
                 await self._remove_connection(connection)
@@ -180,7 +186,7 @@ class ConnectionManager:
 
     async def subscribe_session(self, user_id: UUID, session_id: str):
         """Subscribe a user to updates for a specific session."""
-        async with self._lock:
+        async with self._get_lock():
             if user_id not in self._connections:
                 return
 
@@ -195,7 +201,7 @@ class ConnectionManager:
 
     async def unsubscribe_session(self, user_id: UUID, session_id: str):
         """Unsubscribe a user from session updates."""
-        async with self._lock:
+        async with self._get_lock():
             if user_id not in self._connections:
                 return
 
@@ -228,7 +234,7 @@ class ConnectionManager:
 
     async def _broadcast_to_all(self, event: RealtimeEvent):
         """Broadcast to all connected clients."""
-        async with self._lock:
+        async with self._get_lock():
             connections = list(self._connections.values())
 
         for connection in connections:
@@ -238,7 +244,7 @@ class ConnectionManager:
 
     async def _broadcast_to_firm(self, event: RealtimeEvent):
         """Broadcast to all users in a firm."""
-        async with self._lock:
+        async with self._get_lock():
             user_ids = self._firm_connections.get(event.firm_id, set())
             connections = [
                 self._connections[uid]
@@ -253,7 +259,7 @@ class ConnectionManager:
 
     async def _broadcast_to_session(self, event: RealtimeEvent):
         """Broadcast to users subscribed to a session."""
-        async with self._lock:
+        async with self._get_lock():
             user_ids = self._session_subscriptions.get(event.session_id, set())
             connections = [
                 self._connections[uid]
@@ -268,7 +274,7 @@ class ConnectionManager:
 
     async def _send_to_user(self, event: RealtimeEvent):
         """Send event to a specific user."""
-        async with self._lock:
+        async with self._get_lock():
             connection = self._connections.get(event.user_id)
 
         if connection:
@@ -308,7 +314,7 @@ class ConnectionManager:
 
         elif msg_type == "heartbeat":
             # Update last activity and respond
-            async with self._lock:
+            async with self._get_lock():
                 if user_id in self._connections:
                     connection = self._connections[user_id]
                     connection.last_activity = datetime.now(timezone.utc)
@@ -358,7 +364,7 @@ class ConnectionManager:
         now = datetime.now(timezone.utc)
         stale_user_ids = []
 
-        async with self._lock:
+        async with self._get_lock():
             for user_id, connection in self._connections.items():
                 idle_seconds = (now - connection.last_activity).total_seconds()
                 if idle_seconds > max_idle_seconds:

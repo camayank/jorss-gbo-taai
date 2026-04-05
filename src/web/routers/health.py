@@ -413,6 +413,59 @@ async def readiness_probe() -> JSONResponse:
         )
 
 
+@router.get("/health/rag")
+async def rag_health_check() -> JSONResponse:
+    """
+    IRS RAG FAISS index warming status.
+
+    Returns:
+    - warming: Whether indices are currently warming
+    - warm: Whether all indices are fully warmed
+    - ready_tax_years: List of tax years with warm indices
+    - error: Any error encountered during warming
+
+    Returns 200 if indices are ready, 503 if still warming or error.
+    """
+    try:
+        from services.irs_rag import get_warming_status
+
+        status = get_warming_status()
+        status["timestamp"] = datetime.now(timezone.utc).isoformat() + "Z"
+
+        # Determine status code
+        if status.get("warm"):
+            status_code = 200
+        elif status.get("warming"):
+            status_code = 503
+        elif status.get("error"):
+            status_code = 503
+        else:
+            # Not yet warmed but also not warming (fresh start)
+            status_code = 503
+
+        return JSONResponse(content=status, status_code=status_code)
+
+    except ImportError:
+        return JSONResponse(
+            content={
+                "status": "degraded",
+                "message": "IRS RAG service not available",
+                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            },
+            status_code=200,
+        )
+    except Exception as e:
+        logger.error(f"RAG health check failed: {e}")
+        return JSONResponse(
+            content={
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            },
+            status_code=503,
+        )
+
+
 @router.get("/metrics")
 async def basic_metrics() -> JSONResponse:
     """

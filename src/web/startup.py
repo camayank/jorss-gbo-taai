@@ -206,6 +206,26 @@ async def on_startup_production_readiness_check():
         logger.info("Production readiness check passed (in-memory storage OK for development)")
 
 
+async def on_startup_irs_rag_warmup():
+    """
+    Pre-warm FAISS semantic indices on application startup.
+
+    Eliminates cold-start latency by loading indices into memory during startup.
+    This is a background task that runs asynchronously and does not block app startup.
+    """
+    try:
+        from services.irs_rag import warm_irs_indices
+
+        # Run index warming in background (non-blocking)
+        import asyncio
+        asyncio.create_task(warm_irs_indices(tax_years=[2025, 2024]))
+        logger.info("IRS RAG index warming started (background task)")
+    except ImportError:
+        logger.debug("IRS RAG service not available")
+    except Exception as e:
+        logger.warning(f"IRS RAG warmup initialization failed: {e}")
+
+
 async def on_shutdown_database():
     """Close database connections on application shutdown."""
     try:
@@ -238,5 +258,6 @@ def register_lifecycle_events(app):
     app.on_event("startup")(on_startup_redis)
     app.on_event("startup")(on_startup_auto_save)
     app.on_event("startup")(on_startup_production_readiness_check)
+    app.on_event("startup")(on_startup_irs_rag_warmup)
     app.on_event("shutdown")(on_shutdown_database)
     app.on_event("shutdown")(on_shutdown_auto_save)

@@ -76,9 +76,9 @@ class ProviderConfig:
 # =============================================================================
 
 def _get_openai_config() -> ProviderConfig:
-    """Get OpenAI provider configuration."""
+    """Get OpenAI API provider configuration."""
     return ProviderConfig(
-        name="openai",
+        name="OpenAI",
         api_key=os.environ.get("OPENAI_API_KEY"),
         models={
             ModelCapability.FAST: "gpt-4o-mini",
@@ -96,27 +96,27 @@ def _get_openai_config() -> ProviderConfig:
 
 
 def _get_anthropic_config() -> ProviderConfig:
-    """Get Anthropic (Claude) provider configuration."""
+    """Get Anthropic API (Claude) provider configuration."""
     return ProviderConfig(
-        name="anthropic",
+        name="Anthropic",
         api_key=os.environ.get("ANTHROPIC_API_KEY"),
         models={
-            ModelCapability.FAST: "claude-3-5-haiku-20241022",
-            ModelCapability.STANDARD: "claude-sonnet-4-20250514",
-            ModelCapability.COMPLEX: "claude-opus-4-20250514",
-            ModelCapability.EXTRACTION: "claude-sonnet-4-20250514",
+            ModelCapability.FAST: "claude-haiku-4-5-20251001",
+            ModelCapability.STANDARD: "claude-sonnet-4-6",
+            ModelCapability.COMPLEX: "claude-opus-4-6",
+            ModelCapability.EXTRACTION: "claude-sonnet-4-6",
         },
-        default_model="claude-sonnet-4-20250514",
+        default_model="claude-sonnet-4-6",
         rate_limit_rpm=60,
         rate_limit_tpm=100000,
-        timeout_seconds=120,  # Claude can take longer for complex tasks
+        timeout_seconds=120,  # Anthropic API can take longer for complex tasks
     )
 
 
 def _get_google_config() -> ProviderConfig:
     """Get Google (Gemini) provider configuration."""
     return ProviderConfig(
-        name="google",
+        name="Google",
         api_key=os.environ.get("GOOGLE_API_KEY"),
         models={
             ModelCapability.FAST: "gemini-1.5-flash",
@@ -134,7 +134,7 @@ def _get_google_config() -> ProviderConfig:
 def _get_perplexity_config() -> ProviderConfig:
     """Get Perplexity provider configuration."""
     return ProviderConfig(
-        name="perplexity",
+        name="Perplexity",
         api_key=os.environ.get("PERPLEXITY_API_KEY"),
         base_url="https://api.perplexity.ai",
         models={
@@ -269,17 +269,17 @@ def validate_ai_configuration() -> Dict[str, any]:
     results["_summary"] = {
         "total_available": len(available),
         "providers": [p.value for p in available],
-        "has_minimum": AIProvider.OPENAI in available,  # OpenAI is minimum requirement
+        "has_minimum": AIProvider.ANTHROPIC in available,  # Anthropic API is the primary provider
         "recommendations": [],
     }
 
-    if AIProvider.OPENAI not in available:
-        results["_summary"]["recommendations"].append(
-            "CRITICAL: Set OPENAI_API_KEY for basic AI functionality"
-        )
     if AIProvider.ANTHROPIC not in available:
         results["_summary"]["recommendations"].append(
-            "Recommended: Set ANTHROPIC_API_KEY for complex tax reasoning"
+            "CRITICAL: Set ANTHROPIC_API_KEY — Anthropic API (Claude) is the primary AI provider for tax reasoning"
+        )
+    if AIProvider.OPENAI not in available:
+        results["_summary"]["recommendations"].append(
+            "Recommended: Set OPENAI_API_KEY for embeddings and OpenAI API fallback"
         )
     if AIProvider.PERPLEXITY not in available:
         results["_summary"]["recommendations"].append(
@@ -297,9 +297,10 @@ def validate_ai_configuration() -> Dict[str, any]:
 COST_PER_1K_TOKENS = {
     "gpt-4o": {"input": 0.005, "output": 0.015},
     "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
-    "claude-opus-4-20250514": {"input": 0.015, "output": 0.075},
-    "claude-sonnet-4-20250514": {"input": 0.003, "output": 0.015},
-    "claude-3-5-haiku-20241022": {"input": 0.0008, "output": 0.004},
+    # Anthropic API — Claude 4 family (latest)
+    "claude-opus-4-6": {"input": 0.015, "output": 0.075},
+    "claude-sonnet-4-6": {"input": 0.003, "output": 0.015},
+    "claude-haiku-4-5-20251001": {"input": 0.0008, "output": 0.004},
     "gemini-1.5-pro": {"input": 0.00125, "output": 0.005},
     "gemini-1.5-flash": {"input": 0.000075, "output": 0.0003},
     "llama-3.1-sonar-large-128k-online": {"input": 0.001, "output": 0.001},

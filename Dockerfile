@@ -50,18 +50,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
 # Copy application code
 COPY src/ ./src/
 COPY database/ ./database/
+COPY scripts/ ./scripts/
 
 # Create data directories
 RUN mkdir -p /app/data /app/logs /app/uploads && \
     mkdir -p /app/data/backups && \
-    chmod 755 /app/data/backups && \
-    chown -R appuser:appuser /app
+    mkdir -p /app/.cache/irs_embeddings && \
+    chmod 755 /app/data/backups
+
+# Pre-compute FAISS indices (speeds up first query, bakes into image)
+# This must run as root before user switch to ensure cache directory is writable
+RUN python3 scripts/precompute_irs_indices.py --tax-years 2025 2024 || \
+    echo "⚠ Index pre-computation failed or incomplete (non-fatal, will build on startup)"
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Set ownership
+RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
