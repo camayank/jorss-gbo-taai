@@ -40,6 +40,7 @@ def _require_test_mode():
 
 from .auth_routes import router as auth_router
 from .oauth_routes import router as oauth_router  # OAuth2 Google/Microsoft login
+from sso.routes import sso_router  # Enterprise SSO: SAML 2.0 + OIDC (MKW-71)
 from .tax_returns_routes import router as tax_returns_router
 from .documents_routes import router as documents_router
 from .scenarios_routes import router as scenarios_router
@@ -58,6 +59,7 @@ core_router = APIRouter(prefix="/api/core")
 # Include all sub-routers
 core_router.include_router(auth_router)
 core_router.include_router(oauth_router)  # OAuth2 endpoints for Google/Microsoft
+core_router.include_router(sso_router)    # Enterprise SSO: SAML 2.0 + OIDC
 core_router.include_router(tax_returns_router)
 core_router.include_router(documents_router)
 core_router.include_router(scenarios_router)
