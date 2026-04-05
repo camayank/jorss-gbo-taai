@@ -25,6 +25,18 @@ provider "aws" {
   }
 }
 
+provider "aws" {
+  alias  = "usw2"
+  region = "us-west-2"
+  default_tags {
+    tags = {
+      App         = var.app_name
+      Environment = var.environment
+      ManagedBy   = "terraform"
+    }
+  }
+}
+
 locals {
   prefix = "${var.app_name}-${var.environment}"
 }
@@ -348,7 +360,36 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   skip_final_snapshot    = var.environment != "production"
   deletion_protection    = var.environment == "production"
-  backup_retention_period = var.environment == "production" ? 7 : 1
+
+  # Backup & Disaster Recovery
+  backup_retention_period      = var.environment == "production" ? 30 : 1
+  backup_window                = "03:00-04:00"
+  copy_tags_to_snapshot        = true
+  delete_automated_backups     = false
+  multi_az                     = var.environment == "production"
+
+  # Enhanced monitoring
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+}
+
+# ===========================================================================
+# RDS Cross-Region Read Replica (us-west-2 for geo-redundancy)
+# ===========================================================================
+resource "aws_db_instance" "postgres_replica_usw2" {
+  count                        = var.environment == "production" ? 1 : 0
+  identifier                   = "${local.prefix}-postgres-replica-usw2"
+  replicate_source_db          = aws_db_instance.postgres.identifier
+  instance_class               = var.db_instance_class
+  storage_type                 = "gp3"
+  skip_final_snapshot          = false
+  backup_retention_period      = 7
+  copy_tags_to_snapshot        = true
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+
+  # Read replica is in different region (AWS-managed)
+  provider = aws.usw2
+
+  depends_on = [aws_db_instance.postgres]
 }
 
 # ===========================================================================
