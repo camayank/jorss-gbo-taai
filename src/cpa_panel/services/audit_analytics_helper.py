@@ -295,8 +295,64 @@ class AuditAnalyticsHelper:
             - conversion_rate: Percentage of magnet → client
             - by_stage: Breakdown by funnel stage
         """
-        # TODO: Implement in Task 4
-        pass
+        from audit.unified.event_types import AuditEventType
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        # Query for lead creation events (use TAX_RETURN_CREATE as proxy for lead creation)
+        # In practice, might need a specific lead creation event type
+        lead_creation_events = self.audit_service.query(
+            event_type=AuditEventType.TAX_RETURN_CREATE,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        # Filter for magnet source (check metadata)
+        magnet_leads = []
+        for event in lead_creation_events:
+            if event.metadata and isinstance(event.metadata, dict):
+                source = event.metadata.get("source")
+                if source == "magnet" or event.metadata.get("lead_type") == "magnet":
+                    magnet_leads.append(event)
+
+        # Query for client assignments
+        assign_events = self.audit_service.query(
+            event_type=AuditEventType.CPA_CLIENT_ASSIGN,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        # Build set of assigned lead IDs
+        assigned_lead_ids = set()
+        for event in assign_events:
+            lead_id = event.resource_id or event.session_id
+            if lead_id:
+                assigned_lead_ids.add(lead_id)
+
+        # Calculate conversion rate
+        magnet_count = len(magnet_leads)
+        assigned_count = len(assigned_lead_ids)
+        conversion_rate = (
+            (assigned_count / magnet_count * 100)
+            if magnet_count > 0 else 0
+        )
+
+        return {
+            "magnet_leads": magnet_count,
+            "assigned_clients": assigned_count,
+            "conversion_rate": round(conversion_rate, 1),
+            "by_stage": {
+                "created_leads": magnet_count,
+                "assigned_as_client": assigned_count,
+                "pending_assignment": magnet_count - assigned_count,
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     def get_recommendation_acceptance_rate(
         self,

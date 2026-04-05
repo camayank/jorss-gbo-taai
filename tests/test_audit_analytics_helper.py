@@ -163,3 +163,80 @@ def test_get_return_processing_metrics_with_submissions():
     assert result.accepted_count == 1
     assert result.acceptance_rate == 100.0
     assert result.avg_processing_days == 3  # 5 - 2 = 3 days
+
+
+def test_get_lead_conversion_funnel_no_events():
+    """Test conversion funnel with no events."""
+    mock_service = type('MockService', (), {
+        'query': lambda *args, **kwargs: []
+    })()
+
+    helper = AuditAnalyticsHelper()
+    helper._audit_service = mock_service
+
+    result = helper.get_lead_conversion_funnel(tenant_id="test")
+
+    assert result["magnet_leads"] == 0
+    assert result["assigned_clients"] == 0
+    assert result["conversion_rate"] == 0
+
+
+def test_get_lead_conversion_funnel_with_assignments():
+    """Test lead conversion from created to assigned."""
+    from audit.unified import AuditEventType
+    from audit.unified.entry import UnifiedAuditEntry
+
+    # Create mock entries for lead creation and client assignment
+    now = datetime.now(timezone.utc)
+
+    # Simulated lead creation events (from magnet source)
+    lead_entries = []
+    for i in range(10):
+        entry = UnifiedAuditEntry(
+            event_type=AuditEventType.TAX_RETURN_CREATE,
+            session_id=f"lead_{i}",
+            tenant_id="tenant_1",
+            user_id="system",
+            resource_type="lead",
+            resource_id=f"lead_{i}",
+            action="create_lead",
+            metadata={"source": "magnet", "lead_type": "magnet"},
+            timestamp=now - timedelta(days=30 - i),
+        )
+        lead_entries.append(entry)
+
+    # Client assignments (only 6 of 10 leads)
+    assign_entries = []
+    for i in range(6):
+        entry = UnifiedAuditEntry(
+            event_type=AuditEventType.CPA_CLIENT_ASSIGN,
+            session_id=f"lead_{i}",
+            tenant_id="tenant_1",
+            user_id="user_1",
+            resource_type="lead",
+            resource_id=f"lead_{i}",
+            action="assign_client",
+            timestamp=now - timedelta(days=20 - i),
+        )
+        entry.return_id = f"client_{i}"
+        assign_entries.append(entry)
+
+    # Mock service with different events for different calls
+    call_sequence = [lead_entries, assign_entries]
+    call_count = [0]
+
+    def mock_query(*args, **kwargs):
+        result = call_sequence[call_count[0]]
+        call_count[0] += 1
+        return result
+
+    mock_service = type('MockService', (), {'query': mock_query})()
+
+    helper = AuditAnalyticsHelper()
+    helper._audit_service = mock_service
+
+    result = helper.get_lead_conversion_funnel(tenant_id="tenant_1")
+
+    assert result["magnet_leads"] == 10
+    assert result["assigned_clients"] == 6
+    assert result["conversion_rate"] == 60.0  # 6/10 * 100
