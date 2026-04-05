@@ -51,6 +51,20 @@ class TaxSavingOpportunity:
     action_required: str
     confidence: float  # 0-100
     irs_reference: str = ""  # Required: IRS form/publication/IRC reference
+    reasoning_chain: List[str] = field(default_factory=list)  # rule → form → recommendation
+    # Derived fields — always computed in __post_init__, never set by callers
+    confidence_label: str = field(init=False, default="")  # "low" | "medium" | "high"
+    flagged_for_cpa_review: bool = field(init=False, default=False)  # True when confidence is low
+
+    def __post_init__(self) -> None:
+        """Derive categorical label and CPA flag from numeric confidence."""
+        if self.confidence >= 80:
+            self.confidence_label = "high"
+        elif self.confidence >= 65:
+            self.confidence_label = "medium"
+        else:
+            self.confidence_label = "low"
+        self.flagged_for_cpa_review = self.confidence_label == "low"
 
 
 @dataclass
@@ -136,6 +150,9 @@ class ComprehensiveRecommendation:
                     "description": o.description,
                     "action": o.action_required,
                     "confidence": o.confidence,
+                    "confidence_label": o.confidence_label,
+                    "reasoning_chain": o.reasoning_chain,
+                    "flagged_for_cpa_review": o.flagged_for_cpa_review,
                     "irs_reference": o.irs_reference,
                 }
                 for o in self.top_opportunities
@@ -207,9 +224,13 @@ class TaxRecommendationEngine:
         credit_rec = self._credit_optimizer.analyze(tax_return)
         strategy_report = self._strategy_advisor.generate_strategy_report(tax_return)
 
+        # Compute data completeness early so it can weight per-recommendation confidence
+        data_completeness = self._calculate_data_completeness(tax_return)
+
         # Collect all opportunities
         opportunities = self._collect_opportunities(
-            filing_rec, deduction_rec, credit_rec, strategy_report
+            filing_rec, deduction_rec, credit_rec, strategy_report,
+            data_completeness=data_completeness,
         )
 
         # Sort by estimated savings
@@ -250,11 +271,10 @@ class TaxRecommendationEngine:
             filing_rec, deduction_rec, credit_rec, strategy_report
         )
 
-        # Calculate confidence
+        # Overall confidence across all sub-analyzers
         overall_confidence = self._calculate_overall_confidence(
             filing_rec, deduction_rec, credit_rec, strategy_report
         )
-        data_completeness = self._calculate_data_completeness(tax_return)
 
         # Get taxpayer name
         taxpayer_name = getattr(tax_return.taxpayer, 'name', 'Taxpayer')
@@ -394,6 +414,16 @@ class TaxRecommendationEngine:
 
         return results
 
+    def _adjusted_confidence(self, base_certainty: float, data_completeness: float) -> float:
+        """
+        Blend rule certainty with data completeness to produce a confidence score.
+
+        70% weight on how certain the rule is (base_certainty) and 30% on how
+        complete the underlying data is (data_completeness). Both inputs are 0-100.
+        """
+        raw = (base_certainty * 0.7) + (data_completeness * 0.3)
+        return round(min(100.0, max(0.0, raw)), 1)
+
     def _get_marginal_rate(self, filing_status: str, agi: float) -> float:
         """Get marginal tax rate."""
         brackets = {
@@ -431,6 +461,7 @@ class TaxRecommendationEngine:
         deduction_rec: DeductionRecommendation,
         credit_rec: CreditRecommendation,
         strategy_report: TaxStrategyReport,
+        data_completeness: float = 50.0,
     ) -> List[TaxSavingOpportunity]:
         """
         Collect all tax saving opportunities from all analyzers.
@@ -442,11 +473,13 @@ class TaxRecommendationEngine:
         - irs_reference
 
         Opportunities missing required fields are filtered out.
+        Each opportunity also carries a reasoning_chain and confidence_label.
         """
         opportunities = []
 
         # Filing status opportunity
         if filing_rec.potential_savings > 0:
+            confidence = self._adjusted_confidence(filing_rec.confidence_score, data_completeness)
             opportunities.append(TaxSavingOpportunity(
                 category="filing_status",
                 title=f"Change Filing Status to {filing_rec.recommended_status}",
@@ -454,12 +487,18 @@ class TaxRecommendationEngine:
                 priority="immediate",
                 description=filing_rec.recommendation_reason,
                 action_required=f"File as {filing_rec.recommended_status}",
-                confidence=filing_rec.confidence_score,
+                confidence=confidence,
                 irs_reference="IRC Section 2; Publication 501",
+                reasoning_chain=[
+                    f"Rule: Filing status {filing_rec.recommended_status!r} yields lower tax than current {filing_rec.current_status!r}",
+                    "Form line: Form 1040, Line 2 (Filing Status)",
+                    f"Recommendation: Change filing status → estimated savings ${filing_rec.potential_savings:,.0f}",
+                ],
             ))
 
         # Deduction opportunity
         if deduction_rec.analysis.deduction_difference > 0:
+            confidence = self._adjusted_confidence(deduction_rec.confidence_score, data_completeness)
             opportunities.append(TaxSavingOpportunity(
                 category="deductions",
                 title=f"Switch to {deduction_rec.recommended_strategy.title()} Deduction",
@@ -467,12 +506,18 @@ class TaxRecommendationEngine:
                 priority="immediate",
                 description=deduction_rec.explanation,
                 action_required=f"Use {deduction_rec.recommended_strategy} deduction",
-                confidence=deduction_rec.confidence_score,
+                confidence=confidence,
                 irs_reference="IRC Section 63; Schedule A; Publication 17",
+                reasoning_chain=[
+                    f"Rule: {deduction_rec.recommended_strategy.title()} deduction (${deduction_rec.analysis.total_itemized_deductions:,.0f} itemized vs ${deduction_rec.analysis.total_standard_deduction:,.0f} standard)",
+                    "Form line: Schedule A (Itemized Deductions) / Form 1040, Line 12",
+                    f"Recommendation: Use {deduction_rec.recommended_strategy} deduction → estimated savings ${deduction_rec.analysis.tax_savings_estimate:,.0f}",
+                ],
             ))
 
         # Bunching strategy
         if deduction_rec.bunching_strategy and deduction_rec.bunching_strategy.get("is_beneficial"):
+            confidence = self._adjusted_confidence(75.0, data_completeness)
             opportunities.append(TaxSavingOpportunity(
                 category="deductions",
                 title="Implement Deduction Bunching Strategy",
@@ -480,15 +525,21 @@ class TaxRecommendationEngine:
                 priority="current_year",
                 description=deduction_rec.bunching_strategy["explanation"],
                 action_required="Bunch charitable donations and property taxes",
-                confidence=75.0,
+                confidence=confidence,
                 irs_reference="IRC Section 170; Schedule A; Publication 526",
+                reasoning_chain=[
+                    "Rule: Bunching deductions every other year can push itemized total above standard deduction threshold",
+                    "Form line: Schedule A, Lines 5-19 (Itemized Deductions)",
+                    "Recommendation: Consolidate charitable and property tax payments into alternating years",
+                ],
             ))
 
         # Credit opportunities
         for credit in credit_rec.analysis.eligible_credits.values():
             if credit.actual_amount > 0:
-                # Get appropriate IRS reference for this credit type
                 irs_ref = self._get_credit_irs_reference(credit.credit_code)
+                # Credits with confirmed eligibility have high base certainty
+                confidence = self._adjusted_confidence(90.0, data_completeness)
                 opportunities.append(TaxSavingOpportunity(
                     category="credits",
                     title=f"Claim {credit.credit_name}",
@@ -496,13 +547,19 @@ class TaxRecommendationEngine:
                     priority="immediate",
                     description=credit.eligibility_reason,
                     action_required="Claim credit on tax return",
-                    confidence=90.0,
+                    confidence=confidence,
                     irs_reference=irs_ref,
+                    reasoning_chain=[
+                        f"Rule: {credit.eligibility_reason}",
+                        f"Form line: {irs_ref.split(';')[0].strip()} (credit computation schedule)",
+                        f"Recommendation: Claim {credit.credit_name} → credit value ${credit.actual_amount:,.0f}",
+                    ],
                 ))
 
         # Unclaimed credit opportunities - only add if we have enough info
         for action in credit_rec.immediate_actions:
             if action and len(action) > 10:  # Require meaningful description
+                confidence = self._adjusted_confidence(60.0, data_completeness)
                 opportunities.append(TaxSavingOpportunity(
                     category="credits",
                     title="Potential Credit Available",
@@ -510,61 +567,94 @@ class TaxRecommendationEngine:
                     priority="immediate",
                     description=action,
                     action_required=action,
-                    confidence=60.0,
+                    confidence=confidence,
                     irs_reference="Publication 17; Form 1040 Instructions",
+                    reasoning_chain=[
+                        f"Rule: {action}",
+                        "Form line: Form 1040, Schedule 3 (Additional Credits)",
+                        "Recommendation: Verify eligibility and claim applicable credit",
+                    ],
                 ))
 
         # Strategy opportunities
         for strategy in strategy_report.immediate_strategies:
             irs_ref = self._get_strategy_irs_reference(strategy.category)
+            confidence = self._adjusted_confidence(80.0, data_completeness)
+            action_step = strategy.action_steps[0] if strategy.action_steps else strategy.title
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
                 estimated_savings=strategy.estimated_savings,
                 priority="immediate",
                 description=strategy.description,
-                action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
-                confidence=80.0,
+                action_required=action_step,
+                confidence=confidence,
                 irs_reference=irs_ref,
+                reasoning_chain=[
+                    f"Rule: {strategy.description}",
+                    f"Form line: {irs_ref.split(';')[0].strip()}",
+                    f"Recommendation: {action_step} → estimated savings ${strategy.estimated_savings:,.0f}",
+                ],
             ))
 
         for strategy in strategy_report.current_year_strategies:
             irs_ref = self._get_strategy_irs_reference(strategy.category)
+            confidence = self._adjusted_confidence(75.0, data_completeness)
+            action_step = strategy.action_steps[0] if strategy.action_steps else strategy.title
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
                 estimated_savings=strategy.estimated_savings,
                 priority="current_year",
                 description=strategy.description,
-                action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
-                confidence=75.0,
+                action_required=action_step,
+                confidence=confidence,
                 irs_reference=irs_ref,
+                reasoning_chain=[
+                    f"Rule: {strategy.description}",
+                    f"Form line: {irs_ref.split(';')[0].strip()}",
+                    f"Recommendation: {action_step} → estimated savings ${strategy.estimated_savings:,.0f}",
+                ],
             ))
 
         for strategy in strategy_report.next_year_strategies:
             irs_ref = self._get_strategy_irs_reference(strategy.category)
+            confidence = self._adjusted_confidence(70.0, data_completeness)
+            action_step = strategy.action_steps[0] if strategy.action_steps else strategy.title
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
                 estimated_savings=strategy.estimated_savings,
                 priority="next_year",
                 description=strategy.description,
-                action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
-                confidence=70.0,
+                action_required=action_step,
+                confidence=confidence,
                 irs_reference=irs_ref,
+                reasoning_chain=[
+                    f"Rule: {strategy.description}",
+                    f"Form line: {irs_ref.split(';')[0].strip()}",
+                    f"Recommendation: {action_step} → estimated savings ${strategy.estimated_savings:,.0f}",
+                ],
             ))
 
         for strategy in strategy_report.long_term_strategies:
             irs_ref = self._get_strategy_irs_reference(strategy.category)
+            confidence = self._adjusted_confidence(65.0, data_completeness)
+            action_step = strategy.action_steps[0] if strategy.action_steps else strategy.title
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
                 estimated_savings=strategy.estimated_savings,
                 priority="long_term",
                 description=strategy.description,
-                action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
-                confidence=65.0,
+                action_required=action_step,
+                confidence=confidence,
                 irs_reference=irs_ref,
+                reasoning_chain=[
+                    f"Rule: {strategy.description}",
+                    f"Form line: {irs_ref.split(';')[0].strip()}",
+                    f"Recommendation: {action_step} → estimated savings ${strategy.estimated_savings:,.0f}",
+                ],
             ))
 
         # Validate and filter - only return opportunities with all required fields
@@ -828,17 +918,17 @@ class TaxRecommendationEngine:
         income = tax_return.income
         if hasattr(income, 'get_total_wages') and income.get_total_wages() > 0:
             completeness += 5
-        if hasattr(income, 'retirement_contributions_401k'):
+        if getattr(income, 'retirement_contributions_401k', None):
             completeness += 5
-        if hasattr(income, 'self_employment_income'):
+        if getattr(income, 'self_employment_income', None):
             completeness += 5
 
         deductions = tax_return.deductions
-        if hasattr(deductions, 'mortgage_interest'):
+        if getattr(deductions, 'mortgage_interest', None):
             completeness += 5
-        if hasattr(deductions, 'charitable_cash'):
+        if getattr(deductions, 'charitable_cash', None):
             completeness += 5
-        if hasattr(deductions, 'property_taxes'):
+        if getattr(deductions, 'property_taxes', None):
             completeness += 5
 
         return min(100.0, completeness)
