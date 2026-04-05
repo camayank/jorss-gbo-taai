@@ -88,7 +88,7 @@ class TestAnalyticsViews:
         # Verify key columns exist
         expected_columns = [
             'metric_date', 'tenant_id', 'total_returns_started', 'returns_with_draft',
-            'returns_submitted', 'submission_rate', 'avg_completion_pct',
+            'returns_submitted', 'submission_rate_percent', 'avg_profile_completeness',
             'documents_processed'
         ]
         for col in expected_columns:
@@ -117,8 +117,7 @@ class TestAnalyticsViews:
 
         expected_columns = [
             'metric_date', 'tenant_id', 'document_type', 'documents_processed',
-            'unique_documents', 'users_uploading', 'sessions_with_documents',
-            'extraction_success_rate', 'returns_with_doc_type'
+            'unique_users_uploading', 'extraction_success_rate_percent'
         ]
         for col in expected_columns:
             assert col in columns, f"Expected column '{col}' not found in document_metrics"
@@ -135,11 +134,11 @@ class TestAnalyticsViews:
             pytest.skip("Index checking not supported for SQLite")
 
         view_indexes = [
-            ('analytics_completion_metrics', 'idx_completion_metrics_date_tenant'),
-            ('analytics_document_metrics', 'idx_document_metrics_date_type'),
-            ('analytics_advisor_activity', 'idx_advisor_activity_date_tenant'),
-            ('analytics_review_metrics', 'idx_review_metrics_date_tenant'),
-            ('analytics_return_processing_stats', 'idx_processing_stats_date_tenant'),
+            ('analytics_completion_metrics', 'ix_completion_metrics_date_tenant'),
+            ('analytics_document_metrics', 'ix_document_metrics_date_tenant'),
+            ('analytics_advisor_activity', 'ix_advisor_activity_date_tenant'),
+            ('analytics_review_metrics', 'ix_review_metrics_date_tenant'),
+            ('analytics_return_processing_stats', 'ix_return_stats_date_tenant'),
         ]
 
         for view_name, index_name in view_indexes:

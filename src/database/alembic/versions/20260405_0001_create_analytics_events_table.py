@@ -21,13 +21,27 @@ depends_on = None
 
 def upgrade() -> None:
     """Create analytics_events table with wide schema for event data."""
+    # Determine database dialect
+    ctx = op.get_context()
+    is_sqlite = ctx.dialect.name == 'sqlite'
+
+    # Use appropriate UUID type based on database
+    if is_sqlite:
+        event_id_type = sa.String(36)  # UUID as string in SQLite
+        firm_id_type = sa.String(36)   # UUID as string in SQLite
+        firm_id_default = None
+    else:
+        event_id_type = postgresql.UUID(as_uuid=True)
+        firm_id_type = postgresql.UUID(as_uuid=True)
+        firm_id_default = sa.text("gen_random_uuid()")
+
     op.create_table(
         "analytics_events",
         sa.Column(
             "event_id",
-            postgresql.UUID(as_uuid=True),
+            event_id_type,
             nullable=False,
-            server_default=sa.text("gen_random_uuid()"),
+            server_default=firm_id_default if is_sqlite is False else None,
         ),
         sa.Column(
             "received_at",
@@ -39,8 +53,8 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(100), nullable=False, index=True),
         sa.Column(
             "firm_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("firms.firm_id", ondelete="CASCADE"),
+            firm_id_type,
+            sa.ForeignKey("firms.firm_id", ondelete="CASCADE") if not is_sqlite else None,
             nullable=True,
             index=True,
         ),
@@ -71,7 +85,7 @@ def upgrade() -> None:
         sa.Column("data_json", sa.JSON(), nullable=True),  # Full event payload as JSON
         sa.PrimaryKeyConstraint("event_id"),
     )
-    
+
     # Create indexes for common queries
     op.create_index("ix_analytics_events_received_at", "analytics_events", ["received_at"])
     op.create_index("ix_analytics_events_tenant_date", "analytics_events", ["tenant_id", "received_at"])
