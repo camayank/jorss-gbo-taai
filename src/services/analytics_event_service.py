@@ -13,12 +13,15 @@ Usage:
     analytics_svc.register_handlers()  # Call at app startup
 """
 
+import asyncio
 import json
 import logging
+import threading
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from decimal import Decimal
 from uuid import uuid4
+from queue import Queue
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -40,12 +43,19 @@ logger = logging.getLogger(__name__)
 
 
 class AnalyticsEventService:
-    """Service for persisting journey events to analytics_events table."""
+    """Service for persisting journey events to analytics_events table.
+
+    Uses a queue-based approach to persist events asynchronously without blocking
+    the event emitter. A background thread manages the async database operations.
+    """
 
     def __init__(self, session_factory: async_sessionmaker):
         """Initialize with database session factory."""
         self.session_factory = session_factory
         self.event_bus = get_event_bus()
+        self._event_queue: Queue[Dict[str, Any]] = Queue()
+        self._background_thread: Optional[threading.Thread] = None
+        self._shutdown_event = threading.Event()
 
     def register_handlers(self) -> None:
         """Register event bus handlers for all journey events.
@@ -62,7 +72,40 @@ class AnalyticsEventService:
         self.event_bus.on(ReportGenerated, self._handle_report_generated)
         self.event_bus.on(LeadStateChanged, self._handle_lead_state_changed)
 
-        logger.info("[AnalyticsEventService] Event handlers registered")
+        # Start background worker thread
+        self._start_worker()
+        logger.info("[AnalyticsEventService] Event handlers registered and worker started")
+
+    def _start_worker(self) -> None:
+        """Start the background worker thread for async persistence."""
+        if self._background_thread is None:
+            self._background_thread = threading.Thread(
+                target=self._worker_loop, daemon=True, name="AnalyticsEventWorker"
+            )
+            self._background_thread.start()
+
+    def _worker_loop(self) -> None:
+        """Background thread main loop - processes events from queue."""
+        try:
+            asyncio.run(self._async_worker())
+        except Exception as e:
+            logger.error(f"[AnalyticsEventService] Worker loop error: {e}", exc_info=True)
+
+    async def _async_worker(self) -> None:
+        """Async worker that processes queued events."""
+        while not self._shutdown_event.is_set():
+            try:
+                # Non-blocking check for queued events
+                try:
+                    fields = self._event_queue.get(timeout=1.0)
+                except:
+                    # Queue timeout - check shutdown and continue
+                    continue
+
+                # Persist the event
+                await self._persist_event(**fields)
+            except Exception as e:
+                logger.error(f"[AnalyticsEventService] Worker error: {e}", exc_info=True)
 
     async def _persist_event(self, **fields) -> Optional[AnalyticsEventRecord]:
         """Persist an event record to the database.
@@ -75,11 +118,7 @@ class AnalyticsEventService:
         """
         try:
             async with self.session_factory() as session:
-                record = AnalyticsEventRecord(
-                    event_id=uuid4(),
-                    received_at=datetime.now(timezone.utc),
-                    **fields
-                )
+                record = AnalyticsEventRecord(**fields)
                 session.add(record)
                 await session.commit()
                 return record
@@ -89,185 +128,185 @@ class AnalyticsEventService:
             return None
 
     def _handle_advisor_profile_complete(self, event: AdvisorProfileComplete) -> None:
-        """Handle AdvisorProfileComplete event."""
-        import asyncio
+        """Queue AdvisorProfileComplete event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="AdvisorProfileComplete",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                session_id=event.session_id,
-                profile_completeness=Decimal(str(event.profile_completeness)),
-                extracted_forms=",".join(event.extracted_forms) if event.extracted_forms else None,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "AdvisorProfileComplete",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "session_id": event.session_id,
+                "profile_completeness": Decimal(str(event.profile_completeness)),
+                "extracted_forms": ",".join(event.extracted_forms) if event.extracted_forms else None,
+                "data_json": {
                     "session_id": event.session_id,
                     "profile_completeness": event.profile_completeness,
                     "extracted_forms": event.extracted_forms
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_advisor_message_sent(self, event: AdvisorMessageSent) -> None:
-        """Handle AdvisorMessageSent event."""
-        import asyncio
+        """Queue AdvisorMessageSent event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="AdvisorMessageSent",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                session_id=event.session_id,
-                message_text=event.message_text[:1000] if event.message_text else None,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "AdvisorMessageSent",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "session_id": event.session_id,
+                "message_text": event.message_text[:1000] if event.message_text else None,
+                "data_json": {
                     "session_id": event.session_id,
                     "message_length": len(event.message_text) if event.message_text else 0
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_document_processed(self, event: DocumentProcessed) -> None:
-        """Handle DocumentProcessed event."""
-        import asyncio
+        """Queue DocumentProcessed event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="DocumentProcessed",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                document_id=event.document_id,
-                document_type=event.document_type,
-                fields_extracted=event.fields_extracted,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "DocumentProcessed",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "document_id": event.document_id,
+                "document_type": event.document_type,
+                "fields_extracted": event.fields_extracted,
+                "data_json": {
                     "document_id": event.document_id,
                     "document_type": event.document_type,
                     "fields_extracted": event.fields_extracted
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_return_draft_saved(self, event: ReturnDraftSaved) -> None:
-        """Handle ReturnDraftSaved event."""
-        import asyncio
+        """Queue ReturnDraftSaved event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="ReturnDraftSaved",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                session_id=event.session_id,
-                return_id=event.return_id,
-                return_completeness=Decimal(str(event.completeness)),
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "ReturnDraftSaved",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "session_id": event.session_id,
+                "return_id": event.return_id,
+                "return_completeness": Decimal(str(event.completeness)),
+                "data_json": {
                     "return_id": event.return_id,
                     "completeness": event.completeness
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_return_submitted(self, event: ReturnSubmittedForReview) -> None:
-        """Handle ReturnSubmittedForReview event."""
-        import asyncio
+        """Queue ReturnSubmittedForReview event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="ReturnSubmittedForReview",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                session_id=event.session_id,
-                event_payload=json.dumps({"session_id": event.session_id}),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "ReturnSubmittedForReview",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "session_id": event.session_id,
+                "data_json": {"session_id": event.session_id},
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_scenario_created(self, event: ScenarioCreated) -> None:
-        """Handle ScenarioCreated event."""
-        import asyncio
+        """Queue ScenarioCreated event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="ScenarioCreated",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                return_id=event.return_id,
-                scenario_id=event.scenario_id,
-                scenario_name=event.name,
-                scenario_savings=Decimal(str(event.savings_amount)) if event.savings_amount else None,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "ScenarioCreated",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "return_id": event.return_id,
+                "scenario_id": event.scenario_id,
+                "scenario_name": event.name,
+                "scenario_savings": Decimal(str(event.savings_amount)) if event.savings_amount else None,
+                "data_json": {
                     "scenario_id": event.scenario_id,
                     "name": event.name,
                     "savings_amount": event.savings_amount
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_review_completed(self, event: ReviewCompleted) -> None:
-        """Handle ReviewCompleted event."""
-        import asyncio
+        """Queue ReviewCompleted event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="ReviewCompleted",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                session_id=event.session_id,
-                cpa_id=event.cpa_id,
-                review_status=event.status,
-                review_notes=event.notes[:1000] if event.notes else None,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "ReviewCompleted",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "session_id": event.session_id,
+                "cpa_id": event.cpa_id,
+                "review_status": event.status,
+                "review_notes": event.notes[:1000] if event.notes else None,
+                "data_json": {
                     "session_id": event.session_id,
                     "cpa_id": event.cpa_id,
                     "status": event.status,
                     "notes": event.notes
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_report_generated(self, event: ReportGenerated) -> None:
-        """Handle ReportGenerated event."""
-        import asyncio
+        """Queue ReportGenerated event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="ReportGenerated",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                session_id=event.session_id,
-                report_id=event.report_id,
-                download_url=event.download_url,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "ReportGenerated",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "session_id": event.session_id,
+                "report_id": event.report_id,
+                "download_url": event.download_url,
+                "data_json": {
                     "report_id": event.report_id,
                     "download_url": event.download_url
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
 
     def _handle_lead_state_changed(self, event: LeadStateChanged) -> None:
-        """Handle LeadStateChanged event."""
-        import asyncio
+        """Queue LeadStateChanged event for persistence."""
         try:
-            asyncio.run(self._persist_event(
-                event_type="LeadStateChanged",
-                tenant_id=event.tenant_id,
-                user_id=event.user_id,
-                lead_id=event.lead_id,
-                lead_previous_state=event.from_state,
-                lead_new_state=event.to_state,
-                lead_trigger=event.trigger,
-                event_payload=json.dumps({
+            self._event_queue.put({
+                "event_id": uuid4(),
+                "received_at": datetime.now(timezone.utc),
+                "event_type": "LeadStateChanged",
+                "tenant_id": event.tenant_id,
+                "user_id": event.user_id,
+                "lead_id": event.lead_id,
+                "lead_from_state": event.from_state,
+                "lead_to_state": event.to_state,
+                "lead_trigger": event.trigger,
+                "data_json": {
                     "lead_id": event.lead_id,
                     "from_state": event.from_state,
                     "to_state": event.to_state,
                     "trigger": event.trigger
-                }),
-                occurred_at=datetime.now(timezone.utc),
-            ))
+                },
+            })
         except Exception as e:
-            logger.error(f"[AnalyticsEventService] Handler error: {e}")
+            logger.error(f"[AnalyticsEventService] Failed to queue event: {e}")
