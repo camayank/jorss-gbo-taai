@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/illinois.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0495, 0.05, 0.2, 2025, 2775, 'IL', 'Illinois', 'TaxReturn', 'federal_agi', 'head_of_household', 'il_eitc', 'itemized', 'married_joint', 'married_separate', 'none', 'property_tax_credit', 'qualifying_widow', 'single']

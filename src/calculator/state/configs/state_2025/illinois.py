@@ -34,13 +34,13 @@ def get_illinois_config() -> StateTaxConfig:
         },
         # Personal exemption amounts (2025 estimates)
         personal_exemption_amount={
-            "single": 2625,
-            "married_joint": 2625,  # Per person
-            "married_separate": 2625,
-            "head_of_household": 2625,
-            "qualifying_widow": 2625,
+            "single": 2775,
+            "married_joint": 2775,  # Per person
+            "married_separate": 2775,
+            "head_of_household": 2775,
+            "qualifying_widow": 2775,
         },
-        dependent_exemption_amount=2625,  # Per dependent
+        dependent_exemption_amount=2775,  # Per dependent (2025 inflation-adjusted)
         allows_federal_tax_deduction=False,
         social_security_taxable=False,  # IL exempts Social Security
         pension_exclusion_limit=None,  # IL exempts most retirement income

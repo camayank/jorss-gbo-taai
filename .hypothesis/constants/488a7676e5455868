@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/lead_state/states.py
+# hypothesis_version: 6.141.1
+
+['Advisory-Ready ⭐', 'Browsing', 'Curious', 'Evaluating', 'High-Leverage 🔥', 'accepted', 'active', 'aggregate', 'assigned', 'commitment', 'converted', 'declined', 'discovery', 'evaluation', 'hidden', 'in_progress', 'passive', 'priority', 'reassigned', 'unassigned']

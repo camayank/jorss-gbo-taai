@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routes/advisor_embed.py
+# hypothesis_version: 6.141.1
+
+['/advisor-embed', 'ALLOW-FROM ', 'Advisor Embed', 'X-Frame-Options', 'advisor_embed.html', 'cpa_branding', 'embed_mode', 'light', 'request', 'theme', 'web/templates']

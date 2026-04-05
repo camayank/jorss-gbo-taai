@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/optimizer_routes.py
+# hypothesis_version: 6.141.1
+
+[404, 500, 200000, 'Tax Optimization', 'analysis_type', 'available', 'available_analyses', 'business_expenses', 'client_summary', 'confidence', 'credits', 'data', 'deductions', 'description', 'entity', 'filing_status', 'gross_revenue', 'has_dependents', 'has_investments', 'has_self_employment', 'high', 'interest_income', 'medium', 'none', 'ordinary_dividends', 'owner_salary', 'recommendations', 'relevance', 'session_id', 'strategy', 'success', 'summary', 'timestamp', 'unknown', 'warnings']

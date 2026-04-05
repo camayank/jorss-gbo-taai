@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/rbac/dependencies.py
+# hypothesis_version: 6.141.1
+
+['assign_roles', 'enterprise', 'firm_view_analytics', 'manage_custom_roles', 'permissions', 'professional', 'starter', 'subscription_tier', 'team_invite', 'team_manage', 'team_view', 'value']

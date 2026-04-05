@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/config/database.py
+# hypothesis_version: 6.141.1
+
+[100, 1800, 5432, '.env', '://', '@', 'DATABASE_URL', 'DB_', 'DB_DATABASE_URL', 'Database host', 'Database name', 'Database password', 'Database port', 'Database user', 'check_same_thread', 'command_timeout', 'data/tax_returns.db', 'development', 'disable', 'ignore', 'localhost', 'postgres', 'postgresql', 'postgresql+asyncpg', 'postgresql+psycopg2', 'prefer', 'require', 'sqlite', 'sqlite+aiosqlite', 'ssl', 'tax_platform', 'timeout', 'utf-8', 'verify-ca', 'verify-full']

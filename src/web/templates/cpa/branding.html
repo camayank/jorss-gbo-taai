@@ -4,7 +4,7 @@
 {% block page_title %}Lead Magnet Branding{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .branding-grid {
         display: grid;
         grid-template-columns: 1fr 400px;

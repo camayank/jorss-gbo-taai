@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/admin_refunds_api.py
+# hypothesis_version: 6.141.1
+
+[0.0, 200, 400, 403, 404, 500, 501, 1000, '$.status', '/api/admin/refunds', '/pending', '/stats/summary', '/{refund_id}', '/{refund_id}/process', 'APP_ENVIRONMENT', 'Access denied', 'Admin Refunds', 'Filter by firm', 'Filter by status', 'Maximum results', 'Pagination offset', 'Reason for refund', 'Refund amount', 'Refund not found', 'Unknown', 'amount', 'approved', 'by_status', 'count', 'decided_at', 'decided_by', 'decision_notes', 'description', 'failed', 'firm_id', 'firm_name', 'limit', 'message', 'offset', 'pending', 'plan', 'plan_tier', 'price', 'processed', 'processed_at', 'prod', 'production', 'refund', 'refunds', 'rejected', 'requested_at', 'status', 'subscription_id', 'total', 'total_amount_pending', 'total_requests', 'transaction_id', 'value']

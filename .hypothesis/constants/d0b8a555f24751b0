@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rules/tax_rule_definitions.py
+# hypothesis_version: 6.141.1
+
+[2025, 'alimony', 'amt', 'business', 'casualty_loss', 'charitable', 'credit', 'critical', 'deduction', 'documentation', 'education', 'family', 'filing_status', 'healthcare', 'high', 'household_employment', 'income', 'info', 'international', 'investment', 'k1_trust', 'low', 'medium', 'penalty', 'real_estate', 'retirement', 'self_employment', 'state_tax', 'timing', 'virtual_currency']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/export_routes.py
+# hypothesis_version: 6.141.1
+
+[200, 400, 500, '%Y%m%d_%H%M%S', '/export', '/{export_type}', 'CPA Data Export', 'Content-Disposition', 'Export format (csv)', 'No data available\n', 'action', 'active', 'activity', 'calculator', 'client_id', 'clients', 'contacted', 'created_at', 'csv', 'current_user', 'details', 'email', 'engaged', 'estimated_savings', 'filing_status', 'generate_report', 'high', 'hoh', 'lead_id', 'leads', 'login', 'low', 'medium', 'mfj', 'name', 'new', 'priority', 'qualified', 'referral', 'send_email', 'single', 'source', 'status', 'text/csv', 'timestamp', 'update_status', 'user', 'view_client', 'website']

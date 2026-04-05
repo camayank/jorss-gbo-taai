@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: 'DM Sans', sans-serif; background: #f8fafc; margin: 0; color: #1e293b; }
     .nav { background: #0B1D3A; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; }
@@ -116,7 +116,7 @@
   </div>
 </div>
 
-<script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 function fmt(n) {
   return '$' + Math.round(n).toLocaleString();
 }

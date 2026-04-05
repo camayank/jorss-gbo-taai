@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/west_virginia.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0236, 0.0315, 0.0354, 0.0472, 0.05, 0.0512, 0.2, 200, 500, 2000, 2025, 4000, 5000, 8000, 10000, 12500, 16000, 20000, 25000, 30000, 40000, 60000, 'TaxReturn', 'WV', 'West Virginia', 'federal_agi', 'head_of_household', 'low_income_credit', 'married_joint', 'married_separate', 'none', 'qualifying_widow', 'senior_credit', 'single']

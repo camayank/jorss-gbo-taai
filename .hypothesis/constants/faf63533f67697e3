@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/recommendation/__init__.py
+# hypothesis_version: 6.141.1
+
+['CREDIT_LIMITS', 'DEDUCTION_LIMITS', 'RETIREMENT_LIMITS', 'RecommendationResult', 'STANDARD_DEDUCTIONS', 'TAX_BRACKETS', 'TAX_YEAR', 'get_lead_score', 'get_recommendations', 'get_urgency_info', 'safe_decimal', 'safe_float', 'safe_int', 'safe_str', 'validate_profile']

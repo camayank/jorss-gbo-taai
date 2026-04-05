@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/staff_routes.py
+# hypothesis_version: 6.141.1
+
+[100, 200, '/assignment-counts', '/assignments', '/assignments/bulk', '/members', '/staff', 'Display name', 'Email address', 'Return session ID', 'action', 'assign_to', 'assigned', 'assignee', 'assignment', 'assignment_count', 'assignments', 'count', 'counts', 'member', 'members', 'name', 'preparer', 'reassigned', 'reassigned_count', 'role', 'session_id', 'session_ids', 'staff', 'staff_id', 'total', 'total_assigned', 'unassigned']

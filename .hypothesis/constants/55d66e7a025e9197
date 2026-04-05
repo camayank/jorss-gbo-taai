@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/connecticut.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.03, 0.05, 0.055, 0.06, 0.065, 0.069, 0.0699, 0.1, 0.3, 0.75, 250, 300, 2025, 10000, 12000, 15000, 16000, 19000, 20000, 24000, 30000, 38000, 48000, 50000, 80000, 100000, 107000, 150000, 160000, 200000, 250000, 320000, 400000, 500000, 800000, 1000000, 'CT', 'Connecticut', 'TaxReturn', 'ct_child_tax_credit', 'ct_eitc', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'none', 'property_tax_credit', 'qualifying_widow', 'single']

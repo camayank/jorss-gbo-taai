@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/colorado.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.044, 0.25, 0.5, 1.0, 1.5, 1100, 1200, 2025, 24000, 75000, 85000, 'CO', 'Colorado', 'TaxReturn', 'co_child_tax_credit', 'co_eitc', 'federal', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 'single']

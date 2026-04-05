@@ -160,9 +160,12 @@ class PartnerService:
         # Generate API key if enabled
         api_key = None
         api_key_hash = None
+        api_key_expires_at = None
         if api_enabled:
+            from datetime import timedelta
             api_key = secrets.token_urlsafe(32)
             api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+            api_key_expires_at = datetime.now(timezone.utc) + timedelta(days=90)
 
         # Create partner
         partner = Partner(
@@ -175,6 +178,7 @@ class PartnerService:
             custom_domain=custom_domain,
             api_enabled=api_enabled,
             api_key_hash=api_key_hash,
+            api_key_expires_at=api_key_expires_at,
             is_active=True,
             created_by=created_by,
         )
@@ -268,8 +272,10 @@ class PartnerService:
             )
 
         # Generate new API key
+        from datetime import timedelta
         api_key = secrets.token_urlsafe(32)
         partner.api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+        partner.api_key_expires_at = datetime.now(timezone.utc) + timedelta(days=90)
         partner.updated_at = datetime.now(timezone.utc)
         self.db.commit()
 

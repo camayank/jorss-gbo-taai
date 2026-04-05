@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routes/chat_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 5000, 86400, '/api/chat', 'APP_ENVIRONMENT', 'Chat', 'Session reset. ', 'action', 'agent', 'calculate', 'error', 'lax', 'message', 'potential_savings', 'production', 'reply', 'reset', 'summary', 'tax_computation', 'tax_session_id', 'utf-8']

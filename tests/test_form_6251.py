@@ -462,9 +462,10 @@ class TestForm6251Integration:
     def test_engine_with_salt_itemizing(self, engine):
         """Engine adds SALT when itemizing."""
         # Need enough itemized to exceed standard deduction (~$15,200)
-        # SALT: $10,000 (capped), Mortgage: $12,000 = $22,000 total
+        # SALT: $23,000 total (state income $15k + real estate $8k)
+        # Under OBBBA 2025, SALT cap is $40,000 so no cap applied here
         itemized = ItemizedDeductions(
-            state_local_income_tax=15000.0,  # Over $10k cap
+            state_local_income_tax=15000.0,
             real_estate_tax=8000.0,
             mortgage_interest=12000.0,  # Additional to exceed standard
         )
@@ -478,8 +479,8 @@ class TestForm6251Integration:
 
         # Verify itemized was used
         assert breakdown.deduction_type == "itemized"
-        # SALT should be added back (up to $10k cap)
-        assert breakdown.amt_breakdown['salt_addback'] == 10000.0
+        # SALT addback = min(total_salt, cap) = min(23000, 40000) = 23000 (OBBBA 2025 cap)
+        assert breakdown.amt_breakdown['salt_addback'] == 23000.0
 
     def test_income_helper_methods(self):
         """Income model has Form 6251 helper methods."""

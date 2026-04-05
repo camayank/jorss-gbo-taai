@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rbac/jwt.py
+# hypothesis_version: 6.141.1
+
+['APP_ENVIRONMENT', 'HS256', 'JWT_SECRET', 'access', 'development', 'email', 'exp', 'firm_id', 'firm_name', 'iat', 'jti', 'name', 'prod', 'production', 'refresh', 'role', 'staging', 'sub', 'type', 'user_type']

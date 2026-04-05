@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/config/models.py
+# hypothesis_version: 6.141.1
+
+['anthropic', 'complex', 'embeddings', 'extraction', 'fast', 'gemini-1.5-flash', 'gemini-1.5-pro', 'google', 'gpt-4o', 'gpt-4o-mini', 'multimodal', 'openai', 'perplexity', 'research', 'standard']

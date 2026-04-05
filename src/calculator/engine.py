@@ -1463,7 +1463,7 @@ class FederalTaxEngine:
         # Since taxable_income already has the standard deduction removed, we must add it back
         if breakdown.deduction_type != "itemized":
             standard_ded = to_decimal(
-                self.config.standard_deductions.get(filing_status, 15750.0)
+                self.config.standard_deduction.get(filing_status, 15750.0)
             )
             amti = add(amti, standard_ded)
             result['standard_deduction_addback'] = to_float(standard_ded)

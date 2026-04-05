@@ -145,7 +145,7 @@
     </div>
 </div>
 
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .page-container {
         max-width: 1400px;
         margin: 0 auto;

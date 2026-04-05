@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/input_guard.py
+# hypothesis_version: 6.141.1
+
+['[CARD-REDACTED]', '[EIN-REDACTED]', '[EMAIL-REDACTED]', '[SSN-REDACTED]', '\\b\\d{2}[-\\s]?\\d{7}\\b', 'credit_card', 'ein', 'email', 'extraction', 'injection', 'role_override', 'ssn']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/persistence_adapter.py
+# hypothesis_version: 6.141.1
+
+[2025, 'DATABASE_URL', '_return_id', 'created_at', 'draft', 'filing_status', 'gross_income', 'postgres', 'postgresql', 'return_id', 'session_id', 'state_code', 'status', 'summary', 'tax_year', 'taxpayer_name', 'updated_at']

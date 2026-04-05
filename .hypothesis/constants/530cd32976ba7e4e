@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/ai/unified_ai_service.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 0.2, 0.3, 0.7, 10.0, 30.0, -1000, 1000, 4096, '"', "(?<![\\\\])'", ',\\s*([\\]}])', '//[^\\n]*\\n', 'AIMessage', 'AIResponse', 'AIUsageStats', 'CircuitBreaker', 'CircuitState', 'T', 'UnifiedAIService', '[', '\\1', ']', '```', '```json', 'ai_fallback', 'assistant', 'by_provider', 'citations', 'closed', 'content', 'context', 'cost', 'error', 'fallback', 'gemini-multimodal', 'get_ai_service', 'half_open', 'json', 'last_error', 'model', 'multimodal', 'open', 'opportunities', 'parts', 'prompt_token_count', 'provider', 'requests', 'role', 'service', 'success_rate', 'system', 'timeout', 'tokens', 'total_cost_estimate', 'total_requests', 'total_tokens', 'usage_metadata', 'user', '{', '}']

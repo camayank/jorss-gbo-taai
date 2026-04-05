@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/support/ticket_service.py
+# hypothesis_version: 6.141.1
+
+['Ticket reopened', 'avg_satisfaction', 'by_category', 'by_priority', 'by_status', 'open', 'resolved', 'satisfaction_count', 'sla_at_risk', 'sla_breached', 'total', 'total_assigned', 'unassigned', 'web']

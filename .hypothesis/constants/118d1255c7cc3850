@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/helpers/conversation_history.py
+# hypothesis_version: 6.141.1
+
+[500, ' | ', '$', ',', '-', '. ', '...', 'assistant', 'child', 'confirmations given', 'content', 'correct', 'credit', 'credits', 'deduction', 'deductions', 'earned income', 'employer', 'employer_name', 'federal_tax_withheld', 'federal_withheld', 'filing status', 'filing_status', 'first_name', 'income', 'is_sticky_context', 'is_summary', 'itemize', 'last_name', 'married', 'no', 'owe', 'refund', 'right', 'role', 'salary', 'single', 'ssn', 'standard', 'system', 'tax calculation', 'tax liability', 'timestamp', 'user', 'w-2', 'w2_wages', 'wages', 'yes']

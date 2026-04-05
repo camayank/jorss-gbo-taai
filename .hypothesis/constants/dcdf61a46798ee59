@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/custom_domain_api.py
+# hypothesis_version: 6.141.1
+
+[253, 400, 403, 404, 409, 500, 503, 10000, '.', '/api/custom-domain', '/check-availability', '/remove', '/setup', '/status', '/verify', '3600', 'CNAME', 'TXT', 'Tenant not found', 'active', 'attempts', 'available', 'cname', 'created_at', 'custom-domain', 'domain', 'expired', 'expires_at', 'failed', 'http://', 'https://', 'last_checked', 'message', 'method', 'name', 'next_steps', 'note', 'pending', 'reason', 'status', 'success', 'suggestions', 'token', 'ttl', 'txt', 'type', 'value', 'verified', 'verify.ca4cpa.com', 'www.']

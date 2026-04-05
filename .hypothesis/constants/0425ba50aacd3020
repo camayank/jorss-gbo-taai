@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/engagement/letter_generator.py
+# hypothesis_version: 6.141.1
+
+['%B %d, %Y', '-', '; ', '_', 'amended_return', 'client_email', 'client_name', 'complexity_tier', 'content_hash', 'cpa_credentials', 'cpa_firm_name', 'cpa_name', 'esign_envelope_id', 'esign_status', 'fee_amount', 'fee_description', 'generated_at', 'letter_id', 'letter_type', 'pending', 'session_id', 'signed_at', 'tax_advisory', 'tax_planning', 'tax_preparation', 'tax_year', 'tenant_id', 'tier_1_simple', 'tier_2_moderate', 'tier_3_complex', 'tier_5_enterprise']

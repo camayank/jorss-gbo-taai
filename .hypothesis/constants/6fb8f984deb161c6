@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/workflow/notes.py
+# hypothesis_version: 6.141.1
+
+['CPANote', 'DRAFT', 'NOTE_ADDED', 'NOTE_DELETED', 'NOTE_UPDATED', 'approval', 'by_category', 'category', 'client_visible_notes', 'correction', 'cpa_id', 'cpa_name', 'general', 'id', 'internal_notes', 'is_internal', 'last_note', 'legacy', 'note_id', 'parent_note_id', 'question', 'recommendation', 'review', 'review_notes', 'status', 'text', 'timestamp', 'total_notes', 'updated_category', 'updated_text', 'warning']

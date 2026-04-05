@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/district_of_columbia.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.04, 0.05, 0.06, 0.065, 0.085, 0.0925, 0.0975, 0.1075, 0.7, 1200, 2025, 3000, 4050, 8100, 10000, 15750, 23850, 31500, 40000, 57600, 60000, 250000, 500000, 1000000, 'DC', 'District of Columbia', 'TaxReturn', 'dc_eitc', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'schedule_h_credit', 'single', 'standard']

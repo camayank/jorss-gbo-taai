@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/rental_depreciation.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.01, 0.107, 0.152, 0.321, 0.455, 0.535, 0.749, 0.758, 0.963, 1.061, 1.177, 1.364, 1.391, 1.605, 1.667, 1.819, 1.97, 2.033, 2.247, 2.273, 2.461, 2.576, 2.879, 3.182, 3.485, 10.0, 27.5, 39.0, 100.0, 100, 275, 'annual_rate_percent', 'asset_count', 'asset_id', 'assets', 'business_use_percent', 'commercial', 'depreciable_basis', 'depreciation', 'depreciation_amount', 'description', 'details', 'error', 'improvement', 'is_first_year', 'is_fully_depreciated', 'land_value', 'macrs_gds', 'message', 'prior_depreciation', 'property_address', 'property_id', 'property_type', 'rate_applied_percent', 'residential_rental', 'straight_line', 'tax_year', 'total_adjusted_basis', 'total_depreciation', 'year_in_service']

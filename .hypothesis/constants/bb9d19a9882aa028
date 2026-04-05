@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/admin_api_keys_api.py
+# hypothesis_version: 6.141.1
+
+[100, 365, 400, 403, 404, 500, '$.firm_id', '/api/admin/api-keys', '/scopes', '/{key_id}', '/{key_id}/rotate', '/{key_id}/usage', 'API key not found', 'Admin API Keys', 'Include revoked keys', 'Invalid scopes', 'Read tax return data', 'active_count', 'analytics:read', 'api_key', 'api_keys', 'clients:read', 'clients:write', 'created_at', 'created_by', 'description', 'documents:read', 'documents:write', 'error', 'expires_at', 'firm_id', 'invalid_scopes', 'is_active', 'key_hash', 'key_id', 'last_used_at', 'message', 'name', 'new_api_key', 'old_key_id', 'prefix', 'reports:read', 'returns:read', 'returns:write', 'revoked', 'revoked_at', 'scope', 'scopes', 'secret', 'status', 'total', 'use_count', 'valid_scopes', 'warning', 'webhooks:manage']

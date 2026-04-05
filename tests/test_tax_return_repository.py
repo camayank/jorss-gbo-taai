@@ -123,8 +123,8 @@ class TestTaxReturnRepositorySave:
 
         await repo.save(return_id, tax_return_data)
 
-        # Verify execute was called (at least for exists check and insert)
-        assert mock_session.execute.call_count >= 2
+        # Repository uses a single upsert (INSERT ... ON CONFLICT DO UPDATE)
+        assert mock_session.execute.call_count >= 1
 
     @pytest.mark.asyncio
     async def test_save_updates_existing_return(self):
@@ -150,7 +150,8 @@ class TestTaxReturnRepositorySave:
 
         await repo.save(return_id, tax_return_data)
 
-        assert mock_session.execute.call_count >= 2
+        # Repository uses a single upsert (INSERT ... ON CONFLICT DO UPDATE)
+        assert mock_session.execute.call_count >= 1
 
     @pytest.mark.asyncio
     async def test_save_handles_missing_taxpayer_data(self):

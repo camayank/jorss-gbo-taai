@@ -13,7 +13,13 @@ from web.routers import scenarios as scenarios_router
 
 
 def _build_client(service) -> TestClient:
+    from rbac.dependencies import require_auth
+
+    async def _bypass_auth():
+        return None
+
     app = FastAPI()
+    app.dependency_overrides[require_auth] = _bypass_auth
     scenarios_router._scenario_service = service
     app.include_router(scenarios_router.router)
     return TestClient(app)

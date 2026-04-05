@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/funnel_routes.py
+# hypothesis_version: 6.141.1
+
+[500, '/assign-lead', '/assignment-stats', '/calculate-fee', '/config', '/funnel', '/generate-report', '/process-lead', '/register-cpa', 'Funnel Orchestration', 'Lead identifier', "Lead's email address", "Lead's name", 'algorithm', 'assigned_cpa_id', 'assignment_algorithm', 'auto_enroll_nurture', 'complexity', 'cpa_id', 'cpa_name', 'default', 'firm_id', 'handles_business', 'handles_complex', 'has_business', 'is_available', 'lead_id', 'leads_this_week', 'leads_today', 'max_daily_leads', 'message', 'moderate', 'round_robin', 'send_hot_lead_alerts', 'send_report_to_cpa', 'send_report_to_lead', 'success']

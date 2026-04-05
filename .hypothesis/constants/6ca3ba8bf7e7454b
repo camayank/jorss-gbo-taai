@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/resilience/circuit_breaker.py
+# hypothesis_version: 6.141.1
+
+[0.0, 30.0, 'CircuitBreaker', 'T', 'closed', 'failure_count', 'half_open', 'is_open', 'open', 'state']

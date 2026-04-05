@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/activity_service.py
+# hypothesis_version: 6.141.1
+
+[500, ',', '?', 'ActivityService', 'System', 'activity_id', 'activity_type', 'actor', 'actor_id', 'actor_name', 'admin', 'client', 'cpa', 'cpa_assigned', 'cpa_contacted', 'cpa_engaged', 'cpa_note_added', 'cpa_viewed', 'created_at', 'database', 'description', 'email', 'email_sent', 'email_type', 'first_name', 'jorss_gbo.db', 'lead_archived', 'lead_captured', 'lead_converted', 'lead_created', 'lead_email', 'lead_id', 'lead_name', 'metadata', 'metadata_json', 'name', 'new_state', 'note', 'old_state', 'recipient', 'reminder_completed', 'reminder_created', 'report_delivered', 'report_generated', 'revenue', 'session_id', 'state_change', 'subject', 'system', 'type']

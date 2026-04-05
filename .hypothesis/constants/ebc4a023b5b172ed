@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/startup.py
+# hypothesis_version: 6.141.1
+
+[', ', '1', '1.0.0', '8000', '=', 'AI_CHAT_ENABLED', 'APP_ENVIRONMENT', 'APP_VERSION', 'Audit Logs', 'Billing Storage', 'Client Tokens', 'INFO', 'Impersonation', 'JWT_SECRET', 'LOG_LEVEL', 'PORT', 'REDIS_HOST', 'REDIS_URL', 'REPLACE_', 'Staff Assignments', '_', 'available', 'database', 'error', 'healthy', 'models', 'prod', 'production', 'shutdown', 'sqlite', 'staging', 'startup', 'status', 'support sessions', 'true', 'unknown', 'value', 'yes']

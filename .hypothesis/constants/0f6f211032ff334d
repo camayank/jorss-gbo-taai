@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/platform_admin.py
+# hypothesis_version: 6.141.1
+
+[100, 255, 500, 'AdminAuditLog', 'Correlation ID', 'PlatformAdmin', 'action', 'action_category', 'adjust_billing', 'admin', 'admin_audit_log', 'audit_logs', 'billing', 'compliance', 'configure_system', 'created_at', 'created_by', 'engineering', 'export_data', 'impersonate_firm', 'is_active', 'manage_announcements', 'manage_feature_flags', 'manage_firms', 'manage_subscriptions', 'metadata', 'platform_admins', 'process_refunds', 'request_id', 'resource_id', 'resource_type', 'role', 'super_admin', 'support', 'view_all_firms', 'view_audit_logs', 'view_subscriptions', 'view_system_health']

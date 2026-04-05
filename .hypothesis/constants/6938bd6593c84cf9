@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/domain/events.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'Calculation warnings', 'Event schema version', 'advisory', 'client', 'client.created', 'client.updated', 'intake', 'scenario', 'scenario.applied', 'scenario.calculated', 'scenario.compared', 'scenario.created', 'scenario.deleted', 'tax_return', 'tax_return.created', 'tax_return.deleted', 'tax_return.updated']

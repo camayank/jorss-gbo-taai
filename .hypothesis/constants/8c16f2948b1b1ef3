@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/models/__init__.py
+# hypothesis_version: 6.141.1
+
+['CPARole', 'UnifiedUser', 'UserContext', 'UserPreferences', 'UserProfile', 'UserType']

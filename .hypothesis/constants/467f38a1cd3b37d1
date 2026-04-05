@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/api/rbac_routes.py
+# hypothesis_version: 6.141.1
+
+[100, 200, 1000, '/admin/rbac', '/permissions', '/roles', '/roles/{role_id}', '/seed', 'Filter by category', 'Include system roles', 'Invalid resource_id', 'Only active roles', 'RBAC Management', 'Role not found', '^(grant|revoke)$', '^[a-z][a-z0-9_]*$', 'assign_roles', 'enterprise', 'errors', 'manage_custom_roles', 'message', 'override_id', 'permissions_seeded', 'professional', 'roles_seeded', 'starter', 'success', 'uid', 'unknown']

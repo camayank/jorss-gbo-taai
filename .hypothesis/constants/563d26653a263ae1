@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/maine.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.058, 0.0675, 0.0715, 0.25, 300, 2025, 5000, 10000, 15750, 23850, 26050, 31500, 35000, 39100, 52100, 61600, 92400, 123250, 'ME', 'Maine', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'me_child_credit', 'me_eitc', 'qualifying_widow', 'single', 'standard']

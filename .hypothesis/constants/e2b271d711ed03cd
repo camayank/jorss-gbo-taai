@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/rental_depreciation_api.py
+# hypothesis_version: 6.141.1
+
+[0.0, 27.5, 100.0, 100, 400, 404, 500, 501, '%Y-%m-%d', '/calculate', '/health', '/schedule', 'Cost of improvement', 'Property address', 'Property not found', 'add', 'address', 'annual_rate_percent', 'asset_count', 'assets', 'audit_available', 'commercial', 'cost', 'deleted', 'depreciable_basis', 'depreciation', 'depreciation_amount', 'error', 'improvement_added', 'improvement_count', 'is_first_year', 'is_fully_depreciated', 'land', 'land_value', 'operational', 'prior_depreciation', 'properties', 'property_address', 'property_count', 'property_id', 'property_type', 'rate_applied_percent', 'residential_rental', 'schedule_e_line_18', 'session_id', 'status', 'tax_year', 'timestamp', 'total_adjusted_basis', 'total_depreciation', 'type', 'unavailable', 'year_in_service']

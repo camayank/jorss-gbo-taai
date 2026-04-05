@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/kansas.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.031, 0.0525, 0.057, 0.17, 2025, 2250, 3500, 4000, 4500, 6000, 8000, 15000, 30000, 60000, 'KS', 'Kansas', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'ks_eitc', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

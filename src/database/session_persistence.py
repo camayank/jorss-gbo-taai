@@ -43,7 +43,8 @@ def _encrypt_session_data(data_json: str) -> str:
         try:
             return encrypt_pii(data_json, field_type="generic")
         except Exception as e:
-            logger.error(f"Session encryption failed, storing plaintext: {e}")
+            logger.error(f"Session encryption failed: {e}")
+            raise RuntimeError(f"Session encryption failed: {e}") from e
     return data_json
 
 
@@ -55,9 +56,9 @@ def _decrypt_session_data(stored: str) -> str:
     if _ENCRYPTION_AVAILABLE and stored.startswith("v"):
         try:
             return decrypt_pii(stored, field_type="generic")
-        except Exception:
+        except Exception as e:
             # Fallback: treat as plaintext (migration period or encryption key change)
-            pass
+            logger.error(f"Session decryption failed for encrypted value, treating as plaintext: {e}")
     return stored
 
 
@@ -1726,7 +1727,7 @@ async def get_async_session_persistence():
                 return redis_persistence
             logger.warning("Redis session persistence unavailable, falling back to SQLite")
         except Exception as e:
-            logger.warning(f"Failed to initialize Redis session persistence: {e}")
+            logger.error(f"Failed to initialize Redis session persistence: {e}")
 
     # Fallback to SQLite
     return get_session_persistence()

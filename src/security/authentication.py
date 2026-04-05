@@ -124,22 +124,21 @@ class RedisRevocationBackend(TokenRevocationBackend):
             return True  # Deny if Redis unavailable (fail closed)
 
         try:
-            return redis_client.sismember("revoked_jtis", jti)
+            return bool(redis_client.exists(f"revoked_token:{jti}"))
         except Exception as e:
             # SECURITY: Fail-closed on errors
             logger.error(f"Redis revocation check failed: {e} - denying access")
             return True
 
     def revoke(self, jti: str, exp: int) -> None:
-        """Revoke token in Redis with TTL."""
+        """Revoke token in Redis with per-token TTL."""
         redis_client = self._get_redis()
         if redis_client is None:
             return
 
         try:
             ttl = max(1, exp - int(time.time()))
-            redis_client.sadd("revoked_jtis", jti)
-            redis_client.expire("revoked_jtis", ttl)
+            redis_client.setex(f"revoked_token:{jti}", ttl, "revoked")
             logger.info(f"Token revoked in Redis: {jti[:8]}... (TTL: {ttl}s)")
         except Exception as e:
             logger.error(f"Redis token revocation failed: {e}")
@@ -182,7 +181,6 @@ class AuthenticationManager:
         self._secret_key = (
             secret_key
             or os.environ.get("JWT_SECRET_KEY")
-            or os.environ.get("JWT_SECRET")
         )
 
         if not self._secret_key:

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/auth/jwt_handler.py
+# hypothesis_version: 6.141.1
+
+['ENVIRONMENT', 'HS256', 'JWT_SECRET', 'Token expired', 'Token has expired', 'access', 'development', 'email', 'exp', 'firm_id', 'iat', 'is_platform_admin', 'jti', 'permissions', 'production', 'refresh', 'role', 'sub', 'type', 'verify_signature']

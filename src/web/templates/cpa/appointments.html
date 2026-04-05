@@ -5,7 +5,7 @@
 {% block page_title %}{{ page_title|default('Appointment Calendar') }}{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     [x-cloak] { display: none !important; }
     .appt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-3); }
     .calendar-nav { display: flex; align-items: center; gap: var(--space-3); }

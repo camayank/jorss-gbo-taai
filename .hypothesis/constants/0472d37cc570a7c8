@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/support/impersonation_models.py
+# hypothesis_version: 6.141.1
+
+[1800, 7200, 'Manual end', 'System', 'action_type', 'actions_count', 'active', 'admin_email', 'admin_id', 'admin_name', 'billing_issue', 'bug_investigation', 'configuration_help', 'created_at', 'duration_seconds', 'ended', 'ended_at', 'error_message', 'expired', 'expires_at', 'feature_demo', 'firm', 'firm_id', 'firm_name', 'id', 'impersonation_type', 'ip_address', 'is_active', 'last_action_at', 'method', 'other', 'path', 'reason', 'reason_detail', 'remaining_seconds', 'resource_id', 'resource_type', 'revoked', 'security_audit', 'session_id', 'status', 'success', 'support_request', 'ticket_id', 'user', 'user_agent', 'user_email', 'user_id']

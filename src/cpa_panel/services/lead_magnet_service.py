@@ -119,10 +119,17 @@ class _DbCursorAdapter:
         return self
 
     def fetchone(self):
-        return self._cursor.fetchone()
+        row = self._cursor.fetchone()
+        # sqlite3.Row supports key access but not .get() — normalize to dict
+        if row is not None and not self._is_postgres and hasattr(row, "keys"):
+            return dict(row)
+        return row
 
     def fetchall(self):
-        return self._cursor.fetchall()
+        rows = self._cursor.fetchall()
+        if rows and not self._is_postgres and rows and hasattr(rows[0], "keys"):
+            return [dict(r) for r in rows]
+        return rows
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._cursor, name)
@@ -524,6 +531,7 @@ class LeadMagnetService:
         else:
             self._sqlite_db_path = configured_sqlite_path
         if self._db_backend == "sqlite":
+            self._ensure_core_tables()
             self._ensure_event_table()
             self._ensure_session_columns()
 
@@ -560,6 +568,88 @@ class LeadMagnetService:
             return exists
         except Exception:
             return False
+
+    def _ensure_core_tables(self):
+        """Ensure core lead magnet tables exist (idempotent — safe to run on every startup)."""
+        if self._db_backend == "postgres":
+            return
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS cpa_profiles (
+                    cpa_id TEXT PRIMARY KEY,
+                    cpa_slug TEXT UNIQUE,
+                    firm_name TEXT,
+                    logo_url TEXT,
+                    primary_color TEXT,
+                    accent_color TEXT,
+                    cpa_email TEXT,
+                    active INTEGER DEFAULT 1,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS lead_magnet_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT UNIQUE NOT NULL,
+                    cpa_id TEXT,
+                    cpa_slug TEXT,
+                    assessment_mode TEXT DEFAULT 'quick',
+                    current_screen TEXT DEFAULT 'welcome',
+                    privacy_consent INTEGER DEFAULT 0,
+                    profile_data_json TEXT DEFAULT '{}',
+                    contact_captured INTEGER DEFAULT 0,
+                    started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    last_activity TEXT DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TEXT,
+                    time_spent_seconds INTEGER DEFAULT 0,
+                    referral_source TEXT
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS lead_magnet_leads (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lead_id TEXT UNIQUE NOT NULL,
+                    session_id TEXT NOT NULL,
+                    cpa_id TEXT,
+                    firm_id TEXT,
+                    first_name TEXT,
+                    email TEXT NOT NULL,
+                    phone TEXT,
+                    filing_status TEXT,
+                    complexity TEXT DEFAULT 'simple',
+                    income_range TEXT,
+                    lead_score INTEGER DEFAULT 50,
+                    lead_temperature TEXT DEFAULT 'warm',
+                    estimated_engagement_value REAL DEFAULT 0,
+                    conversion_probability REAL DEFAULT 0.5,
+                    savings_range_low REAL DEFAULT 0,
+                    savings_range_high REAL DEFAULT 0,
+                    engaged INTEGER DEFAULT 0,
+                    engaged_at TEXT,
+                    engagement_letter_acknowledged INTEGER DEFAULT 0,
+                    engagement_letter_acknowledged_at TEXT,
+                    converted INTEGER DEFAULT 0,
+                    converted_at TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS tiered_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    report_id TEXT UNIQUE NOT NULL,
+                    session_id TEXT NOT NULL,
+                    lead_id TEXT,
+                    report_type TEXT DEFAULT 'tier1',
+                    report_data_json TEXT DEFAULT '{}',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            logger.warning("Failed to ensure core lead magnet tables: %s", exc)
 
     def _ensure_event_table(self):
         """Ensure analytics event table exists for funnel instrumentation."""

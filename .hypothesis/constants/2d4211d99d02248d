@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/kentucky.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.04, 200, 2025, 3160, 4070, 6320, 14870, 31110, 'KY', 'Kentucky', 'TaxReturn', 'family_size_credit', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard', 'tax_return']

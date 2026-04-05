@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/alabama.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.04, 0.05, 1.0, 500, 1000, 1500, 2025, 2500, 3000, 3750, 4700, 6000, 7500, 50000, 100000, 'AL', 'Alabama', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

@@ -115,7 +115,7 @@ async def get_session_report(request: SessionReportRequest, _session: str = Depe
                 "report": {"action_plan": action_plan},
             }
         except Exception as gen_err:
-            logger.warning(f"AdvisoryReportGenerator failed, falling back to raw response: {gen_err}")
+            logger.error(f"AdvisoryReportGenerator failed, falling back to raw response: {gen_err}")
 
         # Fallback: return raw calculation/strategies/profile
         return {
@@ -167,10 +167,10 @@ async def generate_report(request=None, _session: str = Depends(verify_session_t
                         "federal_tax": calculation.federal_tax,
                         "state_tax": calculation.state_tax,
                         "effective_rate": calculation.effective_rate,
-                        "total_savings": sum(s.estimated_savings for s in strategies),
+                        "total_savings": sum((s.estimated_savings or 0) for s in strategies),
                     },
                     "recommendations": [
-                        {"title": s.title, "savings": s.estimated_savings, "priority": s.priority}
+                        {"title": s.title, "savings": s.estimated_savings or 0, "priority": s.priority}
                         for s in strategies[:5]
                     ],
                 }
@@ -191,8 +191,8 @@ async def generate_report(request=None, _session: str = Depends(verify_session_t
         try:
             sess = await chat_engine.get_or_create_session(request.session_id)
             safety_checks = sess.get("safety_checks")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Failed to load safety checks for session {request.session_id}: {e}")
 
         # Build action items
         action_items = [
@@ -240,10 +240,10 @@ async def generate_report(request=None, _session: str = Depends(verify_session_t
                         "federal_tax": calculation.federal_tax,
                         "state_tax": calculation.state_tax,
                         "effective_rate": calculation.effective_rate,
-                        "total_savings": sum(s.estimated_savings for s in strategies),
+                        "total_savings": sum((s.estimated_savings or 0) for s in strategies),
                     },
                     "recommendations": [
-                        {"title": s.title, "savings": s.estimated_savings, "priority": s.priority}
+                        {"title": s.title, "savings": s.estimated_savings or 0, "priority": s.priority}
                         for s in strategies[:5]
                     ],
                 }
@@ -275,7 +275,7 @@ async def generate_report(request=None, _session: str = Depends(verify_session_t
                 "summaries": multi_summaries,
                 "tax_position": calculation.dict(),
                 "strategies": [s.dict() for s in strategies],
-                "total_potential_savings": sum(s.estimated_savings for s in strategies),
+                "total_potential_savings": sum((s.estimated_savings or 0) for s in strategies),
                 "action_items": action_items,
                 "action_plan": action_plan,
                 "email_summary_client": email_summary_client,
@@ -335,8 +335,8 @@ async def email_report(request: EmailReportRequest, _session: str = Depends(veri
                 if branding:
                     cpa_firm_name = branding.get("firm_name", cpa_firm_name)
                     cpa_address = branding.get("address", "")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"CPA branding lookup failed in email_report: {e}")
 
         email_body_client = f"""
 Hi {request.name or 'there'},
@@ -379,7 +379,7 @@ New Lead Report:
             )
             email_sent = True
         except Exception as e:
-            logger.warning(f"Email delivery failed (lead still captured): {e}")
+            logger.error(f"Email delivery failed (lead still captured): {e}")
 
         return {
             "success": True,

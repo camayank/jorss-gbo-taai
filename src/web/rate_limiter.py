@@ -308,20 +308,20 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
     )
 
     def _default_get_identifier(self, request: Request) -> str:
-        """Get client identifier from request."""
-        client_ip = request.client.host if request.client else "unknown"
+        """Get client identifier from request.
 
-        # Only trust forwarded headers if request comes from a trusted proxy
-        if client_ip in self._TRUSTED_PROXIES:
-            forwarded = request.headers.get("X-Forwarded-For")
-            if forwarded:
-                return forwarded.split(",")[0].strip()
+        Prefers X-Forwarded-For / X-Real-IP headers (set by load balancer / nginx)
+        over the raw client IP, which is typically the internal proxy address.
+        """
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
 
-            real_ip = request.headers.get("X-Real-IP")
-            if real_ip:
-                return real_ip
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip
 
-        return client_ip
+        return request.client.host if request.client else "unknown"
 
     def _is_exempt(self, path: str) -> bool:
         """Check if path is exempt from rate limiting."""

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/workflow/status_manager.py
+# hypothesis_version: 6.141.1
+
+[100, 1000, 'CPA_APPROVED', 'DRAFT', 'FeatureAccess', 'IN_REVIEW', 'ReturnStatus', 'STATUS_CHANGE', 'approval_timestamp', 'can_approve', 'can_revert', 'cpa_approved', 'cpa_reviewer_id', 'cpa_reviewer_name', 'created_at', 'default', 'editable', 'export_enabled', 'last_status_change', 'new_status', 'previous_status', 'review_notes', 'session_id', 'status', 'tenant_id', 'updated_at']

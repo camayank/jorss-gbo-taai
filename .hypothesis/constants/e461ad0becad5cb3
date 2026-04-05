@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/audit/unified/entry.py
+# hypothesis_version: 6.141.1
+
+['APP_ENVIRONMENT', 'AUDIT_HMAC_KEY', 'ChangeRecord', 'UnifiedAuditEntry', 'action', 'calculation_version', 'change_reason', 'changes', 'confidence', 'description', 'entry_id', 'error_code', 'error_message', 'event_type', 'field_path', 'ip_address', 'metadata', 'new_value', 'old_value', 'pii_access_reason', 'pii_fields_accessed', 'previous_hash', 'prod', 'production', 'request_path', 'resource_id', 'resource_type', 'return_id', 'session_id', 'severity', 'signature_hash', 'source', 'staging', 'success', 'tax_year', 'tenant_id', 'timestamp', 'user_agent', 'user_id', 'user_name', 'user_role', 'utf-8']

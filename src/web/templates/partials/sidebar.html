@@ -267,7 +267,7 @@
   </div>
 </aside>
 
-<script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 function toggleNotifications() {
   var drawer = document.getElementById('notification-drawer');
   if (!drawer) {

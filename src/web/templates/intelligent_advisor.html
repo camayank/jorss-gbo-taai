@@ -11,7 +11,7 @@
   <script src="/static/js/loading-states.js" defer></script>
   <script src="/static/js/core/icons.js" defer></script>
   <script type="module" src="/static/js/advisor/modules/index.js?v=20"></script>
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 /* ================================================================
    AI TAX ADVISOR — PREMIUM ADVISORY INTERFACE
    Aesthetic: Quiet authority. Bloomberg meets private wealth.
@@ -790,6 +790,28 @@ body::before {
 .currency-input { flex: 1; padding: 0.7rem 1rem; border: 1px solid var(--stone-200); border-radius: var(--radius-xs); font-family: var(--mono); font-size: 1.1rem; font-weight: 600; outline: none; transition: var(--transition); color: var(--ink); background: var(--white); }
 .currency-input:focus { border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-subtle); }
 
+/* ========== EDIT BUTTON for user messages (hover-visible) ========== */
+.edit-msg-btn {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 4px;
+  padding: 3px 8px 3px 6px;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  font-size: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+}
+.edit-msg-btn:hover { background: rgba(255,255,255,0.25); color: white; }
+.message.user .bubble:hover .edit-msg-btn { opacity: 1; }
+
 /* ========== COPY BUTTON (hover-visible) ========== */
 .copy-btn {
   position: absolute;
@@ -1067,6 +1089,41 @@ body.dark-mode .freeform-hints { background: var(--stone-100); }
       </div>
     </div>
   </div>
+
+  <!-- Phase Progress Strip -->
+  <div class="phase-strip" id="phaseStrip" data-phase="0">
+    <div class="phase-step active" data-step="0"><span class="phase-dot"></span><span class="phase-label">Basics</span></div>
+    <div class="phase-connector"></div>
+    <div class="phase-step" data-step="1"><span class="phase-dot"></span><span class="phase-label">Income</span></div>
+    <div class="phase-connector"></div>
+    <div class="phase-step" data-step="2"><span class="phase-dot"></span><span class="phase-label">Deductions</span></div>
+    <div class="phase-connector"></div>
+    <div class="phase-step" data-step="3"><span class="phase-dot"></span><span class="phase-label">Strategies</span></div>
+    <div class="phase-connector"></div>
+    <div class="phase-step" data-step="4"><span class="phase-dot"></span><span class="phase-label">Report</span></div>
+  </div>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    .phase-strip{display:flex;align-items:center;justify-content:center;padding:10px 20px;background:#fff;border-bottom:1px solid #e8edf5;gap:0;position:sticky;top:0;z-index:10;}
+    .phase-step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px;}
+    .phase-dot{width:10px;height:10px;border-radius:50%;background:#dde3ee;border:2px solid #dde3ee;transition:all 0.3s ease;}
+    .phase-step.active .phase-dot{background:var(--amber,#c4975a);border-color:var(--amber,#c4975a);box-shadow:0 0 0 3px rgba(196,151,90,0.2);}
+    .phase-step.complete .phase-dot{background:#0B1D3A;border-color:#0B1D3A;}
+    .phase-label{font-size:9px;font-family:'DM Sans',sans-serif;color:#8899aa;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;}
+    .phase-step.active .phase-label{color:var(--amber,#c4975a);font-weight:700;}
+    .phase-step.complete .phase-label{color:#0B1D3A;}
+    .phase-connector{flex:1;height:2px;background:#dde3ee;margin-bottom:14px;transition:background 0.3s ease;min-width:20px;}
+    .phase-connector.active{background:#0B1D3A;}
+    @media(max-width:480px){.phase-strip{padding:8px 10px;}.phase-step{min-width:36px;}.phase-label{font-size:7px;letter-spacing:0;}.phase-connector{min-width:8px;}}
+    .savings-reveal-banner{background:linear-gradient(135deg,#0B1D3A 0%,#1a3a6b 100%);border-radius:12px;padding:24px;text-align:center;margin:16px 0;animation:revealSlideIn 0.6s cubic-bezier(0.34,1.56,0.64,1);}
+    @keyframes revealSlideIn{from{transform:scale(0.8) translateY(20px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+    .savings-reveal-label{color:rgba(255,255,255,0.7);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-family:'DM Sans',sans-serif;margin-bottom:8px;}
+    .savings-reveal-amount{color:var(--amber,#c4975a);font-size:44px;font-family:'Playfair Display',serif;font-weight:700;line-height:1;margin-bottom:8px;}
+    .savings-reveal-sub{color:rgba(255,255,255,0.6);font-size:12px;font-family:'DM Sans',sans-serif;}
+    .streaming-bubble{min-height:20px;white-space:pre-wrap;}
+    .strategy-tier-high{border-left:4px solid #C9A84C!important;background:linear-gradient(135deg,#fdfbf5 0%,#fff 100%);}
+    .strategy-tier-medium{border-left:3px solid #7a9cc0;}
+    .strategy-tier-low{border-left:2px solid #dde3ee;opacity:0.88;}
+  </style>
 
   <main class="advisor-main" id="main-content">
     <div id="messages" role="log" aria-live="polite" aria-label="Tax advisor conversation">

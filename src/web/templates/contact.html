@@ -6,7 +6,7 @@
   <title>Contact — AI Tax Advisor</title>
   <link rel="stylesheet" href="/static/css/core/variables.css">
   <link rel="stylesheet" href="/static/css/core/typography.css">
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     body { font-family: 'DM Sans', sans-serif;
            background: #f8fafc; margin: 0; }
     .nav { background: #0B1D3A; height: 52px;
@@ -119,7 +119,7 @@
   </div>
 </div>
 
-<script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 document.getElementById('contact-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = e.target.querySelector('.btn-submit');

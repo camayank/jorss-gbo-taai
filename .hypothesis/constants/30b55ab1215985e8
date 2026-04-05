@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rbac/__init__.py
+# hypothesis_version: 6.141.1
+
+['AuthContext', 'PERMISSIONS', 'Permission', 'PermissionInfo', 'ROLES', 'ROLE_PERMISSIONS', 'Role', 'RoleInfo', 'UserType', 'get_auth_context', 'get_current_firm', 'get_current_firm_id', 'get_permission_info', 'get_role_info', 'optional_auth', 'require_auth', 'require_firm_access', 'require_permission', 'require_role']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/api/team_routes.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100.0, 100, 400, 500, ' AND ', '+00:00', '/invitations', '/invite', '/team', '/{user_id}', '1 day', '30 days', '365 days', '7 days', '90 days', '=', 'Invitation not found', 'System', 'Team Management', 'Z', "['CPA', 'EA']", 'created_at', 'credentials', 'day', 'email', 'expired', 'expires_at', 'firm_admin', 'firm_id', 'first_name', 'i.firm_id = :firm_id', 'i.status = :status', 'inv_id', 'invited_by', 'is_active', 'job_title', 'last_name', 'license_number', 'license_state', 'message', 'month', 'name', 'new_expires_at', 'owner', 'password_hash', 'pending', 'phone', 'phone = :phone', 'quarter', 'revoked_by', 'role', 'role = :role', 'status', 'success', 'tier1', 'tier2', 'tier3', 'tier4', 'tier5', 'token', 'u.firm_id = :firm_id', 'u.is_active = true', 'u.role = :role', 'updated_at', 'updated_at = NOW()', 'user_id', 'week', 'year']

@@ -43,7 +43,8 @@ def mock_save_return(mock_tax_return):
     so /api/returns/save can succeed in tests without real session data.
     """
     with patch("web.app._get_tax_return_for_session", return_value=mock_tax_return), \
-         patch("database.persistence.save_tax_return", return_value="return-test-001"):
+         patch("database.persistence.save_tax_return", return_value="return-test-001"), \
+         patch("database.persistence_adapter.save_tax_return", return_value="return-test-001"):
         yield
 
 

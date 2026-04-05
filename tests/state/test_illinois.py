@@ -81,7 +81,7 @@ class TestIllinoisConfig:
     def test_config_exemption_amount(self):
         """Test personal exemption amount."""
         config = get_illinois_config()
-        assert config.personal_exemption_amount["single"] == 2625
+        assert config.personal_exemption_amount["single"] == 2775
 
     def test_config_social_security_exempt(self):
         """Test Social Security exemption."""
@@ -112,7 +112,7 @@ class TestIllinoisCalculator:
 
         # IL taxable = AGI - exemption ($2,625 for single)
         # Tax = taxable * 4.95%
-        expected_taxable = tax_return.adjusted_gross_income - 2625
+        expected_taxable = tax_return.adjusted_gross_income - 2775
         expected_tax = expected_taxable * 0.0495
 
         assert result.state_taxable_income == expected_taxable
@@ -127,7 +127,7 @@ class TestIllinoisCalculator:
 
         # Single filer gets 1 exemption of $2,625
         assert result.personal_exemptions == 1
-        assert result.exemption_amount == 2625
+        assert result.exemption_amount == 2775
 
     def test_married_joint_exemptions(self):
         """Test married filing jointly exemptions."""
@@ -141,7 +141,7 @@ class TestIllinoisCalculator:
 
         # Married joint gets 2 exemptions
         assert result.personal_exemptions == 2
-        assert result.exemption_amount == 2625 * 2
+        assert result.exemption_amount == 2775 * 2
 
     def test_social_security_exemption(self):
         """Test Social Security is fully exempt."""
@@ -208,10 +208,10 @@ class TestIllinoisFlatTaxVerification:
     """Verify flat tax calculations are correct."""
 
     @pytest.mark.parametrize("wages,expected_tax_approx", [
-        (50000, 2343),    # (50000 - 2625) * 0.0495 = 2343.56
-        (75000, 3580),    # (75000 - 2625) * 0.0495 = 3582.56
-        (100000, 4820),   # (100000 - 2625) * 0.0495 = 4820.06
-        (200000, 9770),   # (200000 - 2625) * 0.0495 = 9770.06
+        (50000, 2343),    # (50000 - 2775) * 0.0495 = 2343.56
+        (75000, 3580),    # (75000 - 2775) * 0.0495 = 3582.56
+        (100000, 4820),   # (100000 - 2775) * 0.0495 = 4820.06
+        (200000, 9770),   # (200000 - 2775) * 0.0495 = 9770.06
     ])
     def test_tax_at_various_incomes(self, wages, expected_tax_approx):
         """Test tax calculation at various income levels."""

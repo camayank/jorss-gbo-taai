@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/webhooks/service.py
+# hypothesis_version: 6.141.1
+
+[1.0, 200, 300, 500, 1000, 1024, 10000, '*', 'Content-Type', 'Payload too large', 'REQUEST_ERROR', 'Request timed out', 'TIMEOUT', 'Timeout', 'User-Agent', 'WebhookDelivery', 'WebhookEndpoint', 'WebhookEvent', 'X-Webhook-Event', 'X-Webhook-ID', 'X-Webhook-Signature', 'X-Webhook-Timestamp', '_truncated', 'application/json', 'attempt_number', 'created_at', 'custom_headers', 'data', 'delivered_at', 'delivery_id', 'duration_ms', 'endpoint_id', 'error', 'error_code', 'error_message', 'event_id', 'event_type', 'events', 'failed_deliveries', 'https://', 'id', 'last_triggered_at', 'max_retries', 'message', 'metadata', 'name', 'next_retry_at', 'request_body', 'request_headers', 'request_url', 'response_body', 'response_headers', 'response_status_code', 'secret', 'status', 'status_code', 'success', 'timeout', 'timestamp', 'total_deliveries', 'type', 'updated_at', 'url', 'utf-8']

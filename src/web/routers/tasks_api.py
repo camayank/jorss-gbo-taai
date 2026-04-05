@@ -110,6 +110,7 @@ async def get_task(task_id: str, ctx=Depends(require_auth)):
 
 
 @router.patch("/{task_id}")
+@router.put("/{task_id}")
 async def update_task(task_id: str, updates: TaskUpdate, ctx=Depends(require_auth)):
     record = _load_task(task_id)
     if not record:
@@ -127,3 +128,85 @@ async def delete_task(task_id: str, ctx=Depends(require_auth)):
     if not record:
         raise HTTPException(status_code=404, detail="Task not found")
     _delete_task(task_id)
+
+
+class StatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(todo|in_progress|done|review|blocked)$")
+
+
+@router.post("/{task_id}/status")
+async def update_task_status(task_id: str, body: StatusUpdate, ctx=Depends(require_auth)):
+    record = _load_task(task_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Task not found")
+    record["status"] = body.status
+    record["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_task(task_id, record)
+    return record
+
+
+@router.post("/{task_id}/complete")
+async def complete_task(task_id: str, ctx=Depends(require_auth)):
+    record = _load_task(task_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Task not found")
+    record["status"] = "done"
+    record["completed_at"] = datetime.now(timezone.utc).isoformat()
+    record["updated_at"] = record["completed_at"]
+    _save_task(task_id, record)
+    return record
+
+
+class ChecklistItemCreate(BaseModel):
+    text: str = Field(..., max_length=255)
+
+
+@router.post("/{task_id}/checklist")
+async def add_checklist_item(task_id: str, body: ChecklistItemCreate, ctx=Depends(require_auth)):
+    record = _load_task(task_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Task not found")
+    items = record.setdefault("checklist", [])
+    item = {"item_id": str(uuid4()), "text": body.text, "done": False}
+    items.append(item)
+    record["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_task(task_id, record)
+    return item
+
+
+@router.post("/{task_id}/checklist/{item_id}/toggle")
+async def toggle_checklist_item(task_id: str, item_id: str, ctx=Depends(require_auth)):
+    record = _load_task(task_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Task not found")
+    for item in record.get("checklist", []):
+        if item.get("item_id") == item_id:
+            item["done"] = not item["done"]
+            record["updated_at"] = datetime.now(timezone.utc).isoformat()
+            _save_task(task_id, record)
+            return item
+    raise HTTPException(status_code=404, detail="Checklist item not found")
+
+
+class CommentCreate(BaseModel):
+    content: str = Field(..., max_length=2000)
+    is_internal: bool = True
+
+
+@router.post("/{task_id}/comments")
+async def add_task_comment(task_id: str, body: CommentCreate, ctx=Depends(require_auth)):
+    record = _load_task(task_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Task not found")
+    comments = record.setdefault("comments", [])
+    comment = {
+        "comment_id": str(uuid4()),
+        "content": body.content,
+        "is_internal": body.is_internal,
+        "author_id": str(ctx.user_id) if ctx.user_id else None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    comments.append(comment)
+    record["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_task(task_id, record)
+    return comment

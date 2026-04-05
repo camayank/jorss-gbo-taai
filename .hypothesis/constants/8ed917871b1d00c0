@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/lead_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 500, '/leads', '/leads/queue/summary', '/leads/queue/visible', '/leads/{lead_id}', '/signals/catalog', '/states/info', 'Lead State', 'auth', 'count', 'created', 'creating lead', 'current_state', 'db', 'description', 'display_name', 'error', 'errors', 'force_state', 'get_lead_details', 'getting states info', 'is_monetizable', 'is_priority', 'is_visible_to_cpa', 'lead', 'lead_id', 'lead_id is required', 'leads', 'limit', 'metadata', 'minimum_state_for', 'name', 'offset', 'processed', 'processing signal', 'session_id', 'signal_id', 'signal_processed', 'signals', 'state', 'state is required', 'state_changed', 'states', 'strength', 'success', 'summary', 'tenant_id', 'total', 'transition_lead', 'type', 'update_lead_state', 'valid_transitions', 'value', 'visibility']

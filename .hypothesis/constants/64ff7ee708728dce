@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/analysis/scenario_comparison.py
+# hypothesis_version: 6.141.1
+
+[0.02, 0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37, 7000, 10000, 11925, 23500, 48475, 50000, 103350, 197300, 250500, 626350, '+$10K Income', '401k_contribution', 'Add IRA', 'Charitable Giving', 'Current', 'Max 401(k)', 'Scenario', 'additional_credit', 'additional_deduction', 'additional_income', 'adjustments', 'agi', 'analysis_timestamp', 'base_liability', 'best_scenario', 'best_tax', 'comparison', 'comparison_chart', 'credit', 'deduction', 'delta_from_base', 'description', 'estimated_change', 'field', 'income', 'inf', 'ira_contribution', 'is_base', 'is_beneficial', 'marginal_rate_used', 'max_savings', 'metrics', 'name', 'refund', 'refund_or_owed', 'savings', 'scenarios', 'session_id', 'tax', 'tax_liability', 'taxable', 'taxable_income', 'type', 'value', 'visualization', 'wages', 'worst_scenario', 'worst_tax']

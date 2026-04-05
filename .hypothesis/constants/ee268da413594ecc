@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/practice_intelligence_routes.py
+# hypothesis_version: 6.141.1
+
+[503, 2023, 2024, 50000, 75000, 200000, 500000, 1000000, '/advisory-mix', '/intelligence', '/metrics', '/metrics/calculate', '/scope', '/yoy-surface', 'Capacity planning', 'Realization rates', 'Revenue per staff', 'Time tracking', 'Utilization rates', 'WIP tracking', 'YoY Value Surface', 'alternatives', 'amount_owed', 'boundary_notice', 'complexity_tier', 'current_year', 'current_year_returns', 'data', 'data_type', 'description', 'endpoint', 'engagement_type', 'engagements', 'features', 'filing_status', 'firm_id', 'in_scope', 'metric', 'metrics', 'module', 'name', 'out_of_scope', 'prior_year', 'prior_year_returns', 'purpose', 'reason', 'refund', 'return_id', 'scope_notice', 'tax_liability', 'tax_year', 'total_deductions', 'total_income', 'yoy_value_surface']

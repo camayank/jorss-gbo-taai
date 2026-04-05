@@ -5,7 +5,7 @@ invitations, permissions, and performance metrics.
 import os
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -73,8 +73,8 @@ def _make_user(**overrides):
         title=None,
         department=None,
         custom_permissions=None,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
         last_login_at=None,
         deactivated_at=None,
         deactivation_reason=None,
@@ -96,8 +96,8 @@ def _make_invitation(**overrides):
         token="secure_token_abc",
         invited_by=str(uuid4()),
         status="pending",
-        expires_at=datetime.utcnow() + timedelta(days=7),
-        created_at=datetime.utcnow(),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        created_at=datetime.now(timezone.utc),
         accepted_at=None,
     )
     defaults.update(overrides)
@@ -348,7 +348,7 @@ class TestReactivation:
 
     @pytest.mark.asyncio
     async def test_reactivate_clears_deactivation_fields(self):
-        user = _make_user(is_active=False, deactivated_at=datetime.utcnow(), deactivation_reason="Left")
+        user = _make_user(is_active=False, deactivated_at=datetime.now(timezone.utc), deactivation_reason="Left")
         svc, db = _build_service([_mock_scalar_result(user)])
         await svc.reactivate_member("fid", user.user_id)
         assert user.deactivated_at is None
@@ -414,7 +414,7 @@ class TestAcceptInvitation:
 
     @pytest.mark.asyncio
     async def test_accept_valid_invitation(self):
-        inv = _make_invitation(expires_at=datetime.utcnow() + timedelta(days=7))
+        inv = _make_invitation(expires_at=datetime.now(timezone.utc) + timedelta(days=7))
         svc, db = _build_service([_mock_scalar_result(inv)])
         result = await svc.accept_invitation("token", "Alice", "hashed_pw")
         assert "user_id" in result or "error" not in result
@@ -427,7 +427,7 @@ class TestAcceptInvitation:
 
     @pytest.mark.asyncio
     async def test_accept_expired_invitation(self):
-        inv = _make_invitation(expires_at=datetime.utcnow() - timedelta(days=1))
+        inv = _make_invitation(expires_at=datetime.now(timezone.utc) - timedelta(days=1))
         svc, db = _build_service([_mock_scalar_result(inv)])
         result = await svc.accept_invitation("token", "Alice", "h")
         assert "error" in result
@@ -601,7 +601,7 @@ class TestUserToDict:
     def test_last_login_iso(self):
         from admin_panel.services.team_service import TeamService
         svc = TeamService(AsyncMock())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         user = _make_user(last_login_at=now)
         d = svc._user_to_dict(user)
         assert d["last_login_at"] == now.isoformat()

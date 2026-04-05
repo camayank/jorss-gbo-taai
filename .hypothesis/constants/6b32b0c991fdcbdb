@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/auth_decorators.py
+# hypothesis_version: 6.141.1
+
+[100, 401, 403, 429, 'APP_ENVIRONMENT', 'Authorization', 'Bearer ', 'REDIS_URL', 'Role', 'X-API-Key', 'admin', 'api', 'api_partner', 'auth', 'auth_token', 'backend', 'beta', 'check_tenant_access', 'client_token', 'cpa', 'default', 'dev', 'development', 'email', 'firm_client', 'firm_id', 'firm_name', 'guest', 'id', 'legacy_role_to_rbac', 'local', 'memory', 'name', 'partner', 'preparer', 'prod', 'production', 'rate_limit', 'redis', 'request', 'require_auth', 'return', 'return_id', 'role', 'session_id', 'session_owner', 'session_type', 'staff', 'staging', 'sub', 'super_admin', 'tax_session_id', 'taxpayer', 'tenant_id', 'test', 'testing', 'type', 'unknown', 'user-agent', 'user_id', 'user_type']

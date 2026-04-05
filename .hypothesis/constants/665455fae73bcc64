@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routes/upload_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 500, 86400, '/api/upload', '/api/upload/async', '1095-A', '1098', '1098-T', '1099-DIV', '1099-G', '1099-INT', '1099-MISC', '1099-NEC', '1099-R', 'APP_ENVIRONMENT', 'AuditEventType', 'Documents', 'Government Payments', 'Interest Income', 'Miscellaneous Income', 'Tuition Statement', 'W-2', '_DOCUMENTS', '_DOCUMENTS_LOCK', '_document_processor', '_get_persistence', '_log_audit_event', '_persist_tax_return', '_request_user_dict', 'application/pdf', 'completed', 'description', 'document_id', 'document_type', 'errors', 'extracted_fields', 'filename', 'image/jpeg', 'image/jpg', 'image/png', 'image/tiff', 'lax', 'max_file_size_mb', 'message', 'ocr_confidence', 'processing', 'production', 'status', 'supported_file_types', 'supported_types', 'task_id', 'tax_session_id', 'tax_year', 'type', 'upload', 'warnings']

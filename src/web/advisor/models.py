@@ -211,6 +211,9 @@ class StrategyRecommendation(BaseModel):
     tier: Optional[str] = "free"  # "free" or "premium"
     risk_level: Optional[str] = "low"  # "low", "medium", "high"
     implementation_complexity: Optional[str] = "simple"  # "simple", "moderate", "complex"
+    # CPA specialty matching — set when a firm's specialty aligns with this strategy
+    cpa_recommended: bool = False
+    cpa_badge: Optional[str] = None
     # Source tracking
     metadata: Optional[Dict[str, Any]] = None
 
@@ -317,6 +320,9 @@ class ChatResponse(BaseModel):
     missing_fields: Optional[List[str]] = []
     completion_hint: Optional[str] = None
     estimated_savings_preview: Optional[float] = None
+
+    # User education — one-line "why we're asking this" shown below the question
+    question_hint: Optional[str] = None
 
     # Tiered conversion fields
     premium_unlocked: bool = False

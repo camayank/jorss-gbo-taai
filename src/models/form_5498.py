@@ -249,7 +249,7 @@ class IRAContributionLimits(BaseModel):
 
     # SEP IRA limits
     sep_limit: float = Field(
-        default=70000.0,
+        default=69000.0,  # 2025 IRS limit (Rev. Proc. 2024-40)
         description="SEP IRA maximum contribution"
     )
     sep_percentage: float = Field(

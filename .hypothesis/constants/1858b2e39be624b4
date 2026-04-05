@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rbac/context.py
+# hypothesis_version: 6.141.1
+
+['Anonymous', 'AuthContext', 'client', 'email', 'firm_id', 'firm_name', 'firm_user', 'impersonating', 'is_authenticated', 'level', 'name', 'platform_admin', 'role', 'user_id', 'user_type']

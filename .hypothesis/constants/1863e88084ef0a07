@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/notes_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 404, 500, 'CPA', 'CPA Notes', 'Note not found', 'by_category', 'category', 'client_visible_notes', 'cpa_id', 'cpa_name', 'general', 'get_note_summary', 'internal_notes', 'is_internal', 'last_note', 'message', 'note', 'note_id', 'note_text', 'notes', 'session_id', 'success', 'summary', 'text', 'total_notes']

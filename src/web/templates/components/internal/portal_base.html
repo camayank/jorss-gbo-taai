@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="/static/css/unified-theme.css">
 
   {% if portal_type == 'cpa' and branding %}
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     :root {
       --cpa-primary: {{ branding.primary_color or 'var(--color-primary-500)' }};
       --cpa-secondary: {{ branding.secondary_color or 'var(--color-primary-700)' }};
@@ -114,7 +114,7 @@
     });
   </script>
 
-  <script>
+  <script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function(form) {
         if (!form.querySelector('input[name="csrf_token"]')) {
             var input = document.createElement('input');

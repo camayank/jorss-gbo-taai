@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8814.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 1300.0, 12500.0, 2025, 12500, 'Child', "Child's SSN", "Child's name", 'Form 8814', 'Tax year', 'add_to_tax', 'amount_to_include', 'child_age', 'child_calculations', 'child_name', 'child_tax', 'children_count', 'children_reported', 'difference', 'form_8814_total_tax', 'income_to_include', 'line_1a_interest', 'line_3_capital_gains', 'line_4_total_income', 'line_5_base_amount', 'line_6_over_base', 'line_7_tax_at_10_pct', 'line_8_excluded', 'line_9_to_include', 'qualifies', 'qualifying_children', 'reason', 'recommendation', 'tax_from_children', 'tax_year', 'total_capital_gains', 'total_child_tax']

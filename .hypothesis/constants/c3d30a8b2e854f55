@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/tasks/ocr_tasks.py
+# hypothesis_version: 6.141.1
+
+[1.0, 240, 300, 400, 429, 443, 500, 600, 1024, 86400, '0.0.0.0', '127.0.0.1', '::1', 'Content-Type', 'Processing timed out', 'Retry-After', 'TaxPlatform-OCR/1.0', 'User-Agent', '[::1]', 'application/json', 'completed', 'document_id', 'document_type', 'error', 'failed', 'file_path', 'http', 'https', 'localhost', 'message', 'mime_type', 'original_filename', 'pending', 'processing', 'ready', 'result', 'retry', 'retrying', 'status', 'task_id', 'unknown', 'updated_at', 'utf-8']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/rate_limiter.py
+# hypothesis_version: 6.141.1
+
+[300, 429, 1000, 3600, 6379, ',', '/api/health', '/health', '/metrics', '0', '127.0.0.1,::1', 'REDIS_HOST', 'REDIS_PASSWORD', 'REDIS_PORT', 'REDIS_RATE_LIMIT_DB', 'RateLimitExceeded', 'Retry-After', 'TRUSTED_PROXY_IPS', 'X-Forwarded-For', 'X-RateLimit-Limit', 'X-RateLimit-Reset', 'X-Real-IP', 'default', 'error_type', 'hour', 'localhost', 'minute', 'rate_limit:', 'retry_after', 'unknown', 'user_message']

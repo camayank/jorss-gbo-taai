@@ -92,7 +92,6 @@ def configure_middleware(app: FastAPI) -> dict:
     from security.middleware import (
         SecurityHeadersMiddleware,
         CSRFCookieMiddleware,
-        RateLimitMiddleware,
         RequestValidationMiddleware,
         CSRFMiddleware,
     )
@@ -120,19 +119,10 @@ def configure_middleware(app: FastAPI) -> dict:
             raise RuntimeError(f"CRITICAL: Security headers middleware failed to load: {e}")
         logger.warning(f"Security headers middleware failed: {e}")
 
-    # 2. Rate Limiting (60 requests/minute per IP)
-    try:
-        app.add_middleware(
-            RateLimitMiddleware,
-            requests_per_minute=60,
-            burst_size=20,
-            exempt_paths={"/health", "/metrics", "/static"},
-        )
-        logger.info("Rate limiting middleware enabled")
-    except Exception as e:
-        if _is_production:
-            raise RuntimeError(f"CRITICAL: Rate limiting middleware failed to load: {e}")
-        logger.warning(f"Rate limiting middleware failed: {e}")
+    # 2. Rate Limiting — handled by web.middleware.setup_middleware() via
+    # web.rate_limiter.RedisRateLimitMiddleware (sliding-window, Redis + fallback).
+    # Do NOT register a second rate limiter here; dual registration causes every
+    # request to be counted against two independent limit stores.
 
     # 3. Request Validation (size limits, content type)
     try:
@@ -160,39 +150,32 @@ def configure_middleware(app: FastAPI) -> dict:
             csrf_secret = secrets.token_hex(32)
             logger.warning("CSRF_SECRET_KEY not set, using generated key (not persistent across restarts)")
 
-        # SPEC-004: CSRF Exempt Paths Documentation
+        # SPEC-004: CSRF Exempt Paths
+        # RULE: Only exempt paths where an alternative auth mechanism
+        # (Bearer token, webhook HMAC signature) provides equivalent CSRF
+        # protection. CSRFMiddleware already skips safe methods (GET/HEAD/OPTIONS)
+        # unconditionally — read-only endpoints do not need to be listed here.
         csrf_exempt_paths = {
-            # Embeddable Advisor (uses session token auth instead of CSRF)
+            # Embeddable Advisor (session-token auth, no browser cookie)
             "/advisor-embed",
-            # Read-Only Endpoints (Safe - No State Changes)
+            # Health / observability — read-only, no cookies
             "/api/health",
-            "/api/sessions/check-active",
-            "/api/validate/fields",
-            "/api/calculate-tax",
-            "/api/estimate",
             "/api/v1/admin/health",
-            # Bearer Auth Protected (Alternative Security)
-            "/api/chat",
-            "/api/advisor/",
-            "/api/ai-chat/chat",
-            "/api/ai-chat/upload",
-            "/api/ai-chat/analyze-document",
+            # Machine-to-machine: Bearer token auth (no browser session cookie)
             "/api/v1/auth/",
             "/api/core/auth/",
             "/api/v1/admin/auth/",
+            # Advisory reports: Bearer-only, no browser session
             "/api/v1/advisory-reports/",
-            # Session-Based with Alternative Protection
-            "/api/sessions/",
-            "/api/sessions/create-session",
-            # Webhook Endpoints (Signature Validation)
+            # Webhook: validated by HMAC signature, not cookie
             "/api/webhook",
-            # Public Lead Capture (Rate Limited)
-            "/api/leads/create",
-            "/api/cpa/lead-magnet/",
-            "/api/lead-magnet/",
-            # Logout (cookie-clearing only, no sensitive state change)
-            "/logout",
         }
+        # NOTE: /api/ai-chat/*, /api/sessions/*, /api/leads/create,
+        # /api/cpa/lead-magnet/, /api/lead-magnet/, /logout, /api/chat,
+        # /api/advisor/ are intentionally NOT exempt — they accept state-changing
+        # POST/PUT/DELETE from the browser and must be CSRF-protected.
+        # Bearer-authenticated callers are covered by CSRFMiddleware's origin-check
+        # bypass when Authorization: Bearer is present.
 
         app.add_middleware(
             CSRFMiddleware,

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/advisory/pii_scrubber.py
+# hypothesis_version: 6.141.1
+
+[1000, 'address', 'address_line1', 'address_line2', 'agi', 'business_name', 'cell', 'city', 'client_name', 'contact_email', 'contribution', 'credit', 'deduction', 'dependent_name', 'ein', 'email', 'email_address', 'employer_name', 'expense', 'fax', 'first_name', 'gain', 'income', 'itin', 'last_name', 'liability', 'loss', 'mobile', 'name', 'payment', 'phone', 'phone_number', 'postal_code', 'refund', 'salary', 'savings', 'spouse_first_name', 'spouse_last_name', 'spouse_name', 'ssn', 'ssn_last4', 'street_address', 'tax', 'tax_id', 'taxpayer_id', 'taxpayer_name', 'the taxpayer', 'wage', 'zip', 'zip_code']

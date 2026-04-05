@@ -61,16 +61,6 @@ class Role(str, Enum):
     """
 
     # =========================================================================
-    # LEVEL 0B: API ACCESS
-    # =========================================================================
-
-    API_PARTNER = "api_partner"
-    """
-    API partner access. Used for machine-to-machine API key authentication.
-    Who: External integrations authenticated via API key
-    """
-
-    # =========================================================================
     # LEVEL 1A: CPA FIRM (B2B Customers)
     # =========================================================================
 
@@ -181,20 +171,6 @@ ROLES: dict[Role, RoleInfo] = {
         level=Level.PLATFORM,
         is_platform=True,
         is_firm=False,
-        is_client=False,
-        can_impersonate=False,
-    ),
-
-    # -------------------------------------------------------------------------
-    # API Partner Role
-    # -------------------------------------------------------------------------
-    Role.API_PARTNER: RoleInfo(
-        role=Role.API_PARTNER,
-        name="API Partner",
-        description="API key authenticated partner integration",
-        level=Level.FIRM,
-        is_platform=False,
-        is_firm=True,
         is_client=False,
         can_impersonate=False,
     ),

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/integration_routes.py
+# hypothesis_version: 6.141.1
+
+[404, '/integrations', '/status', '/{provider}/connect', 'CPA Integrations', 'Calendly', 'Google Calendar', 'QuickBooks', 'Xero', 'Zapier', 'calendly', 'connected', 'default', 'description', 'disconnected', 'gcal', 'name', 'pending', 'quickbooks', 'setup_url', 'xero', 'zapier']

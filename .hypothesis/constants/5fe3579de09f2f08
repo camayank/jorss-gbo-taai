@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/rbac/__init__.py
+# hypothesis_version: 6.141.1
+
+['ClientAccessGrant', 'HierarchyLevel', 'OverrideAction', 'Partner', 'PartnerAdmin', 'PartnerFirm', 'Permission', 'PermissionCache', 'PermissionCategory', 'PermissionService', 'RBACAuditLog', 'RBACContext', 'RBACMiddleware', 'RBACMiddlewareConfig', 'RBACauditLog', 'RequirePermission', 'RolePermission', 'RoleService', 'RoleTemplate', 'UserRoleAssignment', 'get_permission_cache', 'get_rbac_context', 'get_role_service', 'require_firm_admin', 'require_permissions']

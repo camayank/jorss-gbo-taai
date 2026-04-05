@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/taxpayer.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100.0, 100, 130, 200, '000', '000000000', '666', '9', 'City', "Dependent's age", 'First name', 'Last name', 'Name is required', 'Street address', 'YYYY-MM-DD format', '[^0-9]', '^[A-Z]{2}$', "^[a-zA-Z\\s\\-'.]+$", '^\\d{4}-\\d{2}-\\d{2}$', '^\\d{5}(-\\d{4})?$', '_', 'address', 'aunt', 'before', 'brother', 'daughter', 'filing_status', 'first_name', 'foster_child', 'grandchild', 'grandparent', 'half_brother', 'half_sister', 'head_of_household', 'in_law', 'last_name', 'married_joint', 'married_separate', 'name', 'nephew', 'niece', 'parent', 'qualifying_widow', 'single', 'sister', 'son', 'spouse_ssn', 'ssn', 'stepbrother', 'stepdaughter', 'stepsister', 'stepson', 'uncle']

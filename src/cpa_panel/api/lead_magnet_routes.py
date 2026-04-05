@@ -604,6 +604,60 @@ async def capture_contact(session_id: str, request: CaptureContactRequest, http_
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
+class CallbackRequestBody(BaseModel):
+    phone: str = Field(..., description="Prospect's phone number for callback")
+
+
+@lead_magnet_router.post(
+    "/{session_id}/callback-request",
+    summary="Request callback from CPA",
+    description="Prospect requests a phone callback after viewing their report"
+)
+async def request_callback(session_id: str, body: CallbackRequestBody):
+    """
+    Capture a callback request from the tier1 report page.
+    Logs the request and notifies the CPA — never returns an error to the client.
+    """
+    try:
+        service = get_lead_magnet_service()
+        session = service.get_session(session_id)
+        profile = session.get("profile", {}) if session else {}
+        first_name = profile.get("first_name") or session.get("first_name") or "A prospect"
+        cpa_slug = session.get("cpa_slug") or session.get("firm_id") or session.get("tenant_id") or ""
+
+        logger.warning(
+            "CALLBACK REQUEST — session=%s cpa=%s client=%s phone=%s",
+            session_id, cpa_slug, first_name, body.phone
+        )
+
+        try:
+            from cpa_panel.services.notification_service import NotificationService
+            from web.database.tenant_persistence import get_tenant_persistence
+            _branding = get_tenant_persistence().get_cpa_branding(cpa_slug) if cpa_slug else {}
+            _cpa_email = _branding.get("email") if _branding else None
+            _cpa_name = _branding.get("display_name") or _branding.get("firm_name") or "CPA"
+            if _cpa_email:
+                NotificationService().notify_new_lead(
+                    cpa_email=_cpa_email,
+                    cpa_name=_cpa_name,
+                    lead_data={
+                        "first_name": first_name,
+                        "phone": body.phone,
+                        "lead_score": 85,
+                        "lead_temperature": "hot",
+                        "complexity": "moderate",
+                        "savings_range": "under review",
+                        "dashboard_url": "/cpa/leads",
+                    },
+                )
+        except Exception as notify_err:
+            logger.debug(f"Callback notification skipped: {notify_err}")
+    except Exception as e:
+        logger.warning(f"Callback request error (non-fatal): {e}")
+
+    return {"ok": True}
+
+
 @lead_magnet_router.get(
     "/analytics/kpis",
     summary="Get funnel KPI aggregates",

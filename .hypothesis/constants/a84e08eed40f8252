@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/advisory_models.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100, 200, 500, 'AdvisoryReport', 'AdvisoryReportResult', 'CASCADE', 'ReportSection', 'advisory_reports', 'advisory_reports.id', 'all, delete-orphan', 'confidence_score', 'content_data', 'created_at', 'error_message', 'filing_status', 'generated_at', 'generating', 'id', 'page_number', 'pdf_generated', 'pdf_path', 'potential_savings', 'report', 'report_id', 'report_sections', 'report_type', 'section_id', 'section_title', 'sections', 'session_id', 'status', 'tax_year', 'taxpayer_name', 'updated_at']

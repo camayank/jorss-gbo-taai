@@ -579,15 +579,15 @@ async def add_1099b(
                 resource_type="form_1099b",
                 resource_id=session_id,
                 new_value={
-                    "broker_name": broker_name,
-                    "st_proceeds": short_term_proceeds,
-                    "lt_proceeds": long_term_proceeds
+                    "broker_name": request.broker_name,
+                    "st_proceeds": request.short_term_proceeds,
+                    "lt_proceeds": request.long_term_proceeds
                 }
             )
 
         return {
             "status": "added",
-            "broker_name": broker_name,
+            "broker_name": request.broker_name,
             "total_1099b_forms": len(portfolio.form_1099b_list)
         }
 

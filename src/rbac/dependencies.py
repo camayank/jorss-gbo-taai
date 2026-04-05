@@ -142,8 +142,15 @@ async def _check_firm_subscription(ctx: AuthContext) -> None:
 
     Raises 403 if the firm's subscription is cancelled or suspended.
     Platform admins are exempt from this check.
+    Skipped in development/test environments (subscription not enforced without production DB).
     """
     if ctx.user_type == UserType.PLATFORM_ADMIN or not ctx.firm_id:
+        return
+
+    # Skip subscription check in non-production environments
+    import os
+    env = os.environ.get("APP_ENVIRONMENT", "development").lower()
+    if env in ("test", "development", "dev", "local"):
         return
 
     try:

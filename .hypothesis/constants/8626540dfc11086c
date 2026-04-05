@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/nurture_service.py
+# hypothesis_version: 6.141.1
+
+[100, '#', '$500 - $2,000', 'NurtureService', 'Your Tax Advisor', 'active', 'body', 'booking_link', 'bounced', 'by_status', 'by_type', 'clicked', 'completed', 'complexity', 'conversion_push', 'convert_1', 'convert_2', 'converted', 'count', 'cpa_firm', 'cpa_name', 'current_step', 'database', 'email', 'email_id', 'first_name', 'initial_welcome', 'insight_count', 'jorss_gbo.db', 'lead_name', 'moderate', 'opened', 'paused', 'proof_1', 're_engagement', 'recipient_email', 'recipient_name', 'reengage_1', 'report_link', 'savings_range', 'scheduled', 'sent', 'sequence_order', 'sequence_type', 'social_proof', 'status', 'subject', 'there', 'top_insight', 'total_sent', 'unsubscribed', 'value_1', 'value_2', 'value_demo', 'welcome_1', 'welcome_2', 'welcome_3']

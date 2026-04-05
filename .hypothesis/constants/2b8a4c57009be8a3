@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/lead_magnet/delivery.py
+# hypothesis_version: 6.141.1
+
+[86400, 'consultation_booked', 'engaged_at', 'engagement_type', 'lead_id']

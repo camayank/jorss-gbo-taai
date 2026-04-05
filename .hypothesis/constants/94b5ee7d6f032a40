@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/repositories/client_repository.py
+# hypothesis_version: 6.141.1
+
+[100, 'city', 'client_id', 'created_at', 'email', 'external_id', 'firm_id', 'first_name', 'is_active', 'last_name', 'limit', 'pattern', 'phone', 'preparer_id', 'profile_data', 'ssn_hash', 'state', 'street_address', 'updated_at', 'zip_code']

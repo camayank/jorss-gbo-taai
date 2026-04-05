@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/config_api.py
+# hypothesis_version: 6.141.1
+
+[400, 404, 500, 2025, '/api/config', '/api/rules', '/categories', '/changes', '/evaluate', '/metadata/{year}', '/parameter/{name}', '/parameters', '/tax-year/{year}', '/{rule_id}', 'Configuration', 'Filing status', 'Filter by category', 'Rules', 'Tax year', '_', 'by_filing_status', 'categories', 'change_count', 'changes', 'config', 'failed', 'filing_status', 'name', 'parameter_count', 'parameters', 'passed', 'results', 'retrieved_at', 'rule_count', 'rules', 'rules_failed', 'rules_passed', 'success', 'summary', 'tax_parameters', 'tax_year', 'type', 'value']

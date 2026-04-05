@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rbac/dependencies.py
+# hypothesis_version: 6.141.1
+
+[', ', 'Bearer', 'Firm not found', 'WWW-Authenticate', '__name__', 'auth_context', 'cancelled', 'client', 'email', 'exp', 'firm_id', 'firm_name', 'jti', 'name', 'role', 'sub', 'suspended', 'trial', 'user_type', 'value']

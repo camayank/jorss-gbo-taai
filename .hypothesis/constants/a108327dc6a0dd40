@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/api/oauth_routes.py
+# hypothesis_version: 6.141.1
+
+[3600, '/google/callback', '/google/start', '/google/token', '/microsoft/callback', '/microsoft/start', '/microsoft/token', '/oauth', '/providers', 'APP_ENVIRONMENT', 'Custom callback URL', 'Google', 'Microsoft', 'OAUTH_CALLBACK_URL', 'OAuth Authentication', 'access_token', 'available', 'dev', 'development', 'google', 'http', 'https', 'icon', 'lax', 'local', 'microsoft', 'name', 'origin', 'production', 'providers', 'refresh_token', 'test', 'testing', 'user']

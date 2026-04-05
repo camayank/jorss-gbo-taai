@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/utah.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.013, 0.0455, 0.06, 0.2, 2025, 4150, 15548, 15750, 31500, 'TaxReturn', 'UT', 'Utah', 'credit_based', 'federal_agi', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'taxpayer_credit', 'ut_eitc']

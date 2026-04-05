@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/config/lead_magnet_score_config.py
+# hypothesis_version: 6.141.1
+
+[0.1, 0.17, 0.18, 0.28, 'average_score', 'average_taxpayer', 'compliance_risk', 'confidence', 'cpa_optimized_target', 'cpa_planned_average', 'entity_structure', 'state_tax_efficiency', 'timing_strategy']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8606.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 1.0, 100, 2025, 10000, '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'E', 'F', 'G', 'H', 'J', 'T', 'U', 'basis_carryforward', 'conversion_amount', 'conversion_date', 'from_contributions', 'from_conversions', 'from_earnings', 'inherited_roth', 'is_qualified', 'line_2_prior_basis', 'line_3_total_basis', 'line_7_distributions', 'line_8_conversions', 'line_9_total_value', 'other', 'penalty_amount', 'roth', 'sep', 'simple', 'tax_year', 'taxable_amount', 'taxable_conversion', 'total_distribution', 'traditional']

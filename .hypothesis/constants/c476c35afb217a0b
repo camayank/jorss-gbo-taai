@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/lead_magnet/calculator.py
+# hypothesis_version: 6.141.1
+
+[0.1, 0.12, 0.2, 0.22, 0.24, 0.25, 0.3, 0.32, 100, 120, 250, 300, 500, 1000, 2500, 5000, 10000, 11925, 20000, 23850, 37500, 48475, 50000, 62500, 87500, 96950, 100000, 103350, 125000, 175000, 197300, 200000, 206700, 350000, 394600, 500000, 750000, 1500000, '$', ',', '000', '100k_150k', '150k_200k', '1m_plus', '200k_500k', '25k_50k', '500k_plus', '50k_75k', '75k_100k', 'average', 'average_score', 'average_taxpayer', 'band', 'benchmark', 'breakdown', 'complexity_handling', 'cpa_optimized_target', 'cpa_planned_average', 'credit_utilization', 'employer_match', 'excellent', 'good', 'hdhp_hsa', 'high', 'k', 'low', 'maxed', 'message', 'missed_savings_range', 'needs_attention', 'over_1m', 'over_500k', 'overall', 'retirement_readiness', 'savings_range', 'some', 'state_code', 'state_tax_efficiency', 'subscores', 'under_25k']

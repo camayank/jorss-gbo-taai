@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/api/compliance_routes.py
+# hypothesis_version: 6.141.1
+
+[100, 200, 365, 500, 10000, ',', '/audit/actions', '/audit/export', '/audit/logs', '/audit/logs/{log_id}', '/compliance/report', '/compliance/status', 'Compliance & Audit', 'Filter by user ID', 'action', 'actions', 'activity', 'attempted_email', 'audit_logs', 'by_attempted_user', 'by_ip_address', 'checked_at', 'compliant', 'csv', 'data', 'details', 'download_url', 'end_date', 'firm_id', 'format', 'integrity_verified', 'ip_address', 'is_compliant', 'json', 'limit', 'logs', 'name', 'offset', 'overall_status', 'period_days', 'recent_attempts', 'record_count', 'retention_compliance', 'review_needed', 'sensitive_actions', 'start_date', 'status', 'success', 'total', 'total_failures', 'unknown', 'user_id', 'value']

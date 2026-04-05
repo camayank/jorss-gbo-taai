@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/admin_tenant_api.py
+# hypothesis_version: 6.141.1
+
+[100, 400, 403, 404, 409, 500, 503, '"', '/', '/api/admin/tenants', '/{tenant_id}', '/{tenant_id}/stats', '/{tenant_id}/status', 'Branding updated', 'Custom domain added', 'Domain verified', 'Features updated', 'Status updated', 'TXT', 'Tenant deleted', 'Tenant not found', 'admin-tenants', 'branding', 'clients', 'cpas', 'cpas_percent', 'dns_checked', 'domain', 'features', 'free', 'ignore', 'instructions', 'limits', 'max_cpas', 'max_storage_gb', 'message', 'returns', 'returns_per_month', 'returns_percent', 'status', 'storage_gb', 'storage_percent', 'strings', 'usage', 'utilization', 'verification_token']

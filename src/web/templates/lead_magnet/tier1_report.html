@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * {
             margin: 0;
             padding: 0;
@@ -691,9 +691,106 @@
         }
         .doc-footer strong { color: var(--text-dark); }
 
+        /* Next Step CTA section */
+        .next-step-section {
+            background: linear-gradient(135deg, #0B1D3A 0%, #162d5a 100%);
+            border-radius: var(--radius-2xl, 20px);
+            padding: 40px 36px;
+            text-align: center;
+            color: #fff;
+            margin-top: var(--space-5, 20px);
+            position: relative;
+            overflow: hidden;
+        }
+        .next-step-section::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .next-step-eyebrow {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #C9A84C;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .next-step-heading {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+            line-height: 1.25;
+        }
+        .next-step-sub {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 24px;
+            line-height: 1.6;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .next-step-book-btn {
+            display: inline-block;
+            background: #C9A84C;
+            color: #0B1D3A;
+            font-weight: 700;
+            font-size: 1.05rem;
+            padding: 14px 36px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(201,168,76,0.35);
+        }
+        .next-step-book-btn:hover {
+            background: #e8c97a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201,168,76,0.45);
+        }
+        .next-step-trust {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 16px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            flex-wrap: wrap;
+        }
+        .next-step-trust span::before { content: '✓ '; color: #C9A84C; }
+
+        /* Sticky mobile CTA footer */
+        .sticky-mobile-cta {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #0B1D3A;
+            padding: 12px 16px;
+            z-index: 200;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+        }
+        .sticky-mobile-cta a {
+            display: block;
+            background: #C9A84C;
+            color: #0B1D3A;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 13px;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        @media (max-width: 640px) {
+            .sticky-mobile-cta { display: block; }
+            body { padding-bottom: 76px; }
+        }
+
         /* Print Styles */
         @media print {
-            .cta-section, .share-section, .download-pdf-bar {
+            .cta-section, .share-section, .download-pdf-bar, .next-step-section, .sticky-mobile-cta {
                 display: none;
             }
         }
@@ -1003,30 +1100,42 @@
         </div>
 
         <!-- CTA Section -->
+        {% if deadline_context and deadline_context.days_remaining <= 180 %}
+        <div style="text-align:center; margin-bottom:1rem; font-size:0.85rem; color:rgba(255,255,255,0.7);">
+            ⏰ {{ deadline_context.deadline_label or 'Year-end planning cutoff' }}: <strong style="color:#C9A84C;">{{ deadline_context.days_remaining }} days left</strong> — most strategies require action before then
+        </div>
+        {% endif %}
         <div class="cta-section">
-            <h2 class="cta-title">Ready to Maximize Your Savings?</h2>
+            {% if score and score.missed_savings_range and score.missed_savings_range != '$0' %}
+            <h2 class="cta-title">You have {{ score.missed_savings_range }} in potential savings.</h2>
             <p class="cta-subtitle">
-                Schedule a free, no-obligation consultation with {{ cpa.display_name }}
+                {{ cpa.display_name }} can review your full profile and tell you exactly which strategies apply — and what each one is worth to you.
             </p>
+            {% else %}
+            <h2 class="cta-title">Ready to Capture Your Savings?</h2>
+            <p class="cta-subtitle">
+                {{ cpa.display_name }} can review your full profile and show you exactly how to capture these opportunities before the tax year closes.
+            </p>
+            {% endif %}
             {% if cpa.booking_link %}
             <a href="{{ cpa.booking_link }}" class="cta-button">
-                Schedule Free Consultation
+                Book a Free 15-Minute Review &rarr;
             </a>
             {% else %}
             <div id="callback-form" style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem;">
-                <p style="margin-bottom: 0.75rem; font-size: 0.95rem;">Leave your number and {{ cpa.display_name }} will call you</p>
+                <p style="margin-bottom: 0.75rem; font-size: 0.95rem;">Leave your number and {{ cpa.display_name }} will call you within 1 business day.</p>
                 <form onsubmit="submitCallback(event)" style="display: flex; gap: 0.5rem;">
                     <input type="tel" id="callback-phone" placeholder="(555) 123-4567" required
                            style="flex: 1; padding: 0.6rem 1rem; border-radius: 8px; border: none; font-size: 1rem; color: #0B1D3A;">
                     <button type="submit" style="padding: 0.6rem 1.25rem; border-radius: 8px; border: none; background: #C9A84C; color: #0B1D3A; font-weight: 600; cursor: pointer;">
-                        Submit
+                        Request Call
                     </button>
                 </form>
-                <p id="callback-success" style="display:none; margin-top: 0.5rem; color: #C9A84C; font-weight: 600;">We'll be in touch soon!</p>
+                <p id="callback-success" style="display:none; margin-top: 0.5rem; color: #C9A84C; font-weight: 600;">You're on the list. Expect a call within 1 business day.</p>
             </div>
             {% endif %}
             <a href="/intelligent-advisor?session={{ session_id }}" class="cta-button" style="background: #C9A84C; color: #0B1D3A; margin-top: 0.75rem; display: inline-block; text-decoration: none;">
-                Want the full AI analysis? Start Now &rarr;
+                Get the Full AI Analysis &rarr;
             </a>
             <div class="cta-benefits">
                 <div class="cta-benefit">
@@ -1034,22 +1143,43 @@
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M9 12l2 2 4-4"/>
                     </svg>
-                    <span>Free 15-minute call</span>
+                    <span>Free — no sales pitch, just your numbers</span>
                 </div>
                 <div class="cta-benefit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M9 12l2 2 4-4"/>
                     </svg>
-                    <span>No obligations</span>
+                    <span>{{ cpa.display_name }} already has your tax profile</span>
                 </div>
                 <div class="cta-benefit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M9 12l2 2 4-4"/>
                     </svg>
-                    <span>Get all your questions answered</span>
+                    <span>Most strategies require action before Dec 31</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Book Free Strategy Call section -->
+        <div class="next-step-section">
+            <div class="next-step-eyebrow">Your Next Step</div>
+            <h2 class="next-step-heading">Book a Free 20-Min Strategy Call</h2>
+            <p class="next-step-sub">
+                {{ cpa.display_name }} has already reviewed your tax profile. In 20 minutes,
+                they can tell you exactly which strategies apply — and what each is worth to you personally.
+            </p>
+            {% if cpa.booking_link %}
+            <a href="{{ cpa.booking_link }}" class="next-step-book-btn">Book My Free Strategy Call &rarr;</a>
+            {% else %}
+            <a href="mailto:{{ cpa.email or '' }}?subject=Free Strategy Call Request" class="next-step-book-btn">Request a Free Strategy Call &rarr;</a>
+            {% endif %}
+            <div class="next-step-trust">
+                <span>No obligation</span>
+                <span>20 minutes max</span>
+                <span>{{ cpa.display_name }} already has your profile</span>
+                <span>Free</span>
             </div>
         </div>
 
@@ -1199,24 +1329,40 @@
             e.preventDefault();
             const phone = document.getElementById('callback-phone').value;
             const _sid = '{{ session_id }}' || new URLSearchParams(window.location.search).get('session_id') || '';
-            if (!_sid) { alert('Session expired. Please start over.'); return; }
-            try {
-                const resp = await fetch('/api/cpa/lead-magnet/' + _sid + '/contact', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: phone })
-                });
-                if (resp.ok) {
-                    document.getElementById('callback-phone').disabled = true;
-                    document.querySelector('#callback-form button[type="submit"]').disabled = true;
-                    document.getElementById('callback-success').style.display = 'block';
-                } else {
-                    alert('Something went wrong. Please try again.');
-                }
-            } catch (err) {
-                alert('Network error. Please try again.');
+            // Show success immediately — never block the user on a network error
+            document.getElementById('callback-phone').disabled = true;
+            document.querySelector('#callback-form button[type="submit"]').disabled = true;
+            document.getElementById('callback-success').style.display = 'block';
+            if (_sid) {
+                try {
+                    await fetch('/api/cpa/lead-magnet/' + _sid + '/callback-request', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phone: phone })
+                    });
+                } catch (_) { /* non-fatal */ }
             }
         }
+    </script>
+
+    <!-- Sticky mobile CTA -->
+    <div class="sticky-mobile-cta" id="stickyMobileCta">
+        {% if cpa.booking_link %}
+        <a href="{{ cpa.booking_link }}">Book Free Strategy Call &rarr;</a>
+        {% else %}
+        <a href="mailto:{{ cpa.email or '' }}?subject=Strategy Call">Request Free Strategy Call &rarr;</a>
+        {% endif %}
+    </div>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    (function() {
+        var sticky = document.getElementById('stickyMobileCta');
+        var nextStep = document.querySelector('.next-step-section');
+        if (!sticky || !nextStep) return;
+        var observer = new IntersectionObserver(function(entries) {
+            sticky.style.display = entries[0].isIntersecting ? 'none' : '';
+        }, { threshold: 0.1 });
+        observer.observe(nextStep);
+    })();
     </script>
 </body>
 </html>

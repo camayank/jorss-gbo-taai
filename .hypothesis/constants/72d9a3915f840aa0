@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/appointment_routes.py
+# hypothesis_version: 6.141.1
+
+[168, 365, 400, 404, '/appointments', '/availability', '/client/{client_id}', '/reminders/pending', '/slots', '/statuses', '/summary', '/today', '/types', '/upcoming', '/{appointment_id}', '1h', '24h', 'America/New_York', 'Appointment type', 'Appointments', 'CPA name', 'CPA user ID', 'Date to block', 'Date to unblock', 'End of date range', 'Filter by CPA', 'Filter by client', 'Filter by firm', 'Firm ID', 'New start time', 'Start of date range', 'Who is cancelling', 'Who is rescheduling', '_', 'appointment', 'appointments', 'availability', 'client', 'confirmation_code', 'day_of_week', 'end_time', 'general', 'is_active', 'label', 'message', 'reminders_1h', 'reminders_24h', 'slots', 'start_time', 'statuses', 'success', 'total', 'types', 'value']

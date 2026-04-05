@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/recommendation/models.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.8, 2025, 'action_items', 'amt', 'business', 'category', 'charitable', 'complex', 'complexity', 'compliance', 'confidence', 'count', 'credits', 'critical', 'deadline_info', 'deductions', 'description', 'education', 'errors', 'filing_status', 'general', 'high', 'investment', 'lead_score', 'low', 'medium', 'metadata', 'moderate', 'normal', 'penalty', 'planning', 'potential_savings', 'priority', 'processing_time_ms', 'profile_summary', 'real_estate', 'recommendations', 'requirements', 'retirement', 'simple', 'source', 'sources_used', 'tax_year', 'timing', 'title', 'unified_advisor', 'urgency_level', 'warnings', 'withholding']

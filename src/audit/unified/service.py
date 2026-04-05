@@ -16,7 +16,7 @@ Usage:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from .event_types import AuditEventType, AuditSeverity, AuditSource
@@ -625,17 +625,17 @@ class AuditService:
 
     def get_user_activity(self, user_id: str, days: int = 30) -> List[UnifiedAuditEntry]:
         """Get recent activity for a user."""
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         return self._storage.query(user_id=user_id, start_date=start_date)
 
     def get_tenant_activity(self, tenant_id: str, days: int = 30) -> List[UnifiedAuditEntry]:
         """Get recent activity for a tenant."""
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         return self._storage.query(tenant_id=tenant_id, start_date=start_date)
 
     def get_failed_logins(self, hours: int = 24) -> List[UnifiedAuditEntry]:
         """Get recent failed login attempts."""
-        start_date = datetime.now() - timedelta(hours=hours)
+        start_date = datetime.now(timezone.utc) - timedelta(hours=hours)
         return self._storage.query(
             event_type=AuditEventType.AUTH_FAILED_LOGIN,
             start_date=start_date,
@@ -644,7 +644,7 @@ class AuditService:
 
     def get_security_events(self, days: int = 7) -> List[UnifiedAuditEntry]:
         """Get recent security-related events."""
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         return self._storage.query(
             severity=AuditSeverity.CRITICAL,
             start_date=start_date,
@@ -678,7 +678,7 @@ class AuditService:
             "timeline": [e.to_dict() for e in entries],
             "first_event": entries[-1].to_dict() if entries else None,
             "last_event": entries[0].to_dict() if entries else None,
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def get_pii_access_report(
@@ -688,7 +688,7 @@ class AuditService:
         days: int = 30,
     ) -> Dict:
         """Generate PII access report for compliance review."""
-        start_date = datetime.now() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         # Query all PII events
         pii_event_types = [
@@ -718,7 +718,7 @@ class AuditService:
 
         return {
             "period_start": start_date.isoformat(),
-            "period_end": datetime.now().isoformat(),
+            "period_end": datetime.now(timezone.utc).isoformat(),
             "total_pii_accesses": len(all_events),
             "ssn_accesses": len(ssn_accesses),
             "security_violations": len(violations),
@@ -732,7 +732,7 @@ class AuditService:
                 "delete": len([e for e in all_events if "deletion" in e.event_type.value]),
             },
             "violations_detail": [e.to_dict() for e in violations],
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def verify_session_integrity(self, session_id: str) -> tuple[bool, List[str]]:

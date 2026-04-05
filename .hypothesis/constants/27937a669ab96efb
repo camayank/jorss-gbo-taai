@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/user.py
+# hypothesis_version: 6.141.1
+
+[100, 255, 500, 'CASCADE', 'FeatureUsage', 'Firm', 'User', "['CPA', 'EA', 'CFP']", 'all, delete-orphan', 'bcrypt hash', 'client_archive', 'client_assign', 'client_create', 'client_edit', 'client_view_all', 'client_view_own', 'firm_id', 'firm_manage_api_keys', 'firm_manage_billing', 'firm_manage_branding', 'firm_view_audit', 'firm_view_billing', 'firms.firm_id', 'invited_by', 'is_active', 'ix_user_firm_active', 'ix_user_firm_role', 'ix_user_invited_by', 'last_activity_at', 'partner', 'return_approve', 'return_create', 'return_edit', 'return_review', 'return_run_scenarios', 'return_submit', 'return_view_own', 'role', 'staff', 'team_invite', 'team_manage', 'team_view', 'user', 'users', 'users.user_id']

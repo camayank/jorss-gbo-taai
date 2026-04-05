@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/louisiana.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.03, 0.05, 2025, 6000, 12500, 25000, 'LA', 'Louisiana', 'TaxReturn', 'federal_agi', 'head_of_household', 'la_eitc', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

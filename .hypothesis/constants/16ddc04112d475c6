@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/recommendation/utils.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.37, 0.8, 100, 2025, 50000, 100000, 200000, 500000, '-', '401k_contributions', '_', '_original', 'age', 'agi', 'business_income', 'capital_gains', 'charitable', 'credits', 'deductions', 'dependents', 'dividend_income', 'filing_status', 'general', 'gross_income', 'has_dependents', 'has_investments', 'has_rental_property', 'high', 'income', 'interest_income', 'investment_income', 'ira_contributions', 'is_self_employed', 'itemized_deductions', 'medium', 'moderate', 'mortgage_interest', 'normal', 'num_dependents', 'rental_income', 'self_employment', 'single', 'spouse_age', 'state', 'state_local_taxes', 'state_of_residence', 'tax_year', 'taxpayer', 'total', 'total_income', 'total_wages', 'unified_advisor', 'w2_income', 'wages']

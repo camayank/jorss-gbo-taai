@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/auto_save_api.py
+# hypothesis_version: 6.141.1
+
+[404, '/api/auto-save', '/flush', '/stats', '/trigger', 'Session not found', 'auto-save', 'last_save_time', 'message', 'saved_count', 'success']

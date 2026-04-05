@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/nebraska.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0246, 0.0351, 0.0501, 0.052, 0.1, 159, 318, 2025, 3700, 5920, 7390, 8300, 12100, 16600, 22170, 34170, 35730, 44350, 53600, 71460, 'NE', 'Nebraska', 'TaxReturn', 'exemption_credit', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'ne_eitc', 'qualifying_widow', 'single', 'standard']

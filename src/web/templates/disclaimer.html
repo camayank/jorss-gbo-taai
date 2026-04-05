@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
-    <style>
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
       .bg-gray-50 { background: var(--color-gray-50, #f8fafc); }
       .bg-white { background: var(--color-white, #fff); }
       .bg-gray-800 { background: var(--color-gray-800, #1e293b); }

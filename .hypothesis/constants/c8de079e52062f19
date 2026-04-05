@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/services/billing_service.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'Invalid plan', 'USD', 'active', 'amount', 'amount_due', 'annual_price', 'api_calls', 'billing_cycle', 'cancel_at_period_end', 'canceled', 'canceled_at', 'cancelled_at', 'changed', 'clients', 'code', 'created_at', 'currency', 'current_period_end', 'current_period_start', 'description', 'documents_uploaded', 'due_date', 'effective', 'end', 'error', 'features', 'firm_id', 'immediate', 'invoice_id', 'invoice_number', 'is_active', 'isoformat', 'limits', 'line_items', 'max_clients', 'max_team_members', 'monthly', 'monthly_price', 'name', 'new_plan', 'paid_at', 'period', 'period_end', 'period_start', 'plan', 'plan_id', 'quantity', 'reactivated', 'returns_processed', 'scenarios_run', 'scheduled', 'start', 'status', 'subscription_id', 'subtotal', 'tax', 'team_members', 'tier', 'total', 'trial', 'trial_end', 'trial_ends_at', 'usage']

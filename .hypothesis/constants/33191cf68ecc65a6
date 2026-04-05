@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/services/email_service.py
+# hypothesis_version: 6.141.1
+
+['587', 'APP_ENVIRONMENT', 'APP_NAME', 'APP_URL', 'EMAIL_FROM', 'EMAIL_FROM_NAME', 'EMAIL_MODE', 'From', 'Reply-To', 'SMTP_HOST', 'SMTP_PASSWORD', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_USE_TLS', 'Subject', 'Tax Advisor', 'To', 'alternative', 'auto', 'development', 'html', 'mock', 'plain', 'prod', 'production', 'smtp', 'smtp.gmail.com', 'staging', 'true']

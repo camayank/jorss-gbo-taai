@@ -3,7 +3,7 @@
 {% block title %}Notification Preferences - {{ config.APP_NAME }}{% endblock %}
 
 {% block head_extra %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .notifications-page {
         padding: var(--space-6);
         max-width: 900px;

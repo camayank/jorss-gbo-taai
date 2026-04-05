@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/base_state_calculator.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'TaxReturn', 'gross_income', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 'single']

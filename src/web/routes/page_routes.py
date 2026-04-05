@@ -371,11 +371,6 @@ def projections_redirect(request: Request, session_id: str = None):
     return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
-@router.get("/contact", response_class=HTMLResponse)
-def contact_page(request: Request):
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)
-
-
 @router.get("/settings", response_class=HTMLResponse)
 def settings_redirect(request: Request):
     """Redirect to appropriate settings page based on role."""

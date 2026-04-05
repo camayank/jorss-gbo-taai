@@ -50,7 +50,7 @@ class TaxYearConfig:
     amt_exemption_phaseout_rate: float = 0.25  # Exemption reduced by 25 cents per dollar over threshold
 
     # Credit limits and thresholds
-    child_tax_credit_amount: float = 2000.0
+    child_tax_credit_amount: float = 2500.0  # 2025 per OBBBA (was $2,000)
     child_tax_credit_refundable: float = 1700.0  # Additional Child Tax Credit max
     child_tax_credit_phaseout_start: Optional[Dict[str, float]] = None
     child_tax_credit_phaseout_rate: float = 0.05  # 5% reduction per $1,000 over threshold
@@ -99,7 +99,7 @@ class TaxYearConfig:
     estate_exemption: float = 13990000.0
 
     # Miscellaneous thresholds
-    salt_cap: float = 10000.0  # State and Local Tax deduction cap
+    salt_cap: float = 40000.0  # OBBBA 2025: $40,000 (AGI ≤ $500K), was $10,000 pre-OBBBA
     medical_expense_floor_pct: float = 0.075  # 7.5% of AGI
     qbi_deduction_rate: float = 0.20  # 20% QBI deduction
 
@@ -168,9 +168,10 @@ class TaxYearConfig:
     # Section 179 limits (IRC Section 179) - 2025 values
     section_179_limit: float = 1250000.0  # Maximum Section 179 deduction (indexed annually)
     section_179_phaseout_threshold: float = 3130000.0  # Property threshold where limit begins phaseout
-    # Bonus depreciation (IRC Section 168(k)) - phases down after 2022
-    # Schedule: 2022=100%, 2023=80%, 2024=60%, 2025=40%, 2026=20%, 2027+=0%
-    bonus_depreciation_rate: float = 0.40  # 40% for 2025
+    # Bonus depreciation (IRC Section 168(k))
+    # Pre-TCJA phase-down: 2022=100%, 2023=80%, 2024=60%, 2025=40%, 2026=20%, 2027+=0%
+    # OBBBA (signed July 2025) restored 100% for property placed in service after Dec 31, 2024
+    bonus_depreciation_rate: float = 1.00  # 100% for 2025 per OBBBA
     # Listed property business use threshold
     listed_property_min_business_use: float = 50.0  # Must be >50% business to use MACRS
     # Section 280F Luxury Auto Limits (2025)
@@ -253,7 +254,9 @@ class TaxYearConfig:
             ],
         }
 
-        # Standard deduction amounts (tax year 2025). IRS Rev. Proc. 2024-40.
+        # Standard deduction amounts (tax year 2025).
+        # Per One Big Beautiful Bill Act (OBBBA), signed July 2025 — increased from
+        # IRS Rev. Proc. 2024-40 initial announcement ($15,000/$30,000/$22,500).
         std = {
             "single": 15750.0,
             "married_joint": 31500.0,
@@ -352,13 +355,14 @@ class TaxYearConfig:
             3: 8046.0,  # 3 or more
         }
 
-        # EITC phaseout start by filing status and children
+        # EITC phaseout start by filing status and children — IRS Rev. Proc. 2024-40 (2025 tax year)
+        # Phaseout start must always be >= phase_in_end to avoid discontinuities
         eitc_phase_start = {
-            "single": {0: 9950.0, 1: 12730.0, 2: 12730.0, 3: 12730.0},
-            "married_joint": {0: 16370.0, 1: 19150.0, 2: 19150.0, 3: 19150.0},
-            "married_separate": {0: 9950.0, 1: 12730.0, 2: 12730.0, 3: 12730.0},
-            "head_of_household": {0: 9950.0, 1: 12730.0, 2: 12730.0, 3: 12730.0},
-            "qualifying_widow": {0: 16370.0, 1: 19150.0, 2: 19150.0, 3: 19150.0},
+            "single": {0: 10020.0, 1: 21150.0, 2: 21150.0, 3: 21150.0},
+            "married_joint": {0: 16810.0, 1: 28120.0, 2: 28120.0, 3: 28120.0},
+            "married_separate": {0: 10020.0, 1: 21150.0, 2: 21150.0, 3: 21150.0},
+            "head_of_household": {0: 10020.0, 1: 21150.0, 2: 21150.0, 3: 21150.0},
+            "qualifying_widow": {0: 16810.0, 1: 28120.0, 2: 28120.0, 3: 28120.0},
         }
 
         # EITC phaseout end (no credit above this) - IRS Rev. Proc. 2024-40
@@ -514,8 +518,8 @@ class TaxYearConfig:
             amt_exemption=amt_exemption,
             amt_exemption_phaseout_start=amt_phaseout_start,
             amt_exemption_phaseout_rate=0.25,
-            # Child Tax Credit
-            child_tax_credit_amount=2000.0,
+            # Child Tax Credit — OBBBA increased to $2,500 per child (was $2,000)
+            child_tax_credit_amount=2500.0,
             child_tax_credit_refundable=1700.0,
             child_tax_credit_phaseout_start=ctc_phaseout,
             child_tax_credit_phaseout_rate=0.05,
@@ -552,7 +556,7 @@ class TaxYearConfig:
             annual_gift_exclusion=19000.0,
             estate_exemption=13990000.0,
             # Miscellaneous
-            salt_cap=10000.0,
+            salt_cap=40000.0,  # OBBBA raised SALT cap to $40,000 (AGI ≤ $500K); $10K pre-OBBBA
             medical_expense_floor_pct=0.075,
             qbi_deduction_rate=0.20,
             # QBI (Section 199A) thresholds

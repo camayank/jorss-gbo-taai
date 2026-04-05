@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/montana.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.03, 0.047, 0.059, 2025, 3120, 5500, 6240, 15750, 20500, 23850, 30750, 31500, 41000, 'MT', 'Montana', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'mt_eitc', 'qualifying_widow', 'single', 'standard']

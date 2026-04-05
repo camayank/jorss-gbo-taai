@@ -1,4 +1,5 @@
 {% from 'macros/icons.html' import icon %}
+{% from 'macros/safe_value.html' import safe_value, safe_currency %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,7 +11,7 @@
     <link rel="icon" href="{{ branding.favicon_url }}">
     {% endif %}
     {% include 'partials/head_styles.html' %}
-    <style>
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         /* =========================================
            RESULTS PAGE — Navy + Gold Premium Design
            ========================================= */
@@ -620,6 +621,121 @@
             .results-actions { flex-direction: column; }
             .results-hero { padding: var(--space-8) var(--space-5); }
         }
+
+        /* --- DOWNLOAD PDF BAR --- */
+        .download-pdf-bar {
+            background: #0B1D3A;
+            padding: 12px var(--space-6);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .download-pdf-bar-text {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85rem;
+        }
+        .download-pdf-btn {
+            background: #C9A84C;
+            color: #0B1D3A;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .download-pdf-btn:hover { background: #d4b05e; }
+
+        /* --- DOCUMENT LETTERHEAD --- */
+        .doc-letterhead {
+            background: white;
+            max-width: 760px;
+            margin: var(--space-6) auto 0;
+            padding: 32px 40px 20px;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 2px solid #C9A84C;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .doc-letterhead-firm {
+            flex: 1;
+        }
+        .doc-letterhead-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        .doc-letterhead-title {
+            font-family: var(--font-serif);
+            font-size: 1.4rem;
+            color: #0B1D3A;
+            font-weight: 400;
+            margin-bottom: 4px;
+        }
+        .doc-letterhead-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+            line-height: 1.6;
+        }
+        .doc-letterhead-right {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #64748b;
+            line-height: 1.8;
+            flex-shrink: 0;
+        }
+
+        /* --- NUMBERED SECTION LABELS --- */
+        .section-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #C9A84C;
+            font-weight: 700;
+            border-left: 3px solid #C9A84C;
+            padding-left: 10px;
+            margin-bottom: 12px;
+        }
+
+        /* --- PRINT --- */
+        @media print {
+            .results-nav, .download-pdf-bar, .urgency-bar,
+            .lead-capture, .results-actions, .results-footer,
+            .results-nav-secure { display: none !important; }
+
+            body { background: white !important; }
+
+            .results-container { max-width: 100% !important; padding: 0 !important; }
+
+            .doc-letterhead {
+                border-radius: 0;
+                border-bottom: 2px solid #C9A84C;
+                page-break-after: avoid;
+            }
+
+            .results-hero {
+                background: #f8f9fa !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-inside: avoid;
+            }
+
+            .strategy-card { page-break-inside: avoid; }
+
+            .results-comparison { page-break-before: always; }
+
+            .strategies-section { page-break-before: always; }
+        }
     </style>
     {% if branding.custom_css %}
     <link rel="stylesheet" href="{{ branding.custom_css }}">
@@ -642,7 +758,33 @@
         </div>
     </nav>
 
+    <!-- DOWNLOAD PDF BAR -->
+    <div class="download-pdf-bar">
+        <span class="download-pdf-bar-text">Your confidential tax analysis — prepared {{ return_data.get('completed_date', '') or 'today' }}</span>
+        <button class="download-pdf-btn" onclick="window.print()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Download PDF
+        </button>
+    </div>
+
     <div class="results-container">
+
+        <!-- DOCUMENT LETTERHEAD -->
+        <div class="doc-letterhead">
+            <div class="doc-letterhead-firm">
+                <div class="doc-letterhead-label">Confidential Tax Analysis Report</div>
+                <div class="doc-letterhead-title">{{ branding.platform_name or 'AI Tax Advisor' }}</div>
+                <div class="doc-letterhead-meta">
+                    Prepared for: {{ return_data.get('taxpayer_name', 'Client') }}<br>
+                    Tax Year: {{ return_data.get('tax_year', '2024') }}
+                </div>
+            </div>
+            <div class="doc-letterhead-right">
+                Analysis Date: {{ return_data.get('completed_date', '') or 'Today' }}<br>
+                Filing Status: {{ return_data.get('filing_status', '—') }}<br>
+                Report Type: Optimization Analysis
+            </div>
+        </div>
 
         <!-- HERO RESULTS CARD -->
         <div class="results-hero">
@@ -711,6 +853,7 @@
 
         <!-- COMPARISON CARD -->
         <div class="results-comparison">
+            <div class="section-label">1. Tax Liability Summary</div>
             <h2>What You'd Miss Without Professional Review</h2>
             <div class="comparison-cols">
                 <div class="comparison-col-item diy">
@@ -730,10 +873,13 @@
 
         <!-- STRATEGIES LIST -->
         <div class="strategies-section">
+            <div class="section-label">2. Optimization Strategies</div>
             <h2 class="strategies-header">Recommended Strategies</h2>
 
-            {% if report and report.strategies %}
+            {% if report and report.strategies and report.strategies|length > 0 %}
                 {% for strategy in report.strategies %}
+                {% set savings_val = (strategy.savings or strategy.estimated_savings) %}
+                {% set priority = (strategy.priority or 'medium') | lower %}
                 <div class="strategy-card{% if loop.index > 5 %} locked{% endif %}">
                     {% if loop.index > 5 %}
                     <div class="strategy-lock-overlay">&#128274; Connect with CPA to unlock</div>
@@ -745,10 +891,17 @@
                             <div class="strategy-desc">{{ strategy.description or strategy.summary or '' }}</div>
                         </div>
                         <div class="strategy-savings">
-                            {% if strategy.savings %}+${{ "{:,.0f}".format(strategy.savings) }}{% endif %}
+                            {% if savings_val %}
+                            +${{ "{:,.0f}".format(savings_val | float) }}
+                            {% else %}
+                            <span class="text-muted" style="font-size:0.8rem;">Est. TBD</span>
+                            {% endif %}
                         </div>
+                        {% if priority == 'high' %}
+                        <span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:999px;background:#FEE2E2;color:#DC2626;" aria-label="High priority">High</span>
+                        {% endif %}
                         {% if loop.index <= 5 %}
-                        <div class="strategy-chevron">&#9660;</div>
+                        <div class="strategy-chevron" aria-hidden="true">&#9660;</div>
                         {% endif %}
                     </div>
                     {% if loop.index <= 5 and strategy.steps %}
@@ -915,7 +1068,7 @@
                 <button type="submit" class="lead-btn">Send My Report</button>
             </form>
             <p class="lead-secondary">
-                &#128222; Or <a href="/appointments/calendar">schedule a free CPA consultation</a>
+                &#128222; Or <a href="/for-cpas">schedule a free CPA consultation</a>
             </p>
         </div>
 

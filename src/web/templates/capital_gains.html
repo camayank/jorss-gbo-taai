@@ -808,7 +808,7 @@
 <!-- ============================================================
      KEYFRAME ANIMATIONS
      ============================================================ -->
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   @keyframes cg-spin {
     to { transform: rotate(360deg); }
   }
@@ -1057,7 +1057,7 @@ function capitalGainsManager() {
 </script>
 
 <!-- Responsive grid override for summary dashboard -->
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   @media (max-width: 900px) {
     [x-data="capitalGainsManager()"] > div:nth-child(2) {
       grid-template-columns: repeat(2, 1fr) !important;

@@ -1,0 +1,46 @@
+{#
+  safe_value.html — Null-safe display macros
+  Import: {% from "macros/safe_value.html" import safe_value, safe_currency, priority_badge, complexity_badge %}
+#}
+
+{% macro safe_value(value, default="—", prefix="", suffix="", css_class="") %}
+  {%- if value is not none and value != "" -%}
+    <span{% if css_class %} class="{{ css_class }}"{% endif %}>{{ prefix }}{{ value }}{{ suffix }}</span>
+  {%- else -%}
+    <span class="text-muted" title="Data not yet available">{{ default }}</span>
+  {%- endif -%}
+{% endmacro %}
+
+{% macro safe_currency(value, default="Pending analysis", prefix="$") %}
+  {%- if value is not none and value != 0 and value != "" -%}
+    <span class="currency-value">{{ prefix }}{{ "{:,.0f}".format(value | float) }}</span>
+  {%- else -%}
+    <span class="text-muted">{{ default }}</span>
+  {%- endif -%}
+{% endmacro %}
+
+{% macro priority_badge(priority) %}
+  {%- set p = (priority or "") | lower -%}
+  {%- if p == "high" -%}
+    <span class="badge" style="background:var(--badge-danger-bg,#FEE2E2);color:var(--badge-danger-text,#DC2626);padding:2px 8px;border-radius:9999px;font-size:0.75rem;font-weight:600;">⚡ High</span>
+  {%- elif p == "medium" -%}
+    <span class="badge" style="background:var(--badge-warning-bg,#FEF3C7);color:var(--badge-warning-text,#D97706);padding:2px 8px;border-radius:9999px;font-size:0.75rem;font-weight:600;">📋 Medium</span>
+  {%- elif p == "low" -%}
+    <span class="badge" style="background:var(--badge-info-bg,#DBEAFE);color:var(--badge-info-text,#2563EB);padding:2px 8px;border-radius:9999px;font-size:0.75rem;font-weight:600;">💡 Low</span>
+  {%- else -%}
+    <span class="text-muted">—</span>
+  {%- endif -%}
+{% endmacro %}
+
+{% macro complexity_badge(complexity) %}
+  {%- set c = (complexity or "") | lower -%}
+  {%- if c in ["high", "complex", "cpa required"] -%}
+    <span class="badge" style="background:var(--badge-warning-bg,#FEF3C7);color:var(--badge-warning-text,#D97706);padding:2px 8px;border-radius:9999px;font-size:0.75rem;font-weight:600;">CPA Required</span>
+  {%- elif c in ["medium", "moderate"] -%}
+    <span class="badge" style="background:var(--badge-info-bg,#DBEAFE);color:var(--badge-info-text,#2563EB);padding:2px 8px;border-radius:9999px;font-size:0.75rem;font-weight:600;">Moderate</span>
+  {%- elif c in ["low", "simple", "diy"] -%}
+    <span class="badge" style="background:var(--badge-success-bg,#DCFCE7);color:var(--badge-success-text,#16A34A);padding:2px 8px;border-radius:9999px;font-size:0.75rem;font-weight:600;">DIY Friendly</span>
+  {%- else -%}
+    <span class="text-muted" title="Complexity not specified">Ask your CPA</span>
+  {%- endif -%}
+{% endmacro %}

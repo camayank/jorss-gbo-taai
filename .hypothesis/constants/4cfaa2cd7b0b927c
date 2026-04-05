@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/services/__init__.py
+# hypothesis_version: 6.141.1
+
+['CoreAuthService', 'CoreUserService', 'EmailService', 'OAuthService', 'get_auth_service', 'get_email_service', 'get_oauth_service', 'get_user_service']

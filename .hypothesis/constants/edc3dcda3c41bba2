@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/ocr/ai_enhanced_processor.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.3, 0.4, 0.6, 0.7, 60.0, 70.0, 80.0, 100, 1000, '1098', '1098-e', '1098-t', '1099', '1099-b', '1099-div', '1099-g', '1099-int', '1099-k', '1099-misc', '1099-nec', '1099-r', 'AIEnhancedResult', 'ai_confidence', 'ai_enhanced', 'ai_used', 'anomalies_checked', 'anomaly_count', 'audit_risk_score', 'compliance_checked', 'compliance_issues', 'confidence', 'critical', 'document', 'document_id', 'document_type', 'errors', 'extracted_fields', 'failed', 'federal_tax_withheld', 'federal_withholding', 'filing_status', 'final_confidence', 'high', 'income', 'k1', 'needs_documentation', 'needs_review', 'non_compliant', 'ocr_confidence', 'processing_time_ms', 'raw_text', 'single', 'status', 'success', 'tax_year', 'timestamp', 'total_income', 'value', 'w2', 'w2_wages', 'wages', 'warnings']

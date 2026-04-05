@@ -49,11 +49,11 @@ def test_file_route_serves_same_content_as_root():
 
 
 def test_smart_tax_redirects_to_file():
-    """Test that /smart-tax redirects to /file?mode=smart."""
+    """Test that /smart-tax redirects to /intelligent-advisor."""
     response = client.get("/smart-tax", follow_redirects=False)
 
-    # Should be a 302 temporary redirect (redirects to /intelligent-advisor)
-    assert response.status_code == 302
+    # 301 Moved Permanently — permanent URL change for SEO
+    assert response.status_code == 301
     assert response.headers["location"] == "/intelligent-advisor"
 
 
@@ -67,12 +67,12 @@ def test_smart_tax_redirect_chain_works():
 
 
 def test_client_redirects_to_file():
-    """Test that /client redirects to /file."""
+    """Test that /client redirects to /app/portal."""
     response = client.get("/client", follow_redirects=False)
 
-    # Should be a 302 temporary redirect
-    assert response.status_code == 302
-    assert response.headers["location"] == "/file"
+    # 301 Moved Permanently — permanent URL change for SEO
+    assert response.status_code == 301
+    assert response.headers["location"] == "/app/portal"
 
 
 def test_client_redirect_works():

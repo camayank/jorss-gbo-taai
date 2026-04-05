@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/lead_magnet_report_builder.py
+# hypothesis_version: 6.141.1
+
+[0.1, 0.3, 0.7, 4150.0, 5000.0, 7200.0, 8000.0, 12000.0, 23000.0, 12500, 37500, 62500, 87500, 125000, 175000, 250000, 400000, 600000, 1200000, '0-25k', '100k-150k', '1099', '150k-200k', '1m+', '200k-300k', '25k-50k', '300k-500k', '500k+', '50k-75k', '75k-100k', 'US', 'business_income', 'dependents', 'dependents_count', 'employer', 'filing_status', 'has_business', 'has_student_loans', 'hdhp_hsa', 'healthcare_type', 'hsa_contributions', 'income_range', 'income_sources', 'individual', 'investment', 'investment_income', 'investments', 'is_homeowner', 'is_self_employed', 'marketplace', 'maxed', 'mortgage_interest', 'none', 'occupation_type', 'property_taxes', 'retirement_401k', 'retirement_savings', 'self_employed', 'single', 'some', 'state', 'state_code', 'to_dict', 'total_income', 'w2', 'w2_income']

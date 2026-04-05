@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/scenario_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 500, 'Comparison failed', 'Quick compare failed', 'Scenario Analysis', 'adjustments', 'categories', 'category_filter', 'custom_values', 'error', 'not found', 'scenarios', 'session_id', 'success', 'template_ids', 'templates', 'total']

@@ -33,6 +33,13 @@ from ..models.usage import UsageMetrics
 logger = logging.getLogger(__name__)
 
 
+def _isoformat(dt) -> Optional[str]:
+    """Safely convert a datetime to ISO string."""
+    if dt is None:
+        return None
+    return dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
+
+
 class BillingService:
     """Service for billing and subscription management."""
 
@@ -116,9 +123,9 @@ class BillingService:
             "billing_cycle": subscription.billing_cycle,
             "current_period_start": subscription.current_period_start.isoformat() if subscription.current_period_start else None,
             "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
-            "trial_ends_at": subscription.trial_end.isoformat() if subscription.trial_end else None,
+            "trial_ends_at": _isoformat(getattr(subscription, "trial_ends_at", None) or getattr(subscription, "trial_end", None)),
             "cancel_at_period_end": subscription.cancel_at_period_end,
-            "canceled_at": subscription.cancelled_at.isoformat() if subscription.cancelled_at else None,
+            "canceled_at": _isoformat(getattr(subscription, "canceled_at", None) or getattr(subscription, "cancelled_at", None)),
         }
 
     async def create_subscription(
@@ -270,9 +277,11 @@ class BillingService:
         now = datetime.now(timezone.utc)
 
         if immediate:
-            subscription.status = SubscriptionStatus.CANCELLED.value
+            subscription.status = "canceled"
             subscription.cancelled_at = now
+            subscription.canceled_at = now
             subscription.cancel_reason = reason
+            subscription.cancellation_reason = reason
 
             # Update firm
             firm_result = await self.db.execute(
@@ -291,6 +300,7 @@ class BillingService:
         else:
             subscription.cancel_at_period_end = True
             subscription.cancel_reason = reason
+            subscription.cancellation_reason = reason
             subscription.updated_at = now
 
             await self.db.commit()
@@ -309,6 +319,7 @@ class BillingService:
                     or_(
                         Subscription.cancel_at_period_end == True,
                         Subscription.status == SubscriptionStatus.CANCELLED.value,
+                        Subscription.status == "canceled",
                     )
                 )
             )
@@ -321,7 +332,7 @@ class BillingService:
         subscription.cancel_at_period_end = False
         subscription.cancel_reason = None
 
-        if subscription.status == SubscriptionStatus.CANCELLED.value:
+        if subscription.status in (SubscriptionStatus.CANCELLED.value, "canceled"):
             # Reactivate with new period
             subscription.status = SubscriptionStatus.ACTIVE.value
             subscription.current_period_start = datetime.now(timezone.utc)
@@ -483,6 +494,7 @@ class BillingService:
         invoice.status = InvoiceStatus.PAID.value
         invoice.paid_at = datetime.now(timezone.utc)
         invoice.payment_intent_id = payment_id
+        invoice.payment_id = payment_id
 
         await self.db.commit()
         return True
@@ -569,7 +581,7 @@ class BillingService:
         """Convert plan model to dictionary."""
         return {
             "plan_id": str(plan.plan_id),
-            "tier": plan.code,
+            "tier": getattr(plan, "tier", None) or getattr(plan, "code", None),
             "name": plan.name,
             "description": plan.description,
             "monthly_price": float(plan.monthly_price),
@@ -592,7 +604,7 @@ class BillingService:
             "status": invoice.status,
             "subtotal": float(invoice.subtotal),
             "tax": float(invoice.tax),
-            "total": float(invoice.amount_due),
+            "total": float(getattr(invoice, "total", None) or getattr(invoice, "amount_due", 0) or 0),
             "currency": invoice.currency,
             "period_start": invoice.period_start.isoformat() if invoice.period_start else None,
             "period_end": invoice.period_end.isoformat() if invoice.period_end else None,

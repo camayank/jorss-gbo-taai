@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/ocr/ocr_engine.py
+# hypothesis_version: 6.141.1
+
+[0.0, 95.0, 300, 1000, '\n--- PAGE BREAK ---\n', '.pdf', '.png', 'BlockType', 'Blocks', 'BoundingBox', 'Bytes', 'Confidence', 'DocumentMetadata', 'Geometry', 'Height', 'LINE', 'Left', 'PNG', 'Page', 'Pages', 'Text', 'Top', 'WORD', 'Width', 'aws_textract', 'bottom', 'conf', 'config', 'eng', 'error', 'google_vision', 'height', 'lang', 'left', 'mock', 'page', 'pdf', 'pdfplumber', 'rb', 'region', 'tesseract', 'text', 'textract', 'top', 'us-east-1', 'w2', 'warning', 'width', 'word', 'x0', 'x1']

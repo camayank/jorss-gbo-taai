@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/logging_config.py
+# hypothesis_version: 6.141.1
+
+[1000, '\x1b[0m', '\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[35m', '\x1b[36m', ' | ', '%H:%M:%S.%f', 'CRITICAL', 'Calculation complete', 'Credits calculated', 'DEBUG', 'ERROR', 'INFO', 'Income calculated', 'RESET', 'Tax computed', 'WARNING', 'Z', 'adjustments', 'agi', 'calculation', 'deduction_amount', 'deduction_type', 'duration_ms', 'effective_rate', 'error', 'exception', 'extra', 'extra_data', 'field', 'filing_status', 'function', 'gross_income', 'httpx', 'level', 'line', 'logger', 'message', 'module', 'ordinary_tax', 'performance', 'preferential_tax', 'refund_or_owed', 'refundable_credits', 'request_id', 'return_id', 'se_tax', 'step', 'step_times', 'tax_year', 'taxable_income', 'timestamp', 'total_before_credits', 'total_credits', 'total_payments', 'total_tax', 'urllib3', 'user_id', 'value']

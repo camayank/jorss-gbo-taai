@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/iowa.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.038, 0.15, 2025, 2210, 5450, 6000, 'IA', 'Iowa', 'TaxReturn', 'age', 'exemption_credit', 'federal_agi', 'head_of_household', 'ia_eitc', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

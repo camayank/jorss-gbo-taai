@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/new_mexico.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.017, 0.032, 0.047, 0.049, 0.059, 0.25, 600, 2025, 4000, 4150, 5500, 8000, 8300, 11000, 12000, 15750, 16000, 23850, 24000, 30000, 31500, 157500, 210000, 315000, 'NM', 'New Mexico', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'nm_child_credit', 'nm_eitc', 'qualifying_widow', 'single', 'standard']

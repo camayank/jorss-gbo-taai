@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/notification_routes.py
+# hypothesis_version: 6.141.1
+
+[100, 150, 168, 401, 404, 500, '...', '/notifications', '/notifications/stats', '/reminders', '08:00', 'CPA Notifications', 'Daily summary email', 'Hours to snooze', 'Reminder not found', 'body', 'body_preview', 'completed', 'completed_at', 'count', 'cpa_email', 'created_at', 'due_date', 'first_name', 'global_stats', 'is_overdue', 'is_unread', 'lead_email', 'lead_id', 'lead_name', 'limit', 'marked_count', 'new_due_date', 'notification_id', 'notification_type', 'notifications', 'offset', 'overdue_count', 'overdue_reminders', 'preferences', 'read', 'reminder_id', 'reminder_type', 'reminders', 'status', 'subject', 'success', 'total_count', 'type', 'unread_count', 'unread_notifications']

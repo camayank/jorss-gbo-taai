@@ -469,8 +469,9 @@ def _get_firm_report_pricing(firm_id: Optional[str]) -> Optional[dict]:
                 # Source 1: firms.settings JSON
                 firms_columns = _table_columns(conn, "firms")
                 if {"firm_id", "settings"}.issubset(firms_columns):
+                    deleted_filter = " AND deleted_at IS NULL" if "deleted_at" in firms_columns else ""
                     cursor.execute(
-                        "SELECT settings FROM firms WHERE firm_id = ? AND deleted_at IS NULL LIMIT 1",
+                        f"SELECT settings FROM firms WHERE firm_id = ?{deleted_filter} LIMIT 1",
                         (firm_id,),
                     )
                     row = cursor.fetchone()

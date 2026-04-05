@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/wisconsin.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.035, 0.04, 0.044, 0.053, 0.0765, 0.1, 0.11, 0.12048, 0.22515, 0.34, 700, 1168, 2025, 5000, 9545, 11680, 13230, 14320, 16720, 17060, 17960, 19090, 19095, 23630, 24500, 24680, 28640, 38190, 210210, 315310, 420420, 'TaxReturn', 'WI', 'Wisconsin', 'exemption_credit', 'federal_agi', 'head_of_household', 'homestead_credit', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

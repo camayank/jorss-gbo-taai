@@ -813,3 +813,226 @@ export function setLocalStorageWarningShown(val) { localStorageWarningShown = va
 // Last user message for retry
 export let lastUserMessage = null;
 export function setLastUserMessage(val) { lastUserMessage = val; }
+
+// ======================== AUTO-SAVE SESSION MANAGER ========================
+
+let _autoSaveTimer = null;
+let _autoSavePending = false;
+const AUTO_SAVE_INTERVAL_MS = 30000; // 30 seconds
+
+/**
+ * Initialize auto-save on page load.
+ * Saves session every 30 seconds and uses sendBeacon on page unload.
+ */
+export function initializeAutoSave() {
+  // Save every 30 seconds when user is active
+  _autoSaveTimer = setInterval(() => {
+    if (sessionId && extractedData && Object.keys(extractedData).length > 0) {
+      _performAutoSave();
+    }
+  }, AUTO_SAVE_INTERVAL_MS);
+
+  // Use sendBeacon on page unload to save session without blocking
+  window.addEventListener('beforeunload', () => {
+    if (sessionId && extractedData && Object.keys(extractedData).length > 0) {
+      _sendBeaconAutoSave();
+    }
+  });
+
+  // Check for resume session on load
+  _checkForResumeSession();
+
+  DevLogger.debug('Auto-save initialized (30s interval)');
+}
+
+/**
+ * Perform auto-save to server via API.
+ */
+async function _performAutoSave() {
+  if (_autoSavePending) return; // Prevent overlapping saves
+
+  _autoSavePending = true;
+  try {
+    const formData = new FormData();
+    formData.append('session_id', sessionId);
+    formData.append('profile_updates', JSON.stringify(extractedData));
+
+    const response = await secureFetch('/api/intelligent-advisor/auto-save', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRF-Token': getCSRFToken()
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        // Also save to localStorage as fallback
+        localStorageSet('advisor_auto_save', JSON.stringify({
+          session_id: sessionId,
+          profile: extractedData,
+          saved_at: new Date().toISOString()
+        }));
+        DevLogger.debug('Auto-save successful');
+      }
+    } else {
+      DevLogger.warn(`Auto-save failed with status ${response.status}`);
+    }
+  } catch (e) {
+    DevLogger.warn('Auto-save error (non-blocking):', e);
+    // Save to localStorage as fallback
+    localStorageSet('advisor_auto_save', JSON.stringify({
+      session_id: sessionId,
+      profile: extractedData,
+      saved_at: new Date().toISOString()
+    }));
+  } finally {
+    _autoSavePending = false;
+  }
+}
+
+/**
+ * Use sendBeacon for reliable save on page unload.
+ */
+function _sendBeaconAutoSave() {
+  try {
+    const beacon = {
+      session_id: sessionId,
+      profile_updates: JSON.stringify(extractedData)
+    };
+
+    // Try sendBeacon first (doesn't block page unload)
+    if (navigator.sendBeacon) {
+      const form = new FormData();
+      form.append('session_id', sessionId);
+      form.append('profile_updates', JSON.stringify(extractedData));
+
+      navigator.sendBeacon('/api/intelligent-advisor/auto-save', form);
+      DevLogger.debug('Auto-save sent via sendBeacon');
+    }
+
+    // Also save to localStorage as final fallback
+    localStorageSet('advisor_auto_save', JSON.stringify({
+      session_id: sessionId,
+      profile: extractedData,
+      saved_at: new Date().toISOString()
+    }));
+  } catch (e) {
+    DevLogger.warn('sendBeacon error:', e);
+  }
+}
+
+/**
+ * Check if there's a saved session and offer resume option.
+ */
+function _checkForResumeSession() {
+  try {
+    const saved = localStorageGet('advisor_auto_save');
+    if (!saved) return;
+
+    const autoSaveData = JSON.parse(saved);
+    const savedSessionId = autoSaveData.session_id;
+    const savedProfile = autoSaveData.profile || {};
+    const savedAt = new Date(autoSaveData.saved_at);
+    const now = new Date();
+    const minutesAgo = (now - savedAt) / (1000 * 60);
+
+    // Only show resume for sessions within last 24 hours
+    if (minutesAgo > 24 * 60) {
+      localStorageSet('advisor_auto_save', null);
+      return;
+    }
+
+    // Create and show resume prompt
+    const resumeModal = document.createElement('div');
+    resumeModal.className = 'resume-session-modal';
+    resumeModal.id = 'resumeSessionModal';
+    resumeModal.innerHTML = `
+      <div class="resume-modal-content">
+        <h2>Resume Previous Session?</h2>
+        <p>You have a saved session from ${minutesAgo < 1 ? 'just now' : Math.round(minutesAgo) + ' minutes ago'}</p>
+        <div class="resume-modal-actions">
+          <button id="resumeYesBtn" class="btn btn-primary">Resume Session</button>
+          <button id="resumeNoBtn" class="btn btn-secondary">Start Fresh</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(resumeModal);
+
+    // Add minimal styling
+    const style = document.createElement('style');
+    style.textContent = `
+      .resume-session-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .resume-modal-content {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+      .resume-modal-content h2 {
+        margin-top: 0;
+        color: #1f2937;
+      }
+      .resume-modal-content p {
+        color: #6b7280;
+        margin-bottom: 20px;
+      }
+      .resume-modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Handle resume
+    document.getElementById('resumeYesBtn').addEventListener('click', () => {
+      // Restore profile data
+      Object.assign(extractedData, savedProfile);
+      // Update question counter and UI
+      const qCount = Object.keys(savedProfile).length;
+      if (qCount > 0) {
+        setQuestionNumber(qCount);
+        updateQuestionCounter();
+      }
+      // Close modal and continue
+      resumeModal.remove();
+      showToast('Session restored', 'success');
+      DevLogger.info('Session resumed from auto-save');
+    });
+
+    // Handle start fresh
+    document.getElementById('resumeNoBtn').addEventListener('click', () => {
+      localStorageSet('advisor_auto_save', null);
+      resumeModal.remove();
+      DevLogger.info('User chose to start fresh');
+    });
+  } catch (e) {
+    DevLogger.warn('Resume session check error:', e);
+  }
+}
+
+/**
+ * Clean up auto-save timer (call on page unload or session end).
+ */
+export function cleanupAutoSave() {
+  if (_autoSaveTimer) {
+    clearInterval(_autoSaveTimer);
+    _autoSaveTimer = null;
+  }
+}

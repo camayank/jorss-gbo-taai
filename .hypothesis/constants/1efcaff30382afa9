@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/api/router.py
+# hypothesis_version: 6.141.1
+
+['/admin', '/admin/docs/routes', '/admin/health', '/api/v1/admin', '/api/v1/superadmin', '/superadmin', 'Admin Panel', 'Alert routes enabled', 'Auth routes enabled', 'Authentication', 'Client management', 'ENVIRONMENT', 'System health', 'active', 'admin_panel', 'alerts', 'auth', 'billing', 'clients', 'compliance', 'dashboard', 'description', 'domains', 'endpoints', 'features', 'firms', 'healthy', 'module', 'platform_billing', 'prefix', 'production', 'rbac', 'routes', 'settings', 'status', 'subscriptions', 'superadmin', 'superadmin_domains', 'superadmin_prefix', 'system', 'team', 'tickets', 'workflow']

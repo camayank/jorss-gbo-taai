@@ -17,9 +17,16 @@ def get_mississippi_config() -> StateTaxConfig:
         state_code="MS",
         state_name="Mississippi",
         tax_year=2025,
-        is_flat_tax=True,
-        flat_rate=0.044,  # 4.4% flat rate (reduced from 4.7% in 2024)
-        brackets=None,
+        is_flat_tax=False,
+        # MS HB 531 (2022): 0% on first $10,000, 4.4% above $10,000 for 2025
+        flat_rate=None,
+        brackets={
+            "single": [(0, 0.0), (10000, 0.044)],
+            "married_joint": [(0, 0.0), (10000, 0.044)],
+            "married_separate": [(0, 0.0), (10000, 0.044)],
+            "head_of_household": [(0, 0.0), (10000, 0.044)],
+            "qualifying_widow": [(0, 0.0), (10000, 0.044)],
+        },
         starts_from="federal_agi",
         standard_deduction={"single": 2300, "married_joint": 4600, "married_separate": 2300,
                            "head_of_household": 3400, "qualifying_widow": 4600},
@@ -38,7 +45,7 @@ def get_mississippi_config() -> StateTaxConfig:
 
 @register_state("MS", 2025)
 class MississippiCalculator(BaseStateCalculator):
-    """Mississippi state tax calculator - flat 4.4% rate."""
+    """Mississippi state tax calculator - 0% on first $10,000, 4.4% above (HB 531, 2022 reform)."""
 
     def __init__(self):
         super().__init__(get_mississippi_config())

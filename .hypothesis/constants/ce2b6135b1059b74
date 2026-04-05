@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/tasks/__init__.py
+# hypothesis_version: 6.141.1
+
+['Task', 'TaskCategory', 'TaskComment', 'TaskPriority', 'TaskService', 'TaskStatus', 'TaskTemplate']

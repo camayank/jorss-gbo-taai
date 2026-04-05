@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/deadlines_api.py
+# hypothesis_version: 6.141.1
+
+[201, 204, 255, 404, '/api/deadlines', '/{deadline_id}', '1040', '1040-ES', '2026-01-31', '2026-04-15', '2026-06-15', '2026-09-15', '2026-10-15', '2027-01-15', '4868', 'DATABASE_PATH', 'Deadline not found', 'W-2/1099', 'category', 'completed', 'created_at', 'created_by', 'custom', 'data', 'date', 'deadline_id', 'deadlines', 'form', 'irs', 'platform.db', 'title', 'total']

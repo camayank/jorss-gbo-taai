@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/ocr/resilient_processor.py
+# hypothesis_version: 6.141.1
+
+[0.1, 1.0, 2.0, 30.0, 60.0, 'document_processor', 'ocr_service']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/delaware.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0125, 0.022, 0.039, 0.048, 0.052, 0.0555, 0.066, 110, 2000, 2025, 3250, 5000, 6500, 10000, 12500, 20000, 25000, 60000, 'DE', 'Delaware', 'TaxReturn', 'exemption_credit', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard', 'wilmington']

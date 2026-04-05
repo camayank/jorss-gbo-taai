@@ -19,11 +19,11 @@ def get_nebraska_config() -> StateTaxConfig:
         tax_year=2025,
         is_flat_tax=False,
         brackets={
-            "single": [(0, 0.0246), (3700, 0.0351), (22170, 0.0501), (35730, 0.0584)],
-            "married_joint": [(0, 0.0246), (7390, 0.0351), (44350, 0.0501), (71460, 0.0584)],
-            "married_separate": [(0, 0.0246), (3700, 0.0351), (22170, 0.0501), (35730, 0.0584)],
-            "head_of_household": [(0, 0.0246), (5920, 0.0351), (34170, 0.0501), (53600, 0.0584)],
-            "qualifying_widow": [(0, 0.0246), (7390, 0.0351), (44350, 0.0501), (71460, 0.0584)],
+            "single": [(0, 0.0246), (3700, 0.0351), (22170, 0.0501), (35730, 0.0520)],
+            "married_joint": [(0, 0.0246), (7390, 0.0351), (44350, 0.0501), (71460, 0.0520)],
+            "married_separate": [(0, 0.0246), (3700, 0.0351), (22170, 0.0501), (35730, 0.0520)],
+            "head_of_household": [(0, 0.0246), (5920, 0.0351), (34170, 0.0501), (53600, 0.0520)],
+            "qualifying_widow": [(0, 0.0246), (7390, 0.0351), (44350, 0.0501), (71460, 0.0520)],
         },
         starts_from="federal_agi",
         standard_deduction={"single": 8300, "married_joint": 16600, "married_separate": 8300,
@@ -43,7 +43,7 @@ def get_nebraska_config() -> StateTaxConfig:
 
 @register_state("NE", 2025)
 class NebraskaCalculator(BaseStateCalculator):
-    """Nebraska state tax calculator - 4 brackets (2.46% - 5.84%)."""
+    """Nebraska state tax calculator - 4 brackets (2.46% - 5.20%) per LB 754 phase-down for 2025."""
 
     def __init__(self):
         super().__init__(get_nebraska_config())

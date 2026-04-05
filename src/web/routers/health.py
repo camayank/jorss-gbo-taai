@@ -182,7 +182,7 @@ async def _check_database() -> Dict[str, Any]:
             "status": "healthy",
             "latency_ms": float(money(latency_ms)),
             "tables": table_count,
-            "lead_count": lead_count,
+            # lead_count omitted from public health response — available via admin metrics only
         }
 
     except Exception as e:
@@ -228,6 +228,12 @@ def _check_encryption_key() -> Dict[str, Any]:
         }
 
     if weak:
+        if is_production:
+            raise RuntimeError(
+                f"CRITICAL: Weak encryption keys (< 32 chars) in production: {', '.join(weak)}. "
+                "All keys must be at least 32 characters. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
         logger.warning(f"Weak encryption keys (< 32 chars): {', '.join(weak)}")
         return {
             "status": "warning",
@@ -428,7 +434,6 @@ async def basic_metrics() -> JSONResponse:
         "environment": os.environ.get("ENVIRONMENT", "development"),
         "version": os.environ.get("APP_VERSION", "development"),
         "database": {
-            "lead_count": db_check.get("lead_count", 0),
             "tables": db_check.get("tables", 0),
         },
         "requests": {
@@ -488,10 +493,14 @@ async def application_info() -> JSONResponse:
 
     Returns non-sensitive application metadata.
     """
-    return JSONResponse({
+    env = os.environ.get("ENVIRONMENT", "development").lower()
+    info = {
         "name": "Jorss-Gbo CPA Lead Platform",
         "version": os.environ.get("APP_VERSION", "development"),
-        "environment": os.environ.get("ENVIRONMENT", "development"),
-        "python_version": os.sys.version.split()[0],
+        "environment": env,
         "started_at": _start_time.isoformat() + "Z",
-    })
+    }
+    # Only expose runtime details outside production to avoid fingerprinting
+    if env not in ("production", "prod", "staging"):
+        info["python_version"] = os.sys.version.split()[0]
+    return JSONResponse(info)

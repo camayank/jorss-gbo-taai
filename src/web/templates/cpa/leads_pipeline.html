@@ -4,7 +4,7 @@
 {% block page_title %}Lead Pipeline{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .pipeline-summary {
         display: flex;
         gap: 1rem;
@@ -159,7 +159,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 function pipelineBoard() {
     return {
         dragOverColumn: null,

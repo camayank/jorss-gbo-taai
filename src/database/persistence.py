@@ -23,11 +23,19 @@ DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db
 
 def _hash_ssn(ssn: str) -> str:
     """Compute keyed HMAC-SHA256 hash of SSN (rainbow-table resistant)."""
-    key = os.environ.get("ENCRYPTION_MASTER_KEY", "").encode()
-    if not key:
-        # Fall back to regular hash if no key configured (dev only)
+    raw_key = os.environ.get("ENCRYPTION_MASTER_KEY", "")
+    _env = os.environ.get("APP_ENVIRONMENT", "development").lower()
+    _is_production = _env in ("production", "prod", "staging")
+    if not raw_key or len(raw_key) < 32:
+        if _is_production:
+            raise RuntimeError(
+                "ENCRYPTION_MASTER_KEY must be set and at least 32 characters in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        # Dev-only insecure fallback — never runs in production
         clean_ssn = ssn.replace("-", "").strip()
         return hashlib.sha256(clean_ssn.encode()).hexdigest()
+    key = raw_key.encode()
     clean_ssn = ssn.replace("-", "").strip()
     return hmac.new(key, clean_ssn.encode(), hashlib.sha256).hexdigest()
 
@@ -63,7 +71,8 @@ class TaxReturnPersistence:
         Args:
             db_path: Path to SQLite database file. Defaults to data/tax_returns.db
         """
-        self.db_path = db_path or DEFAULT_DB_PATH
+        env_path = os.environ.get("DATABASE_PATH")
+        self.db_path = db_path or (Path(env_path) if env_path else DEFAULT_DB_PATH)
         self._ensure_db_exists()
 
     def _ensure_db_exists(self):
@@ -100,27 +109,32 @@ class TaxReturnPersistence:
                 )
             """)
 
-            # Create index on session_id for quick lookup
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_session_id
-                ON tax_returns(session_id)
-            """)
-
-            # Create index on taxpayer_ssn_hash for returning user lookup
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_ssn_hash
-                ON tax_returns(taxpayer_ssn_hash)
-            """)
-
-            # Create index on tax_year
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_tax_year
-                ON tax_returns(tax_year)
-            """)
-
-            # Add ownership columns for access control (safe for existing DBs)
-            for col in ("user_id TEXT", "firm_id TEXT"):
-                col_name = col.split()[0]
+            # Add missing columns for existing DBs (safe migrations — all non-PK columns)
+            # Must run BEFORE index creation so indexes can reference newly-added columns.
+            for col in (
+                "return_id TEXT",
+                "session_id TEXT",
+                "taxpayer_ssn_hash TEXT",
+                "taxpayer_name TEXT",
+                "tax_year INTEGER DEFAULT 2025",
+                "filing_status TEXT",
+                "state_code TEXT",
+                "gross_income REAL DEFAULT 0",
+                "adjusted_gross_income REAL DEFAULT 0",
+                "taxable_income REAL DEFAULT 0",
+                "federal_tax_liability REAL DEFAULT 0",
+                "state_tax_liability REAL DEFAULT 0",
+                "combined_tax_liability REAL DEFAULT 0",
+                "federal_refund_or_owed REAL DEFAULT 0",
+                "state_refund_or_owed REAL DEFAULT 0",
+                "combined_refund_or_owed REAL DEFAULT 0",
+                "status TEXT DEFAULT 'draft'",
+                "return_data JSON",
+                "created_at TEXT",
+                "updated_at TEXT",
+                "user_id TEXT",
+                "firm_id TEXT",
+            ):
                 try:
                     cursor.execute(
                         f"ALTER TABLE tax_returns ADD COLUMN {col}"
@@ -128,14 +142,18 @@ class TaxReturnPersistence:
                 except sqlite3.OperationalError:
                     pass  # Column already exists
 
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_user_id
-                ON tax_returns(user_id)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_firm_id
-                ON tax_returns(firm_id)
-            """)
+            # Create indexes after migrations so all referenced columns exist
+            for idx_sql in (
+                "CREATE INDEX IF NOT EXISTS idx_session_id ON tax_returns(session_id)",
+                "CREATE INDEX IF NOT EXISTS idx_ssn_hash ON tax_returns(taxpayer_ssn_hash)",
+                "CREATE INDEX IF NOT EXISTS idx_tax_year ON tax_returns(tax_year)",
+                "CREATE INDEX IF NOT EXISTS idx_user_id ON tax_returns(user_id)",
+                "CREATE INDEX IF NOT EXISTS idx_firm_id ON tax_returns(firm_id)",
+            ):
+                try:
+                    cursor.execute(idx_sql)
+                except sqlite3.OperationalError:
+                    pass  # Index already exists or column missing in external schema
 
             conn.commit()
 
@@ -512,13 +530,16 @@ class TaxReturnPersistence:
 
 # Global instance for convenience
 _persistence: Optional[TaxReturnPersistence] = None
+_persistence_db_path: Optional[str] = None  # tracks which path the singleton uses
 
 
 def get_persistence() -> TaxReturnPersistence:
-    """Get the global persistence instance."""
-    global _persistence
-    if _persistence is None:
+    """Get the global persistence instance (re-creates if DATABASE_PATH changed)."""
+    global _persistence, _persistence_db_path
+    current_path = os.environ.get("DATABASE_PATH")
+    if _persistence is None or current_path != _persistence_db_path:
         _persistence = TaxReturnPersistence()
+        _persistence_db_path = current_path
     return _persistence
 
 

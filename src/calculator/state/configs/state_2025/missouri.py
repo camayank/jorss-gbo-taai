@@ -20,15 +20,15 @@ def get_missouri_config() -> StateTaxConfig:
         is_flat_tax=False,
         brackets={
             "single": [(0, 0.0), (1207, 0.02), (2414, 0.025), (3621, 0.03), (4828, 0.035),
-                      (6035, 0.04), (7242, 0.045), (8449, 0.048)],
+                      (6035, 0.04), (7242, 0.045), (8449, 0.047)],
             "married_joint": [(0, 0.0), (1207, 0.02), (2414, 0.025), (3621, 0.03), (4828, 0.035),
-                             (6035, 0.04), (7242, 0.045), (8449, 0.048)],
+                             (6035, 0.04), (7242, 0.045), (8449, 0.047)],
             "married_separate": [(0, 0.0), (1207, 0.02), (2414, 0.025), (3621, 0.03), (4828, 0.035),
-                                (6035, 0.04), (7242, 0.045), (8449, 0.048)],
+                                (6035, 0.04), (7242, 0.045), (8449, 0.047)],
             "head_of_household": [(0, 0.0), (1207, 0.02), (2414, 0.025), (3621, 0.03), (4828, 0.035),
-                                 (6035, 0.04), (7242, 0.045), (8449, 0.048)],
+                                 (6035, 0.04), (7242, 0.045), (8449, 0.047)],
             "qualifying_widow": [(0, 0.0), (1207, 0.02), (2414, 0.025), (3621, 0.03), (4828, 0.035),
-                                (6035, 0.04), (7242, 0.045), (8449, 0.048)],
+                                (6035, 0.04), (7242, 0.045), (8449, 0.047)],
         },
         starts_from="federal_agi",
         standard_deduction={"single": 15750, "married_joint": 31500, "married_separate": 15750,
@@ -48,7 +48,7 @@ def get_missouri_config() -> StateTaxConfig:
 
 @register_state("MO", 2025)
 class MissouriCalculator(BaseStateCalculator):
-    """Missouri state tax calculator - 8 brackets (0% - 4.8%)."""
+    """Missouri state tax calculator - 8 brackets (0% - 4.7%) per HB 278 rate reduction for 2025."""
 
     def __init__(self):
         super().__init__(get_missouri_config())

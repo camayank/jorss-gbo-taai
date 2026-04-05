@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/ai_review_service.py
+# hypothesis_version: 6.141.1
+
+['approved', 'edited', 'pending', 'rejected', 'total']

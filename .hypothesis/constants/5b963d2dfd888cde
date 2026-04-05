@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/arkansas.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.04, 0.044, 2025, 2340, 4000, 4400, 4680, 6000, 8800, 15000, 22500, 'AR', 'Arkansas', 'TaxReturn', 'exemption_credit', 'federal_agi', 'head_of_household', 'itemized', 'low_income_credit', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

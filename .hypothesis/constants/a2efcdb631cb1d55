@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/__init__.py
+# hypothesis_version: 6.141.1
+
+['analysis_router', 'cpa_router', 'exposure_router', 'insights_router', 'lead_router', 'notes_routes', 'workflow_router']

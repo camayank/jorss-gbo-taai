@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/async_tax_return_service.py
+# hypothesis_version: 6.141.1
+
+[0.0, 1000, 2024, 2025, 'Form 1040', 'Form 1116', 'Form 6251', 'Form 8995', 'Schedule A', 'Schedule D', 'Schedule SE', 'Tax return not found', 'created_at', 'credits', 'deductions', 'error', 'extra_data', 'federal_calculation', 'federal_tax', 'field', 'filing_status', 'first_name', 'gross_income', 'income', 'last_name', 'message', 'refund_or_owed', 'return_id', 'single', 'state', 'state_calculation', 'state_code', 'state_of_residence', 'state_refund_or_owed', 'state_tax', 'state_tax_liability', 'state_tax_result', 'status', 'tax_liability', 'tax_return', 'tax_year', 'taxable_income', 'taxpayer', 'taxpayer.first_name', 'taxpayer.last_name', 'taxpayer_name', 'total_credits', 'total_payments', 'total_tax', 'updated_at']

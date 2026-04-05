@@ -57,13 +57,39 @@ def get_default_cpa_profile() -> dict:
 
 
 def get_deadline_context() -> dict:
-    """Compute tax deadline urgency context for taxpayer-facing pages."""
-    today = date.today()
-    deadline = date(today.year, 4, 15)
-    if today > deadline:
-        deadline = date(today.year + 1, 4, 15)
+    """Compute tax deadline urgency context for taxpayer-facing pages.
 
-    days_remaining = (deadline - today).days
+    Uses whichever deadline is closest and most actionable:
+    - April 15: filing deadline (critical/high urgency Jan–April)
+    - December 31: year-end planning cutoff (strategy window May–December)
+    """
+    today = date.today()
+
+    # April 15 filing deadline
+    filing_deadline = date(today.year, 4, 15)
+    if today > filing_deadline:
+        filing_deadline = date(today.year + 1, 4, 15)
+
+    # December 31 year-end planning cutoff
+    yearend_deadline = date(today.year, 12, 31)
+    if today > yearend_deadline:
+        yearend_deadline = date(today.year + 1, 12, 31)
+
+    # Use whichever is closer (and more actionable right now)
+    filing_days = (filing_deadline - today).days
+    yearend_days = (yearend_deadline - today).days
+
+    if filing_days <= 75:
+        # Filing season — April 15 is the primary deadline
+        deadline = filing_deadline
+        days_remaining = filing_days
+        deadline_label = "Tax filing deadline"
+    else:
+        # Planning season — Dec 31 is what matters
+        deadline = yearend_deadline
+        days_remaining = yearend_days
+        deadline_label = "Year-end planning cutoff"
+
     if days_remaining <= 30:
         urgency = "critical"
     elif days_remaining <= 75:
@@ -77,6 +103,7 @@ def get_deadline_context() -> dict:
         "deadline_date": deadline.isoformat(),
         "days_remaining": days_remaining,
         "urgency": urgency,
+        "deadline_label": deadline_label,
     }
 
 

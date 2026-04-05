@@ -28,7 +28,7 @@ from _helpers import (
 # ---------------------------------------------------------------------------
 # 2025 CTC parameters
 # ---------------------------------------------------------------------------
-CTC_MAX = 2000.0
+CTC_MAX = 2500.0  # 2025 OBBBA increased from $2,000 to $2,500 per child
 CTC_PHASEOUT_START = {
     "single": 200000.0,
     "married_joint": 400000.0,

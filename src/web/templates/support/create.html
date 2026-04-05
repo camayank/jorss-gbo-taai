@@ -3,7 +3,7 @@
 {% block title %}Create Support Ticket - {{ config.APP_NAME }}{% endblock %}
 
 {% block extra_css %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .create-ticket-page {
         padding: var(--space-6);
         max-width: 800px;
@@ -545,7 +545,7 @@
 
     <form class="form-card" id="support-form" action="/support/create" method="POST" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="csrf_token" id="csrf_token_field">
-        <script>
+        <script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
             // Populate CSRF token from cookie
             (function() {
                 var match = document.cookie.match(/csrf_token=([^;]+)/);

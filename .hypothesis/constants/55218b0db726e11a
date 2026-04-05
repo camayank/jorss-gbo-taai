@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_6781.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.4, 0.6, 2025, 'Broker name', 'Cost or other basis', 'Nonequity Options', 'Tax year', 'Type of straddle', 'carryback_elected', 'carryback_year_1', 'carryback_year_2', 'carryback_year_3', 'contract_count', 'contracts', 'description', 'elect_carryback', 'foreign_currency', 'gain', 'identified', 'line_4_net_gain_loss', 'line_6_combined', 'long_term_60_pct', 'loss', 'loss_carryback', 'mixed', 'net', 'net_loss_available', 'new_carryforward', 'nonequity_options', 'part_i', 'part_ii', 'realized', 'regulated_futures', 'schedule_d_long_term', 'section_1092', 'section_1256_net', 'short_term_40_pct', 'straddle_count', 'straddle_net', 'straddles', 'tax_year', 'total', 'total_carryback', 'total_gains', 'total_losses', 'type', 'unrecognized']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/insights_routes.py
+# hypothesis_version: 6.141.1
+
+[404, 500, 'CPA Insights', 'Explanation failed', 'by_category', 'by_priority', 'checklist', 'completed', 'detailed', 'education_level', 'error', 'expert', 'general', 'get_summary', 'insights', 'not found', 'session_id', 'success', 'summary', 'to_dict', 'total_insights', 'total_items']

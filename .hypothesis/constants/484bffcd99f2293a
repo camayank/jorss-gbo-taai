@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/api/auth_routes.py
+# hypothesis_version: 6.141.1
+
+[900, '-', '-+', '/auth', '/forgot-password', '/login', '/logout', '/magic-link', '/magic-link/verify', '/me', '/refresh', '/register', '/register/consumer', '/reset-password', '/verify', 'APP_ENVIRONMENT', 'Bearer', 'Core Authentication', 'Magic link token', 'REDIS_URL', 'Retry-After', 'User not found', 'WWW-Authenticate', '[^a-z0-9-]', 'advisor', 'bearer', 'cpa', 'cpa_team', 'development', 'email', 'exp', 'expires_at', 'firm_id', 'firm_name', 'full_name', 'jti', 'message', 'permissions', 'prod', 'production', 'revoked_jtis', 's', 'staging', 'starter', 'success', 'trial', 'trialing', 'unknown', 'user_id', 'user_type', 'valid', 'value']

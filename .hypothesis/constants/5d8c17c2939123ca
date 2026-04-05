@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/recommendation/entity_optimizer.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.009, 0.0145, 0.029, 0.062, 0.1, 0.12, 0.124, 0.153, 0.2, 0.22, 0.24, 0.32, 0.35, 0.37, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.85, 0.9, 0.9235, 0.95, 1.1, 1.15, 50.0, 60.0, 100.0, 150.0, 200.0, 400.0, 500.0, 600.0, 1500.0, 40000.0, 50000.0, 176100.0, 200000.0, 100, 200, 2000, 5000, 11925, 23850, 40000, 48475, 50000, 60000, 96950, 100000, 103350, 197300, 200000, 206700, 250525, 300000, 394600, 501050, 626350, 751600, 'User input', 'c_corporation', 'high', 'inf', 'low', 'married_joint', 'medium', 'net_tax_savings', 'partnership', 'qbi_difference', 's_corporation', 'scorp_qbi_deduction', 'scorp_total_payroll', 'se_tax_savings', 'single', 'single_member_llc', 'sole_prop_se_tax', 'sole_proprietorship', 'unknown']

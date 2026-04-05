@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/utils/cpa_branding_helper.py
+# hypothesis_version: 6.141.1
+
+['#1e3a5f', '#2c5aa0', '.', '/', 'Tax Advisory', 'accent_color', 'address', 'advisor_credentials', 'advisor_name', 'bio', 'contact_address', 'contact_email', 'contact_phone', 'cpa_id', 'credentials', 'email', 'firm_logo_url', 'firm_name', 'firm_tagline', 'logo_path', 'logo_url', 'phone', 'preset', 'primary_color', 'professional', 'profile_photo_url', 'specializations', 'tagline', 'tenant_id', 'years_experience']

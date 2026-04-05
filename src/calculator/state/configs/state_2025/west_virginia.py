@@ -88,7 +88,13 @@ class WestVirginiaCalculator(BaseStateCalculator):
     def calculate_state_subtractions(self, tax_return: "TaxReturn") -> float:
         subtractions = tax_return.income.taxable_social_security
         if tax_return.income.retirement_income > 0:
-            subtractions += min(tax_return.income.retirement_income, 8000)
+            # WV pension exclusion: $8,000 (single/HOH/MFS) or $16,000 (MFJ/QW)
+            from models.taxpayer import FilingStatus
+            filing_status = tax_return.taxpayer.filing_status
+            pension_limit = 16000 if filing_status in (
+                FilingStatus.MARRIED_JOINT, FilingStatus.QUALIFYING_WIDOW
+            ) else 8000
+            subtractions += min(tax_return.income.retirement_income, pension_limit)
         return subtractions
 
     def calculate_state_additions(self, tax_return: "TaxReturn") -> float:

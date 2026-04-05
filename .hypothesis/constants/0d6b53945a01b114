@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/invitation.py
+# hypothesis_version: 6.141.1
+
+[255, 500, 'CASCADE', 'Firm', 'User', 'accepted', 'accepted_by_user_id', 'email', 'expired', 'expires_at', 'firm_id', 'firms.firm_id', 'invitations', 'invited_by', 'ix_invitation_token', 'pending', 'revoked', 'revoked_by', 'status', 'token', 'users.user_id']

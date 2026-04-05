@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/scenario_api.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 0.12, 0.153, 0.2, 0.22, 0.24, 0.32, 0.35, 0.37, 0.5, 0.8, 0.9235, 100, 120, 7000, 8000, 10000, 11925, 15750, 17000, 23350, 23850, 31500, 45000, 48475, 64850, 66000, 70000, 96950, 100000, 103350, 197300, 206700, 250500, 250525, 394600, 501050, 626350, 751600, 1000000, 10000000, 100000000, '/api/scenarios', '/deduction-bunching', '/entity-structure', '/filing-status', 'CalculationError', 'Employer', 'Itemize', 'Number of dependents', 'S-Corporation', 'Scenario', 'ServiceUnavailable', 'Sole Proprietorship', 'Standard', 'Taxpayer age', 'Test', 'Total income', 'UnexpectedError', 'ValidationError', 'age', 'annual_income', 'best_option', 'business_expenses', 'current_401k', 'current_ira', 'deductions', 'error_type', 'gross_revenue', 'income', 'inf', 'itemized_deductions', 'max_savings', 'request_id', 'scenarios', 'total_income', 'user_message']

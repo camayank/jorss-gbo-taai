@@ -652,7 +652,7 @@
 </div>
 
 <!-- Spin animation -->
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   @keyframes spin {
     to { transform: rotate(360deg); }
   }

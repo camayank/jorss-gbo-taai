@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/ml/training/trainer.py
+# hypothesis_version: 6.141.1
+
+[0.2, 0.95, 200, 1000, 5000, '__main__', 'accuracy', 'balanced', 'classes', 'label_encoder.joblib', 'lbfgs', 'ml/models', 'src/ml/models', 'test_samples', 'train_samples', 'unicode', 'vocabulary_size']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/repositories/tax_return_repository.py
+# hypothesis_version: 6.141.1
+
+[2025, ' AND ', '***-**-****', '-', '1=1', 'Unknown', 'agi', 'calculation_result', 'client_id', 'combined_refund', 'combined_tax', 'created_at', 'draft', 'federal_refund', 'federal_tax', 'filing_status', 'firm_id', 'first_name', 'gross_income', 'income', 'last_name', 'limit', 'offset', 'prior_year', 'refund_or_owed', 'return_data', 'return_id', 'session_id', 'single', 'spouse_ssn', 'ssn', 'ssn_hash', 'state_code', 'state_of_residence', 'state_refund', 'state_refund_or_owed', 'state_tax', 'state_tax_liability', 'status', 'status = :status', 'summary', 'tax_year', 'tax_year = :tax_year', 'taxable_income', 'taxpayer', 'taxpayer_name', 'taxpayer_ssn_hash', 'total_income', 'total_tax', 'updated_at']

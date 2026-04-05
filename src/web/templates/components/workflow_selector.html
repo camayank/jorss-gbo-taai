@@ -106,7 +106,7 @@
     </div>
 </div>
 
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 .workflow-selector {
     display: none;
     position: fixed;

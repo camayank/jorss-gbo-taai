@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/advisor/flow_rules.py
+# hypothesis_version: 6.141.1
+
+[25000, 50000, 75000, 100000, 200000, 'AK', 'CA', 'CT', 'FL', 'HI', 'MN', 'NH', 'NJ', 'NV', 'NY', 'OR', 'SD', 'TN', 'TX', 'VT', 'WA', 'WY', '_has_investments', '_has_k1', '_has_rental', 'age', 'age_26_49', 'age_50_64', 'age_65_plus', 'age_under_26', 'business_income', 'business_owner', 'c_corp', 'dependents', 'dependents_under_17', 'entity_type', 'filing_status', 'head_of_household', 'income_type', 'investor', 'is_self_employed', 'married_joint', 'married_separate', 'military', 'multiple_w2', 'no_investments', 'no_k1_income', 'no_rental', 'partnership', 'qualifying_widow', 'retired', 's_corp', 'self_employed', 'single', 'state', 'total_income', 'w2_employee', 'w2_plus_side']

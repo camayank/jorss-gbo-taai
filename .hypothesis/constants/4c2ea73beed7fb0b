@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/usage.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100, 1024, 'CASCADE', 'Complex returns', 'Firm', 'Simple returns', 'Standard returns', 'Very complex returns', 'active', 'active_members', 'analysis', 'avg_complexity', 'clients', 'conversion_rate', 'converted', 'created', 'end', 'filed', 'firm_id', 'firms.firm_id', 'generated', 'ix_usage_firm_period', 'ix_usage_period_type', 'leads', 'monthly', 'new', 'optimizations', 'period', 'period_end', 'period_start', 'period_type', 'reports', 'returns', 'scenarios', 'start', 'team', 'total_by_complexity', 'total_logins', 'uq_usage_firm_period', 'usage_metrics']

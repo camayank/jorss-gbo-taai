@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/encrypted_fields.py
+# hypothesis_version: 6.141.1
+
+[b'pii:address:v1', b'pii:email:v1', b'pii:generic:v1', b'pii:name:v1', b'pii:phone:v1', b'pii:ssn:v1', 100, '***', '***-***-', '***-***-****', '***-**-', '***-**-****', '***.', '***.***', '***@***.***', '.', '.dev-encryption-key', ':', '@', 'APP_ENVIRONMENT', 'action', 'address', 'ascii', 'decrypt', 'development', 'email', 'fallback', 'fallback:', 'fields', 'generic', 'ip', 'name', 'phone', 'prod', 'production', 'reason', 'ssn', 'staging', 'tenant_id', 'timestamp', 'user_id', 'utf-8', 'v1:', 'v{}:{}:{}:{}']

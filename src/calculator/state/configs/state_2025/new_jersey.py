@@ -239,9 +239,9 @@ class NewJerseyCalculator(BaseStateCalculator):
         # Social Security is fully exempt
         subtractions += tax_return.income.taxable_social_security
 
-        # Pension exclusion (up to $100,000 for qualified seniors)
-        # Simplified: assume taxpayer qualifies
-        if tax_return.income.retirement_income > 0:
+        # Pension exclusion (up to $100,000 for NJ taxpayers age 62+)
+        taxpayer_age = getattr(tax_return.taxpayer, "age", 0) or 0
+        if tax_return.income.retirement_income > 0 and taxpayer_age >= 62:
             pension_exclusion = min(
                 tax_return.income.retirement_income,
                 self.config.pension_exclusion_limit or 100000

@@ -19,7 +19,7 @@ def get_idaho_config() -> StateTaxConfig:
         state_name="Idaho",
         tax_year=2025,
         is_flat_tax=True,
-        flat_rate=0.058,  # 5.8% flat rate (reduced from progressive in 2023)
+        flat_rate=0.05695,  # 5.695% flat rate (reduced from 5.8% per ID H 521, effective TY 2024)
         brackets=None,
         starts_from="federal_taxable_income",
         standard_deduction={

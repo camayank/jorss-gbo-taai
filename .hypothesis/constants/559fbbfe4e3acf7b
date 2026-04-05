@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/models/user.py
+# hypothesis_version: 6.141.1
+
+['America/New_York', 'MM/DD/YYYY', 'UserContext', 'UserProfile', 'consumer', 'cpa_client', 'cpa_team', 'en', 'firm_admin', 'light', 'platform_admin', 'preparer', 'reviewer', 'senior_preparer', 'support']

@@ -50,7 +50,7 @@
 
 {# Extra inline styles #}
 {% if extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 {{ extra_styles | safe }}
 </style>
 {% endif %}

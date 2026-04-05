@@ -279,65 +279,9 @@ async def upload_document_async(
         raise HTTPException(status_code=500, detail="Failed to process document. Please try again later.")
 
 
-@router.get("/api/upload/status/{task_id}")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
-async def get_upload_status(task_id: str, request: Request):
-    """Get the status of an async document upload task."""
-    try:
-        from tasks.ocr_tasks import get_task_status
-
-        task_status = get_task_status(task_id)
-        response_data = {
-            "task_id": task_id,
-            "celery_status": task_status["status"],
-            "ready": task_status["ready"],
-        }
-
-        if task_status["ready"]:
-            if task_status.get("result"):
-                result_data = task_status["result"]
-                response_data["status"] = "completed"
-                response_data["document_id"] = result_data.get("document_id")
-                response_data["document_type"] = result_data.get("document_type")
-                response_data["tax_year"] = result_data.get("tax_year")
-                response_data["ocr_confidence"] = result_data.get("ocr_confidence")
-                response_data["extraction_confidence"] = result_data.get("extraction_confidence")
-                response_data["extracted_fields"] = result_data.get("extracted_fields", [])
-                response_data["warnings"] = result_data.get("warnings", [])
-                response_data["errors"] = result_data.get("errors", [])
-            elif task_status.get("error"):
-                response_data["status"] = "failed"
-                response_data["error"] = task_status["error"]
-        else:
-            response_data["status"] = "processing"
-
-        return JSONResponse(response_data)
-
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Async processing not available.")
-    except Exception as e:
-        logger.exception(f"Error getting task status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get task status.")
-
-
-@router.post("/api/upload/cancel/{task_id}")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
-async def cancel_upload_task(task_id: str, request: Request):
-    """Cancel a pending async document upload task."""
-    try:
-        from tasks.ocr_tasks import cancel_task
-
-        result = cancel_task(task_id, terminate=False)
-        if result:
-            return JSONResponse({"task_id": task_id, "cancelled": True, "message": "Cancellation request sent"})
-        else:
-            return JSONResponse({"task_id": task_id, "cancelled": False, "message": "Failed to cancel task"}, status_code=400)
-
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Async processing not available.")
-    except Exception as e:
-        logger.exception(f"Error cancelling task: {e}")
-        raise HTTPException(status_code=500, detail="Failed to cancel task.")
+# NOTE: /api/upload/status/{task_id} and /api/upload/cancel/{task_id} are
+# defined in src/web/app.py so that the launch-blocker auth guard test
+# (which does AST analysis of app.py) can verify their @require_auth decorators.
 
 
 @router.get("/api/supported-documents")

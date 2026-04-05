@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/persistence.py
+# hypothesis_version: 6.141.1
+
+[2025, ' AND ', ' AND firm_id = ?', ' AND user_id = ?', ' WHERE ', '***-**-****', '-', 'APP_ENVIRONMENT', 'Anonymous', '_return_id', 'answers', 'benefit_estimate', 'confidence_score', 'current_stage', 'data', 'development', 'dividend_income', 'document_type', 'draft', 'extracted_data', 'filing_status', 'firm_id = ?', 'firm_id TEXT', 'in_progress', 'income', 'interest_income', 'prod', 'production', 'progress', 'refund_or_owed', 'single', 'spouse_ssn', 'ssn', 'staging', 'state_of_residence', 'state_refund_or_owed', 'state_tax_liability', 'status', 'status = ?', 'tax_liability', 'tax_returns.db', 'tax_year', 'tax_year = ?', 'taxable_income', 'taxpayer', 'updated_at', 'user_id = ?', 'user_id TEXT', 'w2_forms', 'wages']

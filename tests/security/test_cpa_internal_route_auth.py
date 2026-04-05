@@ -92,6 +92,7 @@ def test_no_unexpected_open_cpa_routes():
         ("GET", "/api/cpa/lead-magnet/cpa-profiles/{cpa_slug}"),
         ("GET", "/api/cpa/lead-magnet/demo/report"),
         ("POST", "/api/cpa/lead-magnet/start"),
+        ("POST", "/api/cpa/lead-magnet/{session_id}/callback-request"),
         ("POST", "/api/cpa/lead-magnet/{session_id}/contact"),
         ("POST", "/api/cpa/lead-magnet/{session_id}/event"),
         ("POST", "/api/cpa/lead-magnet/{session_id}/profile"),

@@ -279,14 +279,19 @@ class NewYorkCalculator(BaseStateCalculator):
         # Social Security is fully exempt
         subtractions += tax_return.income.taxable_social_security
 
-        # Pension exclusion (up to $20,000 for those 59.5+)
-        # Simplified: assume taxpayer qualifies if has retirement income
+        # Pension exclusion (up to $20,000 for those 59½+)
+        # Simplified: assume qualifies if has retirement income
         if tax_return.income.retirement_income > 0:
             pension_exclusion = min(
                 tax_return.income.retirement_income,
                 self.config.pension_exclusion_limit or 20000
             )
             subtractions += pension_exclusion
+
+        # Military pay — NY fully exempts active-duty military pay (IRC and NY Tax Law §612(b)(32))
+        if self.config.military_pay_exempt:
+            military_pay = getattr(tax_return.income, "military_taxable_pay", 0.0) or 0.0
+            subtractions += military_pay
 
         return subtractions
 

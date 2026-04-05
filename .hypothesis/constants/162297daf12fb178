@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/qbi_calculator.py
+# hypothesis_version: 6.141.1
+
+[197300.0, 247300.0, 394600.0, 494600.0, '0', '0.025', '0.25', '0.50', '1', 'TaxReturn', 'TaxYearConfig', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 's_corporation', 'se_tax_deduction', 'single', 'sole_proprietorship', 'value']

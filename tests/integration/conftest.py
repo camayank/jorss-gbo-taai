@@ -72,18 +72,8 @@ def test_db(temp_db):
     conn = sqlite3.connect(temp_db)
     cursor = conn.cursor()
 
-    # Create minimal schema for tests
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tax_returns (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            tax_year INTEGER DEFAULT 2025,
-            status TEXT DEFAULT 'DRAFT',
-            return_data TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    # tax_returns table is created by TaxReturnPersistence._ensure_db_exists
+    # (with the correct schema). Only create auxiliary tables here.
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS sessions (

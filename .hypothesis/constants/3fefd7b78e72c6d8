@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8867.py
+# hypothesis_version: 6.141.1
+
+[0.0, 600.0, 2025, 'PTIN required', "Paid preparer's name", 'actc', 'aotc', 'credits_claimed', 'ctc', 'documents_reviewed', 'eitc', 'eligibility_1', 'firm', 'hoh', 'hoh_1', 'is_complete', 'knowledge_1', 'knowledge_2', 'missing_items', 'name', 'odc', 'potential_penalty', 'preparer', 'ptin', 'tax_year']

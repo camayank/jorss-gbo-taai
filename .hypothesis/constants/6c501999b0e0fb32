@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rules/rule_types.py
+# hypothesis_version: 6.141.1
+
+['alimony', 'amt', 'business', 'calculation', 'casualty_loss', 'charitable', 'compliance', 'credit', 'critical', 'deduction', 'dependent', 'education', 'eligibility', 'error', 'estimated_tax', 'filing_status', 'healthcare', 'household_employment', 'income', 'info', 'international', 'investment', 'k1_trust', 'limit', 'niit', 'penalty', 'phaseout', 'real_estate', 'recommendation', 'retirement', 'self_employment', 'state', 'suggestion', 'threshold', 'validation', 'virtual_currency', 'warning']

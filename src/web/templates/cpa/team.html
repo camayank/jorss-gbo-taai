@@ -5,7 +5,7 @@
 {% block page_title %}Team Management{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .team-header {
         display: flex;
         justify-content: space-between;

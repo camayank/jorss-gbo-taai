@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/recommendation/filing_status_optimizer.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37, 1.0, 37.0, 50.0, 100.0, 100, 11925, 17000, 23850, 48475, 64850, 96950, 103350, 197300, 206700, 250500, 250525, 375800, 394600, 501050, 626350, 751600, 'TaxCalculator', 'TaxReturn', 'head_of_household', 'inf', 'is_married', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'spouse_died_year']

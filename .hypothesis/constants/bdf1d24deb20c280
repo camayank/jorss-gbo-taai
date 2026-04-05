@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/ai_review_routes.py
+# hypothesis_version: 6.141.1
+
+[404, '/ai-review', '/pending/{firm_id}', '/stats/{firm_id}', '/{draft_id}/approve', '/{draft_id}/reject', '/{draft_id}/response', 'AI Review', 'Draft not found', 'ai_response', 'approved', 'client_email', 'client_name', 'client_question', 'complexity', 'count', 'created_at', 'draft_id', 'drafts', 'edited', 'estimated_savings', 'rejected', 'response', 'session_id', 'status']

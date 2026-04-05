@@ -5,7 +5,7 @@
 {% block page_title %}Performance Analytics{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .metrics-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -59,6 +59,28 @@
         margin-bottom: var(--space-2);
 
     }
+
+    /* Shimmer skeleton loader */
+    @keyframes shimmer {
+        0% { background-position: -400px 0; }
+        100% { background-position: 400px 0; }
+    }
+
+    .metric-card.loading .metric-value,
+    .metric-card.loading .metric-title,
+    .metric-card.loading .metric-change {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 400px 100%;
+        animation: shimmer 1.2s infinite;
+        border-radius: 6px;
+        color: transparent !important;
+        user-select: none;
+    }
+
+    .metric-card.loading .metric-value { height: 3rem; width: 60%; }
+    .metric-card.loading .metric-title { height: 0.9rem; width: 50%; margin-bottom: var(--space-5); }
+    .metric-card.loading .metric-change { height: 0.8rem; width: 40%; }
+    .metric-card.loading .metric-icon { opacity: 0; }
 
     .metric-change {
         display: flex;
@@ -357,4 +379,124 @@
         </div>
     </div>
 </div>
+
+<!-- Advisor Drop-off Funnel -->
+{% if advisor_dropoff and advisor_dropoff.total_sessions > 0 %}
+{% set df = advisor_dropoff %}
+{% set top = df.reached_basics if df.reached_basics > 0 else 1 %}
+<div class="info-card" style="margin-top: var(--space-8);">
+    <div class="info-card-header" style="display:flex; align-items:center; justify-content:space-between;">
+        <h3 style="margin:0;">Advisor Session Funnel</h3>
+        <span style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-light); padding:var(--space-1) var(--space-3); border-radius:var(--radius-full); font-weight:var(--font-semibold);">
+            {{ df.total_sessions }} total sessions &nbsp;&middot;&nbsp; avg {{ df.avg_completeness }}% complete
+        </span>
+    </div>
+    <div class="info-card-body" style="padding: var(--space-5) var(--space-6);">
+        <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+            .adf-row { display:flex; align-items:center; gap:var(--space-4); margin-bottom:var(--space-4); }
+            .adf-label { width:175px; font-size:0.85rem; color:var(--text-primary); font-weight:var(--font-medium); flex-shrink:0; }
+            .adf-bar-wrap { flex:1; background:var(--bg-light); border-radius:var(--radius-lg); overflow:hidden; height:28px; }
+            .adf-bar { height:100%; border-radius:var(--radius-lg); display:flex; align-items:center; padding-left:var(--space-3); font-size:0.78rem; font-weight:var(--font-semibold); color:#fff; white-space:nowrap; transition:width 0.5s ease; min-width:4px; }
+            .adf-count { width:38px; text-align:right; font-weight:var(--font-semibold); font-size:0.9rem; flex-shrink:0; }
+            .adf-drop { width:90px; text-align:right; font-size:0.8rem; color:var(--text-muted); flex-shrink:0; }
+        </style>
+
+        {% set stages = [
+            ("Started basics",       df.reached_basics,       0,                        "#C9A84C"),
+            ("Answered income",      df.reached_income_detail,df.reached_basics,         "#D4B060"),
+            ("Answered deductions",  df.reached_deductions,   df.reached_income_detail,  "#DEBB78"),
+            ("Answered retirement",  df.reached_retirement,   df.reached_deductions,     "#E8CB90"),
+            ("Answered investments", df.reached_investments,  df.reached_retirement,     "#F0D8A8"),
+            ("Completed (70%+)",     df.completed,            df.reached_investments,    "#F6E4C0"),
+        ] %}
+
+        {% for label, count, prev, color in stages %}
+        {% set bar_pct = (count / top * 100)|int %}
+        {% set drop_pct = ((prev - count) / prev * 100)|int if prev > 0 else 0 %}
+        <div class="adf-row">
+            <div class="adf-label">{{ label }}</div>
+            <div class="adf-bar-wrap">
+                <div class="adf-bar" style="width:{{ [bar_pct, 4]|max }}%; background:{{ color }};">
+                    {% if bar_pct > 12 %}{{ count }}{% endif %}
+                </div>
+            </div>
+            <div class="adf-count">{% if bar_pct <= 12 %}{{ count }}{% endif %}</div>
+            <div class="adf-drop">
+                {% if loop.index0 > 0 and drop_pct > 0 %}&minus;{{ drop_pct }}%{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if df.reached_basics > 0 %}
+        <div style="margin-top:var(--space-5); padding-top:var(--space-4); border-top:1px solid var(--border-color); display:flex; gap:var(--space-8); font-size:0.82rem; color:var(--text-muted);">
+            <span>
+                <strong style="color:var(--text-primary);">{{ ((df.completed / df.reached_basics) * 100)|int }}%</strong>
+                completion rate (basics &rarr; 70%+)
+            </span>
+            <span>
+                <strong style="color:var(--text-primary);">
+                    {{ df.abandoned_at.basics + df.abandoned_at.income_detail + df.abandoned_at.deductions + df.abandoned_at.retirement + df.abandoned_at.investments }}
+                </strong>
+                sessions abandoned mid-flow
+            </span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Advisor Sessions -->
+{% if recent_advisor_sessions %}
+<div class="info-card" id="advisor-sessions" style="margin-top: var(--space-6);">
+    <div class="info-card-header">
+        <h3>Advisor Sessions</h3>
+        <a href="/cpa/leads?filter_state=advisory_ready" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    <div class="info-card-body" style="padding: 0;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); font-weight:var(--font-semibold);">
+                    <th style="padding:var(--space-3) var(--space-5); text-align:left;">Client</th>
+                    <th style="padding:var(--space-3) var(--space-5); text-align:left;">Date</th>
+                    <th style="padding:var(--space-3) var(--space-5); text-align:right;">Income</th>
+                    <th style="padding:var(--space-3) var(--space-5); text-align:center;">Strategies</th>
+                    <th style="padding:var(--space-3) var(--space-5); text-align:right;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in recent_advisor_sessions %}
+                <tr style="border-bottom:1px solid var(--border-color);">
+                    <td style="padding:var(--space-3) var(--space-5);">
+                        <div style="font-weight:var(--font-medium);">{{ s.name }}</div>
+                        {% if s.state %}<div style="font-size:0.8rem;color:var(--text-muted);">{{ s.state }}</div>{% endif %}
+                    </td>
+                    <td style="padding:var(--space-3) var(--space-5); color:var(--text-muted);">{{ s.date }}</td>
+                    <td style="padding:var(--space-3) var(--space-5); text-align:right;">${{ '{:,.0f}'.format(s.income|int) if s.income else '—' }}</td>
+                    <td style="padding:var(--space-3) var(--space-5); text-align:center;">
+                        <span style="background:var(--bg-light); border-radius:var(--radius-full); padding:2px 10px; font-size:0.85rem;">{{ s.strategy_count }}</span>
+                    </td>
+                    <td style="padding:var(--space-3) var(--space-5); text-align:right;">
+                        <a href="/cpa/advisor/review/{{ s.session_id }}" class="btn btn-secondary btn-sm">Review</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+// Brief shimmer on page load — 800ms pulse to indicate data is live
+document.addEventListener('DOMContentLoaded', function() {
+    var cards = document.querySelectorAll('.metric-card');
+    cards.forEach(function(c) { c.classList.add('loading'); });
+    setTimeout(function() {
+        cards.forEach(function(c) { c.classList.remove('loading'); });
+    }, 800);
+});
+</script>
 {% endblock %}

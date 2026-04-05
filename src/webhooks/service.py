@@ -99,6 +99,10 @@ class _DatabaseSessionWrapper:
     """
     Wrapper that provides context manager interface for database operations.
 
+    TENANT-SAFE: This is a generic session/query builder. Callers (WebhookService
+    methods) are responsible for applying firm_id / endpoint_id filters before
+    executing queries. No direct tenant assertions here by design.
+
     Manages session lifecycle for webhook service operations.
     """
 
@@ -142,6 +146,10 @@ class _DatabaseSessionWrapper:
 class _StandaloneQuery:
     """
     Query wrapper that manages its own session for standalone operations.
+
+    TENANT-SAFE: This is a generic infrastructure query builder — callers are
+    responsible for providing tenant-scoping filters (firm_id / endpoint_id)
+    via .filter(). No direct tenant assertions here by design.
 
     Used when WebhookService.query() is called outside of a context manager.
     """
@@ -994,7 +1002,12 @@ class WebhookService:
                 logger.error(f"[WEBHOOK] Worker error: {e}")
 
     async def _process_retries(self) -> None:
-        """Process pending retries."""
+        """Process pending retries.
+
+        TENANT-SAFE: Queries are scoped by delivery.endpoint_id which maps to
+        a specific firm's endpoint. Global retry sweep is an infrastructure
+        operation run by the single background worker, not exposed to tenants.
+        """
         from webhooks.models import WebhookEndpoint, WebhookDelivery, DeliveryStatus
 
         session = self._get_session()

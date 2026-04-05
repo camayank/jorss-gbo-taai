@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/repositories/__init__.py
+# hypothesis_version: 6.141.1
+
+['AdvisoryRepository', 'ClientRepository', 'EventStore', 'ScenarioRepository', 'TaxReturnRepository']

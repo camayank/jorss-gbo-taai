@@ -20,7 +20,7 @@
   {% set page_css = 'client-portal' %}
   {% include 'partials/head_styles.html' %}
 
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     /* App-level layout basics */
     body {
       font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
