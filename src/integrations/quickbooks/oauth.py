@@ -2,12 +2,13 @@
 QuickBooks OAuth2 Authorization Code Flow Implementation.
 
 This module implements the OAuth2 authorization code flow for QuickBooks Online,
-including authorization URL generation, code exchange, CSRF protection via state
-tokens, and token refresh functionality.
+including authorization URL generation, code exchange, and token refresh functionality.
+State token validation is delegated to the caller (typically the HTTP route layer) since
+state tokens are tied to HTTP sessions, not oauth_client instances.
 
 OAuth2 Flow:
 1. get_authorization_url() - Generate authorization URL with state token
-2. validate_state() - Validate state token for CSRF protection
+2. Caller validates state token (via route-level session storage)
 3. exchange_code_for_token() - Exchange auth code for access/refresh tokens
 4. refresh_token() - Refresh access token before expiration
 """
@@ -29,14 +30,15 @@ class QuickBooksOAuthClient:
     """
     QuickBooks OAuth2 Client.
 
-    Implements the OAuth2 authorization code flow with CSRF protection.
-    State tokens are cached and validated to prevent replay attacks.
+    Implements the OAuth2 authorization code flow for exchanging authorization codes
+    for access tokens. State validation is the responsibility of the caller (typically
+    the HTTP route layer), since state tokens are tied to HTTP sessions, not oauth_client
+    instances.
 
     Attributes:
         client_id: OAuth client ID from QB app
         client_secret: OAuth client secret from QB app
         redirect_uri: Callback URI for authorization code
-        _state_cache: Set of valid state tokens (cleared after use)
     """
 
     def __init__(self, client_id: str, client_secret: str, redirect_uri: str):
@@ -51,7 +53,6 @@ class QuickBooksOAuthClient:
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
-        self._state_cache: Dict[str, bool] = {}  # state -> is_valid
 
     def get_authorization_url(self) -> Tuple[str, str]:
         """
@@ -62,16 +63,17 @@ class QuickBooksOAuthClient:
                 - authorization_url: Full URL to redirect user to QB login
                 - state_token: Random 32-char alphanumeric token for CSRF validation
 
+        Note: The returned state token should be stored by the caller (typically in the
+        HTTP session or request context). State validation is the caller's responsibility.
+
         Example:
             url, state = client.get_authorization_url()
+            session["qb_state"] = state  # Store in session for later validation
             redirect(url)  # Send user to QB login
             # After user authorizes, QB redirects to redirect_uri with code and state
         """
         # Generate random 32-character state token for CSRF protection
         state = secrets.token_hex(16)  # 32 hex chars = 16 bytes
-
-        # Store state in cache for validation
-        self._state_cache[state] = True
 
         # Build authorization URL using config
         url = QB_CONFIG.get_authorization_url(
@@ -83,40 +85,6 @@ class QuickBooksOAuthClient:
         logger.debug(f"Generated authorization URL with state: {state[:8]}...")
         return url, state
 
-    def validate_state(self, state: Optional[str]) -> None:
-        """
-        Validate state token for CSRF protection.
-
-        State tokens are single-use: once validated, they are removed from
-        the cache to prevent replay attacks.
-
-        Args:
-            state: State token from authorization callback
-
-        Raises:
-            ValueError: If state is invalid, expired, or already used
-        """
-        if not state:
-            raise ValueError("Invalid state: state token is required")
-
-        if state not in self._state_cache:
-            raise ValueError("Invalid state: state token not recognized or already used")
-
-        # State is valid - remove from cache (single-use)
-        del self._state_cache[state]
-        logger.debug(f"State validated and consumed: {state[:8]}...")
-
-    def _is_state_valid(self, state: str) -> bool:
-        """
-        Check if state token is valid (internal use only).
-
-        Args:
-            state: State token to check
-
-        Returns:
-            True if state is in cache and valid, False otherwise
-        """
-        return state in self._state_cache
 
     async def exchange_code_for_token(
         self,
@@ -126,12 +94,14 @@ class QuickBooksOAuthClient:
         """
         Exchange authorization code for access and refresh tokens.
 
-        Validates state token for CSRF protection, then exchanges the
-        authorization code for OAuth tokens using Basic authentication.
+        Exchanges the authorization code for OAuth tokens using Basic authentication.
+        State validation must be handled by the caller (typically at the route level),
+        since state tokens are tied to HTTP sessions, not oauth_client instances.
 
         Args:
             auth_code: Authorization code from QB callback
-            state: State token from QB callback (must match original)
+            state: State token from QB callback (for traceability; validation is caller's
+                   responsibility)
 
         Returns:
             Dictionary with token response:
@@ -144,24 +114,23 @@ class QuickBooksOAuthClient:
                 }
 
         Raises:
-            ValueError: If state token is invalid
             Exception: If token exchange fails
 
         Example:
             try:
+                # Caller is responsible for validating state
+                if not validate_state_from_session(state):
+                    raise ValueError("Invalid state")
+
                 tokens = await client.exchange_code_for_token(
                     auth_code=request.code,
                     state=request.state
                 )
                 access_token = tokens["access_token"]
-            except ValueError:
-                # CSRF attack detected
-                return error_response(400, "Invalid request")
+            except Exception as e:
+                return error_response(400, f"Token exchange failed: {e}")
         """
-        # Validate state for CSRF protection
-        self.validate_state(state)
-
-        logger.debug("State validated, exchanging code for token...")
+        logger.debug(f"Exchanging code for token with state: {state[:8]}...")
 
         # Prepare Basic Auth header (client_id:client_secret in base64)
         credentials = f"{self.client_id}:{self.client_secret}"
