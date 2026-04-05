@@ -110,23 +110,31 @@ def upgrade():
     # View 5: Return processing stats (processing time by stage)
     op.execute("""
         CREATE MATERIALIZED VIEW analytics_return_processing_stats AS
+        WITH return_processing_times AS (
+            SELECT
+                DATE(received_at) as metric_date,
+                tenant_id,
+                return_id,
+                EXTRACT(EPOCH FROM (
+                    MAX(CASE WHEN event_type = 'ReviewCompleted' THEN received_at END) -
+                    MIN(CASE WHEN event_type = 'ReturnDraftSaved' THEN received_at END)
+                )) / 3600 as processing_hours
+            FROM analytics_events
+            WHERE event_type IN ('ReturnDraftSaved', 'ReturnSubmittedForReview', 'ReviewCompleted')
+              AND tenant_id IS NOT NULL
+              AND return_id IS NOT NULL
+            GROUP BY DATE(received_at), tenant_id, return_id
+        )
         SELECT
-            DATE(received_at) as metric_date,
+            metric_date,
             tenant_id,
             COUNT(DISTINCT return_id) as total_returns,
-            COUNT(DISTINCT CASE WHEN event_type = 'ReturnDraftSaved' THEN return_id END) as draft_stage,
-            COUNT(DISTINCT CASE WHEN event_type = 'ReturnSubmittedForReview' THEN return_id END) as submitted_stage,
-            COUNT(DISTINCT CASE WHEN event_type = 'ReviewCompleted' THEN return_id END) as completed_stage,
-            ROUND(
-                EXTRACT(EPOCH FROM (MAX(CASE WHEN event_type = 'ReviewCompleted' THEN received_at END) -
-                                   MIN(CASE WHEN event_type = 'ReturnDraftSaved' THEN received_at END))) / 3600,
-                2
-            ) as avg_processing_hours
-        FROM analytics_events
-        WHERE event_type IN ('ReturnDraftSaved', 'ReturnSubmittedForReview', 'ReviewCompleted')
-          AND tenant_id IS NOT NULL
-          AND return_id IS NOT NULL
-        GROUP BY DATE(received_at), tenant_id
+            COUNT(DISTINCT CASE WHEN processing_hours IS NOT NULL THEN return_id END) as draft_stage,
+            COUNT(DISTINCT CASE WHEN processing_hours IS NOT NULL THEN return_id END) as submitted_stage,
+            COUNT(DISTINCT CASE WHEN processing_hours IS NOT NULL THEN return_id END) as completed_stage,
+            ROUND(AVG(processing_hours), 2) as avg_processing_hours
+        FROM return_processing_times
+        GROUP BY metric_date, tenant_id
     """)
 
     op.execute("CREATE INDEX ix_return_stats_date_tenant ON analytics_return_processing_stats (metric_date, tenant_id)")
