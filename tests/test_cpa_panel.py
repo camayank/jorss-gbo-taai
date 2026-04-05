@@ -198,9 +198,34 @@ class TestCPAWorkflowManager:
     def test_submit_for_review(self):
         """Test submit_for_review method."""
         from cpa_panel.workflow.status_manager import CPAWorkflowManager, ReturnStatus
+        from database.session_persistence import SessionRecord
 
         mock_persistence = Mock()
         mock_persistence.get_return_status.return_value = None
+
+        # Mock load_session to return valid session data with required fields
+        session_record = SessionRecord(
+            session_id="test-session",
+            tenant_id="default",
+            session_type="agent",
+            created_at="2025-01-01T00:00:00Z",
+            last_activity="2025-01-01T00:00:00Z",
+            expires_at="2025-01-02T00:00:00Z",
+            data={
+                "return_data": {
+                    "taxpayer_name": "John Doe",
+                    "wages_salaries_tips": 100000,
+                    "total_income": 100000,
+                    "adjusted_gross_income": 95000,
+                    "taxable_income": 95000,
+                    "tax": 15000,
+                    "total_tax": 15000,
+                    "federal_withholding": 14000,
+                    "validation_errors": []
+                }
+            }
+        )
+        mock_persistence.load_session.return_value = session_record
 
         manager = CPAWorkflowManager(persistence=mock_persistence)
         result = manager.submit_for_review("test-session")

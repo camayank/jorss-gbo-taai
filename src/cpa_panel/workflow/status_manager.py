@@ -184,13 +184,13 @@ class CPAWorkflowManager:
 
         # Load session data and return information
         persistence = self._get_persistence()
-        session = persistence.get_session(session_id, tenant_id)
-        if not session:
+        session_record = persistence.load_session(session_id, tenant_id)
+        if not session_record:
             errors.append("Session not found")
             return (False, errors)
 
-        # Extract return data
-        return_data = session.get("data", {}).get("return_data", {})
+        # Extract return data from session
+        return_data = session_record.data.get("return_data", {})
 
         # Check required fields from form_1040_parser
         required_fields = [
@@ -226,12 +226,12 @@ class CPAWorkflowManager:
 
             # Load session to get taxpayer and return info
             persistence = self._get_persistence()
-            session = persistence.get_session(session_id, tenant_id)
-            if not session:
+            session_record = persistence.load_session(session_id, tenant_id)
+            if not session_record:
                 logger.warning(f"Cannot send IN_REVIEW notification: session {session_id} not found")
                 return
 
-            data = session.get("data", {})
+            data = session_record.data
             taxpayer_name = data.get("taxpayer_name", "Unknown Taxpayer")
             tax_year = data.get("tax_year", 2025)
 
@@ -257,19 +257,24 @@ class CPAWorkflowManager:
         """
         try:
             persistence = self._get_persistence()
-            session = persistence.get_session(session_id, tenant_id)
-            if not session:
+            session_record = persistence.load_session(session_id, tenant_id)
+            if not session_record:
                 logger.warning(f"Cannot trigger CPA_APPROVED actions: session {session_id} not found")
                 return
 
             # Mark as export-ready by setting flag in session data
-            if "data" not in session:
-                session["data"] = {}
-            session["data"]["export_ready"] = True
-            session["data"]["export_ready_timestamp"] = datetime.now(timezone.utc).isoformat()
+            updated_data = session_record.data.copy()
+            updated_data["export_ready"] = True
+            updated_data["export_ready_timestamp"] = datetime.now(timezone.utc).isoformat()
 
             # Persist the export-ready flag
-            persistence.update_session(session_id, session, tenant_id)
+            persistence.save_session(
+                session_id=session_id,
+                tenant_id=tenant_id,
+                session_type=session_record.session_type,
+                data=updated_data,
+                metadata=session_record.metadata
+            )
 
             logger.info(f"CPA_APPROVED actions triggered for session {session_id}: export-ready flag set")
 
