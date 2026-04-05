@@ -1653,6 +1653,136 @@ class MFAPendingSetup(Base):
 
 
 # =============================================================================
+# QUICKBOOKS INTEGRATION MODELS
+# =============================================================================
+
+class QuickBooksTokenRecord(Base):
+    """
+    QuickBooks OAuth2 Token Storage Record.
+
+    Stores encrypted OAuth tokens for QuickBooks Online API access.
+    Tokens are automatically refreshed before expiration.
+
+    Primary Key: token_id (UUID)
+    Secondary Key: connection_id (unique token per connection)
+    """
+    __tablename__ = "quickbooks_tokens"
+
+    # Primary Key
+    token_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Connection Reference
+    connection_id = Column(UUID(as_uuid=True), ForeignKey("quickbooks_connections.connection_id", ondelete="CASCADE"), nullable=False, index=True, unique=True)
+
+    # OAuth2 Tokens (encrypted at rest)
+    access_token_encrypted = Column(String(1024), nullable=False, comment="AES-256-GCM encrypted OAuth2 access token")
+    refresh_token_encrypted = Column(String(1024), nullable=False, comment="AES-256-GCM encrypted OAuth2 refresh token")
+
+    # Token Metadata
+    token_type = Column(String(50), default="Bearer", nullable=False)
+    scope = Column(String(500), nullable=False, comment="Space-separated OAuth scopes")
+    realm_id = Column(String(20), nullable=False, index=True, comment="QB Realm ID (Company ID)")
+
+    # Token Lifecycle
+    issued_at = Column(DateTime, nullable=False, comment="UTC timestamp when token was issued")
+    expires_at = Column(DateTime, nullable=False, index=True, comment="UTC timestamp when access token expires")
+    refresh_expires_at = Column(DateTime, nullable=True, comment="UTC timestamp when refresh token expires (if applicable)")
+
+    # Status Tracking
+    is_valid = Column(Boolean, default=True, index=True, comment="Token validity flag")
+    last_refreshed_at = Column(DateTime, nullable=True, comment="UTC timestamp of last successful refresh")
+    last_refreshed_status = Column(String(50), nullable=True, comment="Status of last refresh attempt: success, failed, pending")
+
+    # Audit Trail
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    revoked_at = Column(DateTime, nullable=True, comment="Timestamp when token was manually revoked")
+
+    # Constraints and Indexes
+    __table_args__ = (
+        Index('ix_token_connection_valid', 'connection_id', 'is_valid'),
+        Index('ix_token_expires_at', 'expires_at'),
+        Index('ix_token_realm_id', 'realm_id'),
+    )
+
+    def __repr__(self):
+        return f"<QuickBooksToken(connection={self.connection_id}, realm={self.realm_id}, expires={self.expires_at})>"
+
+
+class QuickBooksConnectionRecord(Base):
+    """
+    QuickBooks Connection Record.
+
+    Manages QB Online connections for a firm/client, tracking authorization
+    status, company info, and integration health.
+
+    Primary Key: connection_id (UUID)
+    Secondary Key: (firm_id, realm_id) - unique QB connection per firm
+    """
+    __tablename__ = "quickbooks_connections"
+
+    # Primary Key
+    connection_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm Reference
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # QB Company Information
+    realm_id = Column(String(20), nullable=False, comment="QB Realm ID (Company ID)")
+    company_name = Column(String(100), nullable=False, comment="QB Company Display Name")
+
+    # Connection Status
+    is_connected = Column(Boolean, default=False, index=True)
+    is_authorized = Column(Boolean, default=False, index=True)
+    authorization_status = Column(String(50), nullable=True, comment="Status: pending, authorized, expired, revoked, error")
+
+    # QB Account Information
+    account_email = Column(String(255), nullable=True, comment="QB Account Email")
+    account_id = Column(String(100), nullable=True, comment="QB Account ID from authorization")
+
+    # Data Sync Configuration
+    last_sync_at = Column(DateTime, nullable=True, comment="Timestamp of last successful data sync")
+    last_sync_status = Column(String(50), nullable=True, comment="Status: success, failed, partial, pending")
+    sync_error_message = Column(Text, nullable=True, comment="Error message from last failed sync")
+    next_scheduled_sync = Column(DateTime, nullable=True)
+
+    # Data Sync Tracking
+    synced_data_types = Column(JSONB, default=lambda: {}, nullable=False, comment="Object tracking what data types have been synced and when")
+    sync_statistics = Column(JSONB, nullable=True, comment="Sync stats: records_imported, records_updated, records_failed, etc.")
+
+    # Connection Health
+    health_status = Column(String(50), nullable=True, comment="Status: healthy, degraded, unhealthy")
+    health_check_at = Column(DateTime, nullable=True)
+    consecutive_sync_failures = Column(Integer, default=0)
+
+    # Audit Trail
+    authorized_by = Column(String(100), nullable=True, comment="User ID who authorized this connection")
+    authorized_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    disconnected_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    token = relationship("QuickBooksTokenRecord", back_populates="connection", uselist=False, lazy="selectin", cascade="all, delete-orphan")
+
+    # Constraints and Indexes
+    __table_args__ = (
+        UniqueConstraint('firm_id', 'realm_id', name='uq_firm_realm_id'),
+        Index('ix_connection_status', 'is_connected', 'is_authorized'),
+        Index('ix_connection_firm', 'firm_id'),
+        Index('ix_connection_health', 'health_status'),
+        Index('ix_connection_last_sync', 'last_sync_at'),
+    )
+
+    def __repr__(self):
+        return f"<QuickBooksConnection(firm={self.firm_id}, realm={self.realm_id}, status={self.authorization_status})>"
+
+
+# Add back_populates relationship to token record
+QuickBooksTokenRecord.connection = relationship("QuickBooksConnectionRecord", back_populates="token", uselist=False)
+
+
+# =============================================================================
 # DATABASE UTILITY FUNCTIONS
 # =============================================================================
 
