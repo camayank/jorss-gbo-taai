@@ -76,8 +76,105 @@ class AuditAnalyticsHelper:
             - by_client: List of TaxSavingsMetric
             - avg_savings: Average per client
         """
-        # TODO: Implement in Task 2
-        pass
+        from audit.unified.event_types import AuditEventType
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        # Query for TAX_CALC_RUN events in the time window
+        events = self.audit_service.query(
+            event_type=AuditEventType.TAX_CALC_RUN,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        if not events:
+            return {
+                "total_savings": 0,
+                "by_client": [],
+                "avg_savings": 0,
+                "count": 0,
+            }
+
+        # Aggregate savings by client
+        client_savings: Dict[str, Tuple[float, int, datetime]] = {}  # client_id -> (savings, count, latest_date)
+
+        for event in events:
+            try:
+                # Extract tax liability values from old and new
+                old_liability = 0
+                new_liability = 0
+
+                if event.old_value and isinstance(event.old_value, dict):
+                    outputs = event.old_value.get("outputs", {})
+                    old_liability = float(outputs.get("total_tax_liability", 0))
+
+                if event.new_value and isinstance(event.new_value, dict):
+                    outputs = event.new_value.get("outputs", {})
+                    new_liability = float(outputs.get("total_tax_liability", 0))
+
+                # Calculate savings (positive = tax reduced)
+                savings = old_liability - new_liability
+
+                # Get client info from metadata or resource
+                client_id = None
+                client_name = None
+
+                if event.metadata and isinstance(event.metadata, dict):
+                    client_id = event.metadata.get("client_id")
+                    client_name = event.metadata.get("client_name")
+
+                if not client_id and event.resource_id:
+                    client_id = event.resource_id
+
+                if not client_id:
+                    client_id = event.session_id or "unknown"
+
+                # Accumulate savings
+                if client_id in client_savings:
+                    prev_savings, count, latest = client_savings[client_id]
+                    client_savings[client_id] = (
+                        prev_savings + savings,
+                        count + 1,
+                        max(latest, event.timestamp) if latest else event.timestamp
+                    )
+                else:
+                    client_savings[client_id] = (savings, 1, event.timestamp)
+
+            except (KeyError, TypeError, ValueError) as e:
+                logger.warning(f"Error processing TAX_CALC_RUN event: {e}")
+                continue
+
+        # Build result
+        total_savings = 0
+        by_client = []
+
+        for client_id, (savings, count, latest_date) in client_savings.items():
+            metric = TaxSavingsMetric(
+                client_id=client_id,
+                client_name=None,  # Could enhance by looking up from DB
+                total_savings=max(0, savings),  # Don't report negative savings
+                num_returns=count,
+                avg_savings_per_return=savings / count if count > 0 else 0,
+                latest_calc_date=latest_date,
+            )
+            by_client.append(metric)
+            total_savings += metric.total_savings
+
+        # Sort by total savings descending
+        by_client.sort(key=lambda x: x.total_savings, reverse=True)
+
+        avg_savings = total_savings / len(by_client) if by_client else 0
+
+        return {
+            "total_savings": round(total_savings, 2),
+            "by_client": by_client,
+            "avg_savings": round(avg_savings, 2),
+            "count": len(by_client),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     def get_return_processing_metrics(
         self,
