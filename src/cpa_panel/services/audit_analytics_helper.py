@@ -295,8 +295,64 @@ class AuditAnalyticsHelper:
             - conversion_rate: Percentage of magnet → client
             - by_stage: Breakdown by funnel stage
         """
-        # TODO: Implement in Task 4
-        pass
+        from audit.unified.event_types import AuditEventType
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        # Query for lead creation events (use TAX_RETURN_CREATE as proxy for lead creation)
+        # In practice, might need a specific lead creation event type
+        lead_creation_events = self.audit_service.query(
+            event_type=AuditEventType.TAX_RETURN_CREATE,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        # Filter for magnet source (check metadata)
+        magnet_leads = []
+        for event in lead_creation_events:
+            if event.metadata and isinstance(event.metadata, dict):
+                source = event.metadata.get("source")
+                if source == "magnet" or event.metadata.get("lead_type") == "magnet":
+                    magnet_leads.append(event)
+
+        # Query for client assignments
+        assign_events = self.audit_service.query(
+            event_type=AuditEventType.CPA_CLIENT_ASSIGN,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        # Build set of assigned lead IDs
+        assigned_lead_ids = set()
+        for event in assign_events:
+            lead_id = event.resource_id or event.session_id
+            if lead_id:
+                assigned_lead_ids.add(lead_id)
+
+        # Calculate conversion rate
+        magnet_count = len(magnet_leads)
+        assigned_count = len(assigned_lead_ids)
+        conversion_rate = (
+            (assigned_count / magnet_count * 100)
+            if magnet_count > 0 else 0
+        )
+
+        return {
+            "magnet_leads": magnet_count,
+            "assigned_clients": assigned_count,
+            "conversion_rate": round(conversion_rate, 1),
+            "by_stage": {
+                "created_leads": magnet_count,
+                "assigned_as_client": assigned_count,
+                "pending_assignment": magnet_count - assigned_count,
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     def get_recommendation_acceptance_rate(
         self,
@@ -320,8 +376,89 @@ class AuditAnalyticsHelper:
             - acceptance_rate: Percentage
             - by_type: Breakdown by recommendation category
         """
-        # TODO: Implement in Task 5
-        pass
+        from audit.unified.event_types import AuditEventType, AuditSource
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        # Query for TAX_DATA_FIELD_CHANGE events from recommendations
+        # (Source = AI_CHATBOT or metadata contains recommendation)
+        change_events = self.audit_service.query(
+            event_type=AuditEventType.TAX_DATA_FIELD_CHANGE,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        if not change_events:
+            return {
+                "total_recommendations": 0,
+                "accepted_count": 0,
+                "acceptance_rate": 0,
+                "by_type": {},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        # Filter for recommendation-sourced changes
+        recommendation_changes = []
+        by_type = {}  # Track by recommendation type/field
+
+        for event in change_events:
+            is_from_recommendation = False
+
+            # Check metadata for recommendation indicator
+            if event.metadata and isinstance(event.metadata, dict):
+                if event.metadata.get("from_recommendation"):
+                    is_from_recommendation = True
+
+            # Alternative: check source is AI_CHATBOT (AI suggestions)
+            if not is_from_recommendation and event.source:
+                if event.source == AuditSource.AI_CHATBOT:
+                    is_from_recommendation = True
+
+            if is_from_recommendation:
+                recommendation_changes.append(event)
+
+                # Track by field type
+                if event.changes and len(event.changes) > 0:
+                    field = event.changes[0].field_path
+                    if field not in by_type:
+                        by_type[field] = {"offered": 0, "accepted": 0}
+                    by_type[field]["accepted"] += 1
+
+        # For simplicity, assume all TAX_DATA_AI_SUGGESTION events are offers
+        ai_suggestions = self.audit_service.query(
+            event_type=AuditEventType.TAX_DATA_AI_SUGGESTION,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        total_recommendations = len(ai_suggestions)
+        accepted_count = len(recommendation_changes)
+
+        acceptance_rate = (
+            (accepted_count / total_recommendations * 100)
+            if total_recommendations > 0 else 0
+        )
+
+        # Populate offered counts in by_type
+        for event in ai_suggestions:
+            if event.changes and len(event.changes) > 0:
+                field = event.changes[0].field_path
+                if field not in by_type:
+                    by_type[field] = {"offered": 0, "accepted": 0}
+                by_type[field]["offered"] += 1
+
+        return {
+            "total_recommendations": total_recommendations,
+            "accepted_count": accepted_count,
+            "acceptance_rate": round(acceptance_rate, 1),
+            "by_type": by_type,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 # Singleton instance
