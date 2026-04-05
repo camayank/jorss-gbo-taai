@@ -152,6 +152,18 @@ class CreditType(str, PyEnum):
     OTHER = "other"
 
 
+class CarryforwardType(str, PyEnum):
+    """Tax carryforward types per IRC."""
+    NET_OPERATING_LOSS = "net_operating_loss"  # IRC §172 (up to 80% of taxable income limit in 2021+)
+    CAPITAL_LOSS = "capital_loss"  # Indefinite carryforward
+    CHARITABLE_CONTRIBUTION = "charitable_contribution"  # 5-year carryforward
+    FOREIGN_TAX_CREDIT = "foreign_tax_credit"  # Indefinite carryforward
+    ALTERNATIVE_MINIMUM_TAX_CREDIT = "alternative_minimum_tax_credit"  # Indefinite carryforward
+    EXCESS_BUSINESS_LOSS = "excess_business_loss"  # IRC §461(l)
+    PASSIVE_ACTIVITY_LOSS = "passive_activity_loss"  # Indefinite carryforward
+    RESEARCH_CREDIT = "research_credit"  # Can offset AMT
+
+
 class DependentRelationship(str, PyEnum):
     """Dependent relationship types."""
     SON = "son"
@@ -329,6 +341,7 @@ class TaxReturnRecord(Base):
     form1099_records = relationship("Form1099Record", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     deduction_records = relationship("DeductionRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     credit_records = relationship("CreditRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    carryforward_ledgers = relationship("CarryforwardLedgerRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin", foreign_keys="CarryforwardLedgerRecord.return_id")
     dependent_records = relationship("DependentRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     state_returns = relationship("StateReturnRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     audit_logs = relationship("AuditLogRecord", back_populates="tax_return", cascade="save-update, merge", lazy="selectin")
@@ -821,6 +834,77 @@ class CreditRecord(Base):
     __table_args__ = (
         Index('ix_credit_type', 'credit_type', 'return_id'),
         Index('ix_credit_student_ssn_hash', 'student_ssn_hash'),
+    )
+
+
+class CarryforwardLedgerRecord(Base):
+    """
+    Carryforward Ledger Record - Multi-year tracking of NOL, capital losses, and other carryforwards.
+
+    Implements IRC §172 (NOL), §1211-1212 (capital loss), §170 (charitable),
+    §904 (foreign tax credit), and other carryforward provisions.
+
+    Each record tracks one carryforward type for one taxpayer in one tax year,
+    including both the amount available and amount used in that year.
+    """
+    __tablename__ = "carryforward_ledgers"
+
+    # Primary Key
+    ledger_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Foreign Key to tax return (optional - ledger can exist across returns)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # Core identification
+    taxpayer_ssn_hash = Column(String(64), nullable=False, index=True, comment="Hash of taxpayer SSN for linkage")
+    tax_year = Column(Integer, nullable=False, index=True, comment="Tax year this carryforward applies to")
+    carryforward_type = Column(Enum(CarryforwardType), nullable=False, index=True, comment="Type of carryforward per IRC")
+
+    # Carryforward tracking
+    source_year = Column(Integer, nullable=True, comment="Year the carryforward originated (e.g., NOL in 2020)")
+    amount_available = Column(Numeric(12, 2), default=0, nullable=False, comment="Amount available for use in this year")
+    amount_used = Column(Numeric(12, 2), default=0, nullable=False, comment="Amount actually used in this year")
+    amount_remaining = Column(Numeric(12, 2), default=0, nullable=False, comment="Amount carried forward to next year")
+
+    # Expiration tracking
+    expires_after_year = Column(Integer, nullable=True, comment="Year after which carryforward expires (null=indefinite)")
+    is_expired = Column(Boolean, default=False, index=True, comment="Whether this carryforward has expired")
+
+    # IRC-specific details
+    nol_limitation_percent = Column(Numeric(5, 2), default=100, comment="Taxable income limitation % (e.g., 80 for 2021+)")
+    capital_loss_limitation = Column(Numeric(12, 2), default=3000, comment="Annual limitation on capital loss deduction")
+    foreign_taxes_available = Column(Numeric(12, 2), default=0, comment="Foreign taxes that can be credited")
+    foreign_income_source = Column(String(100), nullable=True, comment="Country or source of foreign income")
+
+    # Supporting documentation
+    form_reference = Column(String(20), nullable=True, comment="Form where carryforward is claimed (1045, 1040, etc.)")
+    schedule_reference = Column(String(20), nullable=True, comment="Schedule number (e.g., 'D' for capital losses)")
+    line_reference = Column(String(20), nullable=True, comment="Line number on tax form")
+
+    # Prior year carryforward application
+    prior_year_ledger_id = Column(UUID(as_uuid=True), ForeignKey("carryforward_ledgers.ledger_id", ondelete="SET NULL"), nullable=True, comment="Link to prior year's ledger entry")
+
+    # Verification and audit trail
+    source_document_id = Column(String(100), nullable=True, comment="ID of supporting document/return")
+    verified_by = Column(String(100), nullable=True, comment="Preparer/CPA who verified amount")
+    verification_date = Column(Date, nullable=True, comment="Date carryforward was verified")
+
+    # Timestamps
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    tax_return = relationship("TaxReturnRecord", back_populates="carryforward_ledgers", foreign_keys=[return_id])
+    prior_ledger = relationship("CarryforwardLedgerRecord", backref="subsequent_ledgers", remote_side=[ledger_id], foreign_keys=[prior_year_ledger_id])
+
+    __table_args__ = (
+        Index('ix_carryforward_taxpayer_year', 'taxpayer_ssn_hash', 'tax_year', 'carryforward_type'),
+        Index('ix_carryforward_type_year', 'carryforward_type', 'tax_year'),
+        Index('ix_carryforward_expired', 'is_expired', 'expires_after_year'),
+        UniqueConstraint('taxpayer_ssn_hash', 'tax_year', 'carryforward_type', 'source_year', name='uq_carryforward_per_taxpayer_type_year'),
     )
 
 

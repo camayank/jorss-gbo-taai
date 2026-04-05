@@ -20,6 +20,8 @@ from .models import (
     Form1099Record,
     DeductionRecord,
     CreditRecord,
+    CarryforwardLedgerRecord,
+    CarryforwardType,
     DependentRecord,
     StateReturnRecord,
     AuditLogRecord,
@@ -52,6 +54,7 @@ try:
         get_async_engine,
         get_async_session,
         get_async_session_factory,
+        get_db_session,
         check_database_connection,
         init_database,
         close_database,
@@ -62,6 +65,7 @@ except ImportError:
     get_async_engine = None
     get_async_session = None
     get_async_session_factory = None
+    get_db_session = None
     check_database_connection = None
     init_database = None
     close_database = None
@@ -117,6 +121,7 @@ __all__ = [
     "get_async_engine",
     "get_async_session",
     "get_async_session_factory",
+    "get_db_session",
     "check_database_connection",
     "init_database",
     "close_database",
