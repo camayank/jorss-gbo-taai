@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import '../styles/IncomeScreen.css'
+import { useTaxCalcWebSocket, type TaxCalcResult } from '../api/useTaxCalcWebSocket'
 
 interface W2 {
   id: string
@@ -24,6 +25,10 @@ interface IncomeScreenProps {
   onNext?: () => void
   onSave?: (data: { w2s: W2[]; totalIncome: number }) => void
   initialData?: { w2s: W2[] }
+  /** Auth token for WebSocket real-time calc. Falls back to HTTP polling if absent. */
+  wsToken?: string | null
+  /** Return session id for WebSocket co-editing channel. */
+  sessionId?: string
 }
 
 const defaultW2: Omit<W2, 'id'> = {
@@ -44,7 +49,7 @@ const defaultW2: Omit<W2, 'id'> = {
   localTaxWithheld: 0,
 }
 
-export default function IncomeScreen({ onNext, onSave, initialData }: IncomeScreenProps) {
+export default function IncomeScreen({ onNext, onSave, initialData, wsToken = null, sessionId }: IncomeScreenProps) {
   const [w2s, setW2s] = useState<W2[]>(
     initialData?.w2s || [
       {
@@ -63,45 +68,73 @@ export default function IncomeScreen({ onNext, onSave, initialData }: IncomeScre
   const totalWages = w2s.reduce((sum, w2) => sum + (w2.box1Wages || 0), 0)
   const totalFederalWithholding = w2s.reduce((sum, w2) => sum + (w2.box2FederalWithholding || 0), 0)
 
-  // Fetch real-time tax estimate
-  const fetchTaxEstimate = useCallback(async () => {
+  // -------------------------------------------------------------------------
+  // Real-time tax calculation via WebSocket (replaces HTTP polling)
+  // -------------------------------------------------------------------------
+
+  const effectiveSessionId = sessionId ?? 'income-screen-default'
+  const useWs = Boolean(wsToken)
+
+  const handleCalcResult = useCallback((result: TaxCalcResult) => {
+    setTaxEstimate(result.tax_liability)
+    setEstimateLoading(false)
+  }, [])
+
+  const handleCalcError = useCallback(() => {
+    setEstimateLoading(false)
+  }, [])
+
+  const { sendCalcUpdate, connected: wsConnected } = useTaxCalcWebSocket({
+    sessionId: effectiveSessionId,
+    token: useWs ? wsToken : null,
+    onResult: handleCalcResult,
+    onError: handleCalcError,
+    debounceMs: 500,
+  })
+
+  // Build the calc input whenever totals change
+  const calcInput = useMemo(() => ({
+    income: { wages: totalWages },
+    withholdings: { federal: totalFederalWithholding },
+  }), [totalWages, totalFederalWithholding])
+
+  // Trigger calc on input change — WebSocket path or HTTP fallback
+  useEffect(() => {
     if (totalWages === 0) {
       setTaxEstimate(0)
       return
     }
-
     setEstimateLoading(true)
-    try {
-      const response = await fetch('/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tax_year: 2025,
-          income: {
-            wages: totalWages,
-            interest_income: 0,
-            dividend_income: 0,
-            capital_gains: 0,
-            business_income: 0,
-            rental_income: 0,
-            other_income: 0,
-          },
-          withholdings: {
-            federal: totalFederalWithholding,
-          },
-        }),
-      })
 
-      if (response.ok) {
-        const data = await response.json()
-        setTaxEstimate(data.tax_liability || 0)
-      }
-    } catch (error) {
-      console.error('Tax estimate error:', error)
-    } finally {
-      setEstimateLoading(false)
+    if (useWs && wsConnected) {
+      // Server-push path: debounce handled inside the hook
+      sendCalcUpdate(calcInput)
+    } else {
+      // HTTP polling fallback (no token or WS not yet connected)
+      const timer = setTimeout(async () => {
+        try {
+          const response = await fetch('/api/estimate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tax_year: 2025,
+              income: { wages: totalWages },
+              withholdings: { federal: totalFederalWithholding },
+            }),
+          })
+          if (response.ok) {
+            const data = await response.json()
+            setTaxEstimate(data.tax_liability || 0)
+          }
+        } catch (error) {
+          console.error('Tax estimate error:', error)
+        } finally {
+          setEstimateLoading(false)
+        }
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }, [totalWages, totalFederalWithholding])
+  }, [calcInput, totalWages, totalFederalWithholding, useWs, wsConnected, sendCalcUpdate])
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -127,15 +160,6 @@ export default function IncomeScreen({ onNext, onSave, initialData }: IncomeScre
 
     return () => clearTimeout(timer)
   }, [w2s, totalWages])
-
-  // Real-time tax estimate
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchTaxEstimate()
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [totalWages, totalFederalWithholding, fetchTaxEstimate])
 
   const updateW2 = (index: number, field: keyof W2, value: any) => {
     const updated = [...w2s]

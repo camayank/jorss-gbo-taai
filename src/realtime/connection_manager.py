@@ -149,7 +149,24 @@ class ConnectionManager:
         return connection
 
     async def disconnect(self, user_id: UUID):
-        """Disconnect a user's WebSocket connection."""
+        """Disconnect a user's WebSocket connection and release any held field locks."""
+        # Release field locks held by this user and notify session peers
+        try:
+            released = await field_lock_manager.release_all_for_user(user_id)
+            for session_id, field_id in released:
+                from .events import create_field_unlocked_event
+                connection = self._connections.get(user_id)
+                firm_id = connection.firm_id if connection else None
+                if firm_id:
+                    event = create_field_unlocked_event(
+                        session_id=session_id,
+                        firm_id=firm_id,
+                        field_id=field_id,
+                    )
+                    await self.broadcast_event(event)
+        except Exception as e:
+            logger.warning(f"[WS] Error releasing field locks on disconnect: {e}")
+
         async with self._get_lock():
             if user_id in self._connections:
                 connection = self._connections[user_id]
@@ -213,7 +230,7 @@ class ConnectionManager:
                 if not self._session_subscriptions[session_id]:
                     del self._session_subscriptions[session_id]
 
-    async def broadcast_event(self, event: RealtimeEvent):
+    async def broadcast_event(self, event: RealtimeEvent, _via_pubsub: bool = False):
         """
         Broadcast an event to relevant connections.
 
@@ -222,6 +239,11 @@ class ConnectionManager:
         - firm_id: Send to all users in that firm
         - user_id: Send to specific user
         - session_id: Send to users subscribed to that session
+
+        When Redis pub/sub is enabled, also publishes the event to the Redis
+        channel so other worker processes can deliver it to their local clients.
+        The ``_via_pubsub`` flag prevents re-publishing events that already
+        arrived from Redis (avoiding infinite loops).
         """
         if event.broadcast:
             await self._broadcast_to_all(event)
@@ -231,6 +253,14 @@ class ConnectionManager:
             await self._send_to_user(event)
         elif event.firm_id:
             await self._broadcast_to_firm(event)
+
+        # Cross-process: publish to Redis so other workers can deliver locally
+        if not _via_pubsub:
+            try:
+                from .redis_pubsub import redis_broadcaster
+                await redis_broadcaster.publish_event(event)
+            except Exception:
+                pass  # Redis unavailable — in-process delivery only
 
     async def _broadcast_to_all(self, event: RealtimeEvent):
         """Broadcast to all connected clients."""
@@ -299,6 +329,9 @@ class ConnectionManager:
         - subscribe: Subscribe to a session
         - unsubscribe: Unsubscribe from a session
         - heartbeat: Keepalive ping
+        - field_lock: Acquire exclusive edit lock on a form field
+        - field_unlock: Release edit lock on a form field
+        - presence_update: Update cursor / active field position
         """
         msg_type = message.get("type", "")
 
@@ -325,6 +358,109 @@ class ConnectionManager:
                         user_id=user_id,
                         data={"timestamp": datetime.now(timezone.utc).isoformat()},
                     ))
+
+        elif msg_type == "field_lock":
+            await self._handle_field_lock(user_id, message)
+
+        elif msg_type == "field_unlock":
+            await self._handle_field_unlock(user_id, message)
+
+        elif msg_type == "presence_update":
+            await self._handle_presence_update(user_id, message)
+
+    async def _handle_field_lock(self, user_id: UUID, message: Dict[str, Any]):
+        """Handle a request to lock a form field for exclusive editing."""
+        from .events import create_field_locked_event
+
+        session_id = message.get("session_id", "")
+        field_id = message.get("field_id", "")
+        user_name = message.get("user_name", str(user_id))
+
+        if not session_id or not field_id:
+            return
+
+        lock = await field_lock_manager.acquire(session_id, field_id, user_id, user_name)
+
+        conn = self._connections.get(user_id)
+        if conn is None:
+            return
+
+        if lock.user_id == user_id:
+            # Lock granted — broadcast to session peers
+            event = create_field_locked_event(
+                session_id=session_id,
+                firm_id=conn.firm_id,
+                field_id=field_id,
+                locked_by_user_id=str(user_id),
+                locked_by_name=user_name,
+            )
+            await self.broadcast_event(event)
+        else:
+            # Lock denied — notify requesting user only
+            await self._send_to_connection(conn, RealtimeEvent(
+                event_type=EventType.FIELD_LOCKED,
+                user_id=user_id,
+                firm_id=conn.firm_id,
+                session_id=session_id,
+                data={
+                    "field_id": field_id,
+                    "locked_by_user_id": str(lock.user_id),
+                    "locked_by_name": lock.user_name,
+                    "denied": True,
+                },
+            ))
+
+    async def _handle_field_unlock(self, user_id: UUID, message: Dict[str, Any]):
+        """Handle a request to release a field lock."""
+        from .events import create_field_unlocked_event
+
+        session_id = message.get("session_id", "")
+        field_id = message.get("field_id", "")
+
+        if not session_id or not field_id:
+            return
+
+        released = await field_lock_manager.release(session_id, field_id, user_id)
+        if not released:
+            return
+
+        conn = self._connections.get(user_id)
+        if conn is None:
+            return
+
+        event = create_field_unlocked_event(
+            session_id=session_id,
+            firm_id=conn.firm_id,
+            field_id=field_id,
+        )
+        await self.broadcast_event(event)
+
+    async def _handle_presence_update(self, user_id: UUID, message: Dict[str, Any]):
+        """Handle a presence/cursor update from a user."""
+        from .events import create_presence_update_event
+
+        session_id = message.get("session_id", "")
+        active_field = message.get("active_field")
+        user_name = message.get("user_name", str(user_id))
+        color = message.get("color")
+
+        if not session_id:
+            return
+
+        conn = self._connections.get(user_id)
+        if conn is None:
+            return
+
+        event = create_presence_update_event(
+            session_id=session_id,
+            firm_id=conn.firm_id,
+            user_id=user_id,
+            user_name=user_name,
+            user_role=conn.user_role,
+            active_field=active_field,
+            color=color,
+        )
+        await self.broadcast_event(event)
 
     def get_connection_info(self, user_id: UUID) -> Optional[ConnectionInfo]:
         """Get connection info for a user."""
@@ -379,3 +515,94 @@ class ConnectionManager:
 
 # Singleton instance
 connection_manager = ConnectionManager()
+
+
+@dataclass
+class FieldLock:
+    """Tracks who currently holds a field lock for co-editing."""
+    field_id: str
+    session_id: str
+    user_id: UUID
+    user_name: str
+    locked_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class FieldLockManager:
+    """
+    In-memory field lock tracker for co-editing.
+
+    Tracks which user holds the edit lock for each (session, field) pair.
+    For multi-process deployments, locks are also mirrored in Redis via the
+    connection_manager's pub/sub broadcaster.
+    """
+
+    def __init__(self):
+        # key: (session_id, field_id) -> FieldLock
+        self._locks: Dict[tuple, FieldLock] = {}
+        self._lock = None
+
+    def _get_lock(self):
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
+    async def acquire(
+        self,
+        session_id: str,
+        field_id: str,
+        user_id: UUID,
+        user_name: str,
+    ) -> Optional[FieldLock]:
+        """
+        Try to acquire a field lock.
+
+        Returns the lock if acquired, or the existing lock held by another user.
+        """
+        key = (session_id, field_id)
+        async with self._get_lock():
+            existing = self._locks.get(key)
+            if existing and existing.user_id != user_id:
+                return existing  # locked by someone else
+            lock = FieldLock(
+                field_id=field_id,
+                session_id=session_id,
+                user_id=user_id,
+                user_name=user_name,
+            )
+            self._locks[key] = lock
+            return lock
+
+    async def release(self, session_id: str, field_id: str, user_id: UUID) -> bool:
+        """Release a field lock. Only the lock holder can release."""
+        key = (session_id, field_id)
+        async with self._get_lock():
+            existing = self._locks.get(key)
+            if existing and existing.user_id == user_id:
+                del self._locks[key]
+                return True
+            return False
+
+    async def release_all_for_user(self, user_id: UUID) -> List[tuple]:
+        """Release all locks held by a user (on disconnect). Returns released keys."""
+        released = []
+        async with self._get_lock():
+            keys_to_remove = [
+                k for k, v in self._locks.items() if v.user_id == user_id
+            ]
+            for k in keys_to_remove:
+                del self._locks[k]
+                released.append(k)
+        return released
+
+    def get_session_locks(self, session_id: str) -> List[FieldLock]:
+        """Get all active locks for a session."""
+        return [v for k, v in self._locks.items() if k[0] == session_id]
+
+    def is_locked_by(self, session_id: str, field_id: str, user_id: UUID) -> bool:
+        """Check if the given user holds the lock."""
+        lock = self._locks.get((session_id, field_id))
+        return lock is not None and lock.user_id == user_id
+
+
+# Singleton field lock manager
+field_lock_manager = FieldLockManager()

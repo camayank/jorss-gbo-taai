@@ -61,6 +61,17 @@ class EventType(str, Enum):
     RESOURCE_LOCKED = "resource_locked"
     RESOURCE_UNLOCKED = "resource_unlocked"
 
+    # Real-time tax calculation events
+    TAX_CALC_UPDATE = "tax_calc_update"
+    TAX_CALC_RESULT = "tax_calc_result"
+    TAX_CALC_ERROR = "tax_calc_error"
+
+    # Co-editing / field presence events
+    FIELD_LOCKED = "field_locked"
+    FIELD_UNLOCKED = "field_unlocked"
+    PRESENCE_UPDATE = "presence_update"
+    CURSOR_POSITION = "cursor_position"
+
 
 class EventPriority(str, Enum):
     """Priority levels for events."""
@@ -277,6 +288,93 @@ def create_client_message_event(
         data={
             "client_name": client_name,
             "message_preview": message_preview[:100],
+        },
+    )
+
+
+def create_tax_calc_result_event(
+    session_id: str,
+    firm_id: UUID,
+    user_id: UUID,
+    tax_liability: float,
+    refund_or_owed: float,
+    breakdown: Dict[str, Any],
+    request_id: Optional[str] = None,
+) -> "RealtimeEvent":
+    """Create a tax calculation result event."""
+    return RealtimeEvent(
+        event_type=EventType.TAX_CALC_RESULT,
+        priority=EventPriority.HIGH,
+        firm_id=firm_id,
+        user_id=user_id,
+        session_id=session_id,
+        data={
+            "tax_liability": tax_liability,
+            "refund_or_owed": refund_or_owed,
+            "breakdown": breakdown,
+            "request_id": request_id,
+        },
+    )
+
+
+def create_field_locked_event(
+    session_id: str,
+    firm_id: UUID,
+    field_id: str,
+    locked_by_user_id: str,
+    locked_by_name: str,
+) -> "RealtimeEvent":
+    """Create a field lock event for co-editing."""
+    return RealtimeEvent(
+        event_type=EventType.FIELD_LOCKED,
+        priority=EventPriority.HIGH,
+        firm_id=firm_id,
+        session_id=session_id,
+        data={
+            "field_id": field_id,
+            "locked_by_user_id": locked_by_user_id,
+            "locked_by_name": locked_by_name,
+        },
+    )
+
+
+def create_field_unlocked_event(
+    session_id: str,
+    firm_id: UUID,
+    field_id: str,
+) -> "RealtimeEvent":
+    """Create a field unlock event for co-editing."""
+    return RealtimeEvent(
+        event_type=EventType.FIELD_UNLOCKED,
+        priority=EventPriority.NORMAL,
+        firm_id=firm_id,
+        session_id=session_id,
+        data={"field_id": field_id},
+    )
+
+
+def create_presence_update_event(
+    session_id: str,
+    firm_id: UUID,
+    user_id: UUID,
+    user_name: str,
+    user_role: str,
+    active_field: Optional[str] = None,
+    color: Optional[str] = None,
+) -> "RealtimeEvent":
+    """Create a presence update event (user cursor/focus position)."""
+    return RealtimeEvent(
+        event_type=EventType.PRESENCE_UPDATE,
+        priority=EventPriority.LOW,
+        firm_id=firm_id,
+        user_id=user_id,
+        session_id=session_id,
+        data={
+            "user_id": str(user_id),
+            "user_name": user_name,
+            "user_role": user_role,
+            "active_field": active_field,
+            "color": color,
         },
     )
 

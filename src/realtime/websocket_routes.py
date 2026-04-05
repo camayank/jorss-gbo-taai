@@ -26,6 +26,7 @@ from .events import (
     EventType,
     create_notification_event,
     create_system_announcement_event,
+    create_tax_calc_result_event,
 )
 
 logger = logging.getLogger(__name__)
@@ -135,6 +136,192 @@ async def websocket_endpoint(
     except Exception as e:
         logger.error(f"WebSocket error for user {email}: {e}")
         await connection_manager.disconnect(user_id)
+
+
+# =============================================================================
+# TAX CALCULATION WEBSOCKET
+# =============================================================================
+
+@websocket_router.websocket("/tax-calc/{session_id}")
+async def websocket_tax_calc(
+    websocket: WebSocket,
+    session_id: str,
+    token: str = Query(..., description="Authentication token"),
+):
+    """
+    Real-time tax calculation WebSocket endpoint.
+
+    Replace the polling /api/estimate pattern with server-push.
+    Client sends field deltas; server responds immediately with updated liability.
+
+    Client → Server message:
+    {
+        "type": "calc_update",
+        "request_id": "<uuid>",   // echoed in response for matching
+        "income": {
+            "wages": 75000,
+            "interest_income": 500,
+            ...
+        },
+        "withholdings": { "federal": 12000 },
+        "filing_status": "single",
+        "num_dependents": 0,
+        "state_code": "CA"
+    }
+
+    Server → Client message:
+    {
+        "type": "tax_calc_result",
+        "request_id": "<uuid>",
+        "data": {
+            "tax_liability": 9500.0,
+            "refund_or_owed": 2500.0,
+            "is_refund": true,
+            "federal_tax": 9500.0,
+            "state_tax": 2400.0,
+            "effective_rate": 0.127,
+            "marginal_rate": 0.22,
+            "confidence": 0.9
+        }
+    }
+    """
+    # Verify token
+    user_info = await verify_websocket_token(token)
+    if not user_info:
+        await websocket.close(code=4001, reason="Invalid authentication token")
+        return
+
+    user_id = user_info["user_id"]
+    firm_id = user_info["firm_id"]
+
+    await websocket.accept()
+
+    # Subscribe to this session for collaborative notifications
+    await connection_manager.subscribe_session(user_id, session_id)
+
+    # Notify session peers that this user joined
+    session_user_event = RealtimeEvent(
+        event_type=EventType.USER_JOINED_SESSION,
+        firm_id=firm_id,
+        user_id=user_id,
+        session_id=session_id,
+        data={
+            "user_id": str(user_id),
+            "user_email": user_info["email"],
+            "user_role": user_info["role"],
+            "session_id": session_id,
+        },
+    )
+    await connection_manager.broadcast_event(session_user_event)
+
+    try:
+        while True:
+            try:
+                data = await websocket.receive_json()
+            except json.JSONDecodeError:
+                continue
+
+            msg_type = data.get("type", "")
+
+            if msg_type == "calc_update":
+                await _handle_tax_calc_update(websocket, data, user_id, firm_id, session_id)
+
+            elif msg_type == "field_lock":
+                data["session_id"] = session_id
+                await connection_manager.handle_message(user_id, data)
+
+            elif msg_type == "field_unlock":
+                data["session_id"] = session_id
+                await connection_manager.handle_message(user_id, data)
+
+            elif msg_type == "presence_update":
+                data["session_id"] = session_id
+                await connection_manager.handle_message(user_id, data)
+
+            elif msg_type == "heartbeat":
+                await websocket.send_json({
+                    "type": "heartbeat",
+                    "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                })
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"Tax-calc WebSocket error for user {user_id}: {e}")
+    finally:
+        await connection_manager.unsubscribe_session(user_id, session_id)
+        leave_event = RealtimeEvent(
+            event_type=EventType.USER_LEFT_SESSION,
+            firm_id=firm_id,
+            session_id=session_id,
+            data={
+                "user_id": str(user_id),
+                "user_email": user_info["email"],
+                "session_id": session_id,
+            },
+        )
+        await connection_manager.broadcast_event(leave_event)
+
+
+async def _handle_tax_calc_update(
+    websocket: WebSocket,
+    data: dict,
+    user_id: UUID,
+    firm_id: UUID,
+    session_id: str,
+) -> None:
+    """Run tax estimation and push result back over the WebSocket."""
+    request_id = data.get("request_id")
+    try:
+        from onboarding.benefit_estimator import OnboardingBenefitEstimator
+
+        income = data.get("income", {})
+        withholdings = data.get("withholdings", {})
+
+        wages = float(income.get("wages", 0) or 0)
+        withholding = float(withholdings.get("federal", 0) or 0)
+        filing_status = data.get("filing_status", "single")
+        num_dependents = int(data.get("num_dependents", 0) or 0)
+        state_code = data.get("state_code")
+
+        valid_statuses = {"single", "married_joint", "married_separate", "head_of_household", "qualifying_widow"}
+        if filing_status not in valid_statuses:
+            filing_status = "single"
+
+        estimator = OnboardingBenefitEstimator()
+        estimate = estimator.estimate_from_basics(
+            wages=wages,
+            withholding=withholding,
+            filing_status=filing_status,
+            num_dependents=num_dependents,
+            state_code=state_code,
+        )
+
+        result_event = create_tax_calc_result_event(
+            session_id=session_id,
+            firm_id=firm_id,
+            user_id=user_id,
+            tax_liability=estimate.federal_tax or 0,
+            refund_or_owed=estimate.estimated_refund or -estimate.estimated_owed or 0,
+            breakdown={
+                "federal_tax": estimate.federal_tax,
+                "state_tax": estimate.state_tax,
+                "effective_rate": estimate.effective_rate,
+                "marginal_rate": estimate.marginal_rate,
+                "confidence": estimate.confidence,
+                "is_refund": estimate.is_refund,
+            },
+            request_id=request_id,
+        )
+        await websocket.send_json(result_event.to_dict())
+
+    except Exception as e:
+        logger.error(f"Tax calc WebSocket error: {e}")
+        await websocket.send_json({
+            "type": "tax_calc_error",
+            "request_id": request_id,
+            "error": "Calculation failed — please try again",
+        })
 
 
 # =============================================================================

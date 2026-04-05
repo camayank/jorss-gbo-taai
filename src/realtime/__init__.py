@@ -51,11 +51,18 @@ from .events import (
     create_deadline_alert_event,
     create_client_message_event,
     create_system_announcement_event,
+    create_tax_calc_result_event,
+    create_field_locked_event,
+    create_field_unlocked_event,
+    create_presence_update_event,
 )
 from .connection_manager import (
     ConnectionManager,
     ConnectionInfo,
     connection_manager,
+    FieldLockManager,
+    FieldLock,
+    field_lock_manager,
 )
 from .event_publisher import (
     EventPublisher,
@@ -76,10 +83,17 @@ __all__ = [
     "create_deadline_alert_event",
     "create_client_message_event",
     "create_system_announcement_event",
+    "create_tax_calc_result_event",
+    "create_field_locked_event",
+    "create_field_unlocked_event",
+    "create_presence_update_event",
     # Connection manager
     "ConnectionManager",
     "ConnectionInfo",
     "connection_manager",
+    "FieldLockManager",
+    "FieldLock",
+    "field_lock_manager",
     # Event publisher
     "EventPublisher",
     "event_publisher",

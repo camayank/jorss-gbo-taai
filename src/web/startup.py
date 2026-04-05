@@ -250,6 +250,25 @@ async def on_shutdown_auto_save():
         logger.error(f"Error stopping auto-save: {e}")
 
 
+async def on_startup_websocket_pubsub():
+    """Start the Redis pub/sub broadcaster for cross-process WebSocket delivery."""
+    try:
+        from realtime.redis_pubsub import start_redis_broadcaster
+        await start_redis_broadcaster(None)  # connection_manager resolved inside
+        logger.info("WebSocket Redis pub/sub broadcaster started")
+    except Exception as e:
+        logger.warning(f"WebSocket Redis pub/sub broadcaster failed to start (non-fatal): {e}")
+
+
+async def on_shutdown_websocket_pubsub():
+    """Stop the Redis pub/sub broadcaster gracefully."""
+    try:
+        from realtime.redis_pubsub import stop_redis_broadcaster
+        await stop_redis_broadcaster()
+    except Exception as e:
+        logger.warning(f"Error stopping WebSocket broadcaster: {e}")
+
+
 def register_lifecycle_events(app):
     """Register all startup and shutdown event handlers on the app."""
     app.on_event("startup")(on_startup_banner)
@@ -259,5 +278,7 @@ def register_lifecycle_events(app):
     app.on_event("startup")(on_startup_auto_save)
     app.on_event("startup")(on_startup_production_readiness_check)
     app.on_event("startup")(on_startup_irs_rag_warmup)
+    app.on_event("startup")(on_startup_websocket_pubsub)
     app.on_event("shutdown")(on_shutdown_database)
     app.on_event("shutdown")(on_shutdown_auto_save)
+    app.on_event("shutdown")(on_shutdown_websocket_pubsub)
