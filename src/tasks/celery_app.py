@@ -74,6 +74,7 @@ def create_celery_app(
             "tasks.notification_tasks",
             "tasks.backup",
             "tasks.database_maintenance",
+            "tasks.analytics_refresh",
         ],
     )
 
@@ -166,6 +167,17 @@ def create_celery_app(
             "nightly-database-backup": {
                 "task": "tasks.backup.run_database_backup",
                 "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM UTC
+            },
+            # --- Analytics materialized views refresh ---
+            "refresh-analytics-views-business-hours": {
+                "task": "tasks.analytics_refresh.refresh_all_views",
+                "schedule": crontab(hour="8-17", minute="*/15"),  # Every 15 min, 8 AM-5:59 PM UTC
+                "options": {"queue": "analytics"},
+            },
+            "refresh-analytics-views-off-hours": {
+                "task": "tasks.analytics_refresh.refresh_all_views",
+                "schedule": crontab(hour="18-23,0-7", minute=0),  # Hourly 6 PM-7:59 AM UTC
+                "options": {"queue": "analytics"},
             },
         },
     )
