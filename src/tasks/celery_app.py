@@ -73,6 +73,7 @@ def create_celery_app(
             "tasks.data_retention",
             "tasks.notification_tasks",
             "tasks.backup",
+            "tasks.database_maintenance",
         ],
     )
 
@@ -127,6 +128,23 @@ def create_celery_app(
             "trim-audit-logs": {
                 "task": "tasks.data_retention.trim_audit_logs",
                 "schedule": 604800.0,  # Every 7 days
+            },
+            # --- Database maintenance tasks ---
+            "vacuum-analyze-high-churn": {
+                "task": "tasks.database_maintenance.vacuum_analyze_high_churn",
+                "schedule": crontab(hour=1, minute=0, day_of_week=0),  # Weekly Sunday at 1 AM UTC
+            },
+            "archive-audit-logs": {
+                "task": "tasks.database_maintenance.archive_audit_logs",
+                "schedule": crontab(hour=3, minute=0, day_of_week=1),  # Weekly Monday at 3 AM UTC
+            },
+            "collect-pg-stats": {
+                "task": "tasks.database_maintenance.collect_pg_stats",
+                "schedule": 3600.0,  # Every hour
+            },
+            "cleanup-ocr-temp-files": {
+                "task": "tasks.database_maintenance.cleanup_ocr_temp_files",
+                "schedule": 86400.0,  # Every 24 hours at midnight UTC
             },
             # --- Proactive notification tasks ---
             "process-deadline-reminders": {
