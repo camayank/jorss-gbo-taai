@@ -28,6 +28,8 @@ from .models import (
     AuditLogRecord,
     ComputationWorksheet,
     FilingStatusFlag,
+    QuickBooksTokenRecord,
+    QuickBooksConnectionRecord,
 )
 
 from .schema import (
@@ -105,6 +107,8 @@ __all__ = [
     "AuditLogRecord",
     "ComputationWorksheet",
     "FilingStatusFlag",
+    "QuickBooksTokenRecord",
+    "QuickBooksConnectionRecord",
     # Schema
     "TaxReturnSchema",
     "ValidationResult",
