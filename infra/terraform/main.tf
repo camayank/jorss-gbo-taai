@@ -670,3 +670,43 @@ resource "aws_cloudwatch_metric_alarm" "app_errors_high" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
   treat_missing_data  = "notBreaching"
 }
+
+# Alarm: HTTP 5xx Errors High
+resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
+  alarm_name          = "${local.prefix}-alb-5xx-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 10
+  alarm_description   = "Alert when HTTP 5xx error count exceeds 10 (>1% error rate)"
+  alarm_actions       = [aws_sns_topic.critical_alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = aws_lb.main.arn_suffix
+    TargetGroup  = aws_lb_target_group.app.arn_suffix
+  }
+}
+
+# Alarm: Worker Task Count Low
+resource "aws_cloudwatch_metric_alarm" "worker_task_count_low" {
+  alarm_name          = "${local.prefix}-worker-task-count-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "RunningCount"
+  namespace           = "ECS/ContainerInsights"
+  period              = 300
+  statistic           = "Average"
+  threshold           = var.worker_desired_count
+  alarm_description   = "Alert when worker task count drops below desired"
+  alarm_actions       = [aws_sns_topic.critical_alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    ServiceName = aws_ecs_service.worker.name
+    ClusterName = aws_ecs_cluster.main.name
+  }
+}
