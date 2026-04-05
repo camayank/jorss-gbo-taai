@@ -315,6 +315,74 @@ resource "aws_ecs_service" "app" {
 }
 
 # ===========================================================================
+# Celery Worker (background job processing)
+# ===========================================================================
+resource "aws_ecs_task_definition" "worker" {
+  family                   = "${local.prefix}-worker"
+  cpu                      = var.ecs_cpu
+  memory                   = var.ecs_memory
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+
+  container_definitions = jsonencode([{
+    name      = "worker"
+    image     = var.container_image
+    essential = true
+    command = [
+      "python", "-m", "celery",
+      "-A", "tasks.celery_app",
+      "worker",
+      "--loglevel=info",
+      "--concurrency=4",
+      "--time-limit=3600",
+      "--soft-time-limit=3300"
+    ]
+    environment = [
+      { name = "ENVIRONMENT", value = var.environment },
+      { name = "LOG_LEVEL", value = "INFO" }
+    ]
+    secrets = [
+      { name = "APP_SECRET_KEY", valueFrom = "/jorss-gbo/${var.environment}/app-secret-key" },
+      { name = "JWT_SECRET",     valueFrom = "/jorss-gbo/${var.environment}/jwt-secret" },
+      { name = "DATABASE_URL",   valueFrom = "/jorss-gbo/${var.environment}/database-url" },
+      { name = "REDIS_URL",      valueFrom = "/jorss-gbo/${var.environment}/redis-url" }
+    ]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.worker.name
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "worker"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "worker" {
+  name            = "${local.prefix}-worker"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker.arn
+  desired_count   = var.worker_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_groups = [aws_security_group.ecs.id]
+  }
+
+  depends_on = [aws_lb_listener.http]
+}
+
+# CloudWatch log group for worker
+resource "aws_cloudwatch_log_group" "worker" {
+  name              = "/ecs/${local.prefix}-worker"
+  retention_in_days = var.log_retention_days
+
+  tags = { Name = "${local.prefix}-worker-logs" }
+}
+
+# ===========================================================================
 # ALB
 # ===========================================================================
 resource "aws_lb" "main" {

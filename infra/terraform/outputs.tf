@@ -41,6 +41,11 @@ output "ecs_cluster_name" {
 }
 
 output "ecs_service_name" {
-  description = "ECS service name"
+  description = "ECS app service name"
   value       = aws_ecs_service.app.name
+}
+
+output "ecs_worker_service_name" {
+  description = "ECS Celery worker service name"
+  value       = aws_ecs_service.worker.name
 }

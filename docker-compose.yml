@@ -121,7 +121,7 @@ services:
       - production
 
   # ---------------------------------------------------------------------------
-  # Background Worker (Optional - for async tasks)
+  # Celery Worker (async background tasks)
   # ---------------------------------------------------------------------------
   worker:
     build:
@@ -134,18 +134,74 @@ services:
     environment:
       - ENVIRONMENT=development
       - DATABASE_PATH=/app/database/jorss_gbo.db
+      - LOG_LEVEL=INFO
       - APP_SECRET_KEY=${APP_SECRET_KEY:-development-secret-key-change-me-32chars}
       - JWT_SECRET=${JWT_SECRET:-development-jwt-secret-change-me-32chars}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-development-encryption-key-32chars}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
-    command: ["python", "-m", "celery", "-A", "tasks.celery_app", "worker", "--loglevel=info"]
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-jorss_gbo}
+    command:
+      - python
+      - -m
+      - celery
+      - -A
+      - tasks.celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=4
+      - --time-limit=3600
+      - --soft-time-limit=3300
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -h redis -p 6379 -a ${REDIS_PASSWORD:-changeme} ping | grep -q PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
     networks:
       - jorss-network
-    profiles:
-      - with-workers
+
+  # ---------------------------------------------------------------------------
+  # Celery Flower (task queue monitoring)
+  # ---------------------------------------------------------------------------
+  flower:
+    build:
+      context: .
+      target: production
+    container_name: jorss-gbo-flower
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./flower-db:/flower-db
+    environment:
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+    command:
+      - celery
+      - -A
+      - tasks.celery_app
+      - flower
+      - --port=5555
+      - --db=/flower-db/flower.db
+      - --url_prefix=/flower
+    depends_on:
+      - redis
+      - worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/flower/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - jorss-network
 
 # =============================================================================
 # Networks
@@ -165,3 +221,6 @@ volumes:
   redis-data:
     driver: local
   postgres-data:
+    driver: local
+  flower-db:
+    driver: local

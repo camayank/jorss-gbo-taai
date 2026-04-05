@@ -50,3 +50,15 @@ variable "container_image" {
   description = "Full ECR image URI with tag (e.g. 123456789.dkr.ecr.us-east-1.amazonaws.com/jorss-gbo:latest)"
   type        = string
 }
+
+variable "worker_desired_count" {
+  description = "Number of Celery worker tasks to run"
+  type        = number
+  default     = 2
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 14
+}
