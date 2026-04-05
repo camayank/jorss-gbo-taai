@@ -28,6 +28,8 @@ class QuickBooksConfig:
     # API Version
     QUICKBOOKS_REALM_ID: Final[str] = "realm_id"  # Placeholder - set per client connection
     QB_API_VERSION: Final[str] = "v2"
+    QB_REPORTS_API_VERSION: Final[str] = "v4"  # Reports endpoint version
+    QB_ENTITY_MINOR_VERSION: Final[str] = "65"  # minorversion for entity queries
 
     # OAuth2 Scopes for QuickBooks Online
     SCOPES: Final[Set[str]] = {
