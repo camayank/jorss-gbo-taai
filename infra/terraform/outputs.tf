@@ -9,9 +9,25 @@ output "ecr_repository_url" {
 }
 
 output "rds_endpoint" {
-  description = "RDS PostgreSQL endpoint"
+  description = "RDS PostgreSQL endpoint (primary, us-east-1)"
   value       = aws_db_instance.postgres.endpoint
   sensitive   = true
+}
+
+output "rds_replica_endpoint" {
+  description = "RDS read replica endpoint (us-west-2)"
+  value       = try(aws_db_instance.postgres_replica_usw2[0].endpoint, null)
+  sensitive   = true
+}
+
+output "rds_backup_retention_days" {
+  description = "RDS automated backup retention period"
+  value       = aws_db_instance.postgres.backup_retention_period
+}
+
+output "rds_multi_az_enabled" {
+  description = "RDS Multi-AZ enabled"
+  value       = aws_db_instance.postgres.multi_az
 }
 
 output "s3_bucket_name" {
