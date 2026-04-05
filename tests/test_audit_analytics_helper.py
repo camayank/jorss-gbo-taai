@@ -39,8 +39,14 @@ def test_tax_savings_metric_creation():
 
 def test_get_tax_savings_by_client_no_events():
     """Test tax savings with no audit events."""
-    mock_service = type('MockService', (), {
+    # Create mock storage with query method
+    mock_storage = type('MockStorage', (), {
         'query': lambda *args, **kwargs: []
+    })()
+
+    # Create mock service with _storage attribute
+    mock_service = type('MockService', (), {
+        '_storage': mock_storage
     })()
 
     helper = AuditAnalyticsHelper()
@@ -75,8 +81,14 @@ def test_get_tax_savings_by_client_with_events():
     entry1.return_id = "return_1"
     entry1.metadata = {"client_id": "client_123", "client_name": "Acme Corp"}
 
+    # Create mock storage with query method
+    mock_storage = type('MockStorage', (), {
+        'query': lambda *args, **kwargs: [entry1]
+    })()
+
+    # Create mock service with _storage attribute
     mock_service = type('MockService', (), {
-        'query': lambda self, *args, **kwargs: [entry1]
+        '_storage': mock_storage
     })()
 
     helper = AuditAnalyticsHelper()

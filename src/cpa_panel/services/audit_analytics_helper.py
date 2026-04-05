@@ -82,7 +82,7 @@ class AuditAnalyticsHelper:
         start = end - timedelta(days=days)
 
         # Query for TAX_CALC_RUN events in the time window
-        events = self.audit_service.query(
+        events = self.audit_service._storage.query(
             event_type=AuditEventType.TAX_CALC_RUN,
             tenant_id=tenant_id,
             start_date=start,
