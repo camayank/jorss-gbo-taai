@@ -1,7 +1,7 @@
 """Tests for audit analytics helper."""
 
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from cpa_panel.services.audit_analytics_helper import (
     AuditAnalyticsHelper,
     get_audit_analytics_helper,
@@ -88,3 +88,78 @@ def test_get_tax_savings_by_client_with_events():
     assert len(result["by_client"]) == 1
     assert result["by_client"][0].client_id == "client_123"
     assert result["by_client"][0].total_savings == 5000
+
+
+def test_get_return_processing_metrics_no_events():
+    """Test return metrics with no events."""
+    mock_service = type('MockService', (), {
+        'query': lambda *args, **kwargs: []
+    })()
+
+    helper = AuditAnalyticsHelper()
+    helper._audit_service = mock_service
+
+    result = helper.get_return_processing_metrics(tenant_id="test")
+
+    assert result.total_returns == 0
+    assert result.acceptance_rate == 0
+    assert result.avg_processing_days == 0
+
+
+def test_get_return_processing_metrics_with_submissions():
+    """Test return processing time from submit to acceptance."""
+    from audit.unified import AuditEventType
+    from audit.unified.entry import UnifiedAuditEntry
+
+    # Create mock entries for return submission and acceptance
+    now = datetime.now(timezone.utc)
+    submit_time = now - timedelta(days=5)
+    accept_time = now - timedelta(days=2)  # 3 days processing
+
+    submit_entry = UnifiedAuditEntry(
+        event_type=AuditEventType.TAX_RETURN_SUBMIT,
+        session_id="return_1",
+        tenant_id="tenant_1",
+        user_id="user_1",
+        resource_type="return",
+        resource_id="return_1",
+        action="submit_return",
+        timestamp=submit_time,
+    )
+    submit_entry.return_id = "return_1"
+
+    accept_entry = UnifiedAuditEntry(
+        event_type=AuditEventType.TAX_RETURN_ACCEPTED,
+        session_id="return_1",
+        tenant_id="tenant_1",
+        user_id="reviewer_1",
+        resource_type="return",
+        resource_id="return_1",
+        action="accept_return",
+        timestamp=accept_time,
+    )
+    accept_entry.return_id = "return_1"
+
+    # Mock the audit service
+    call_count = 0
+    def mock_query(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:  # First call for SUBMIT events
+            return [submit_entry]
+        elif call_count == 2:  # Second call for ACCEPTED events
+            return [accept_entry]
+        return []
+
+    mock_service = type('MockService', (), {'query': mock_query})()
+
+    helper = AuditAnalyticsHelper()
+    helper._audit_service = mock_service
+
+    result = helper.get_return_processing_metrics(tenant_id="tenant_1")
+
+    assert result.total_returns == 1
+    assert result.submitted_count == 1
+    assert result.accepted_count == 1
+    assert result.acceptance_rate == 100.0
+    assert result.avg_processing_days == 3  # 5 - 2 = 3 days
