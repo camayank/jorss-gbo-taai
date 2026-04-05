@@ -1,7 +1,7 @@
 """Tests for audit analytics helper."""
 
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from cpa_panel.services.audit_analytics_helper import (
     AuditAnalyticsHelper,
     get_audit_analytics_helper,
