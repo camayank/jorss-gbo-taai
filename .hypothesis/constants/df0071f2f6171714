@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/north_carolina.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0425, 500, 2025, 12750, 19125, 25500, 40000, 60000, 100000, 'NC', 'North Carolina', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

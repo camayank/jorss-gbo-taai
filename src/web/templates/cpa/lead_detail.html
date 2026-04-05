@@ -5,7 +5,7 @@
 {% block page_title %}Lead Detail{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     /* Breadcrumb */
     .breadcrumb {
         display: flex;
@@ -645,9 +645,14 @@
             <div class="info-card-header">
                 <h3 class="info-card-title">{{ icon('chart-bar') }} Tax Profile</h3>
                 {% if lead.session_id %}
-                <a href="/lead-magnet/report?session={{ lead.session_id }}" target="_blank" class="btn btn-secondary btn-sm">
-                    View Report
-                </a>
+                <div style="display:flex;gap:var(--space-2);">
+                    <a href="/lead-magnet/report?session={{ lead.session_id }}" target="_blank" class="btn btn-secondary btn-sm">
+                        View Report
+                    </a>
+                    <a href="/cpa/advisor/review/{{ lead.session_id }}" class="btn btn-primary btn-sm">
+                        Review AI Session
+                    </a>
+                </div>
                 {% endif %}
             </div>
             <div class="info-card-body">

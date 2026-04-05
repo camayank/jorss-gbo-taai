@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/schedule_1.py
+# hypothesis_version: 6.141.1
+
+[0.0, 600, 2025, 2500, 'Adjustment amount', 'CalculationBreakdown', 'Income amount', 'Jury duty pay', 'Other income items', 'Prizes and awards', 'Schedule1', 'Tax year', 'Type of adjustment', 'Type of other income', 'alaska_pfd', 'archer_msa', 'attorney_fees', 'bartering', 'clean_fuel', 'cod', 'contributions', 'director_fees', 'domestic_production', 'foreign_housing', 'foreign_income', 'form_1040_line_10', 'form_1040_line_8', 'gambling', 'gambling_income', 'hobby_income', 'hsa_deduction', 'is_required', 'jury_duty', 'k1_ordinary_income', 'line_16_sep_simple', 'line_26_total', 'line_6_farm_income', 'line_7_unemployment', 'line_8e_taxable_hsa', 'line_9_total', 'notary_fees', 'olympic', 'other', 'part_1', 'part_2', 'prizes_awards', 'recovery', 'repayment', 'se_rrta', 'self_employment_tax', 'tax_year', 'taxable_ira']

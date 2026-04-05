@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/pennsylvania.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.01, 0.0307, 0.25, 1.0, 2.5, 2025, 6500, 9500, 13000, 'PA', 'Pennsylvania', 'TaxReturn', 'gross_income', 'head_of_household', 'married_joint', 'married_separate', 'none', 'pa_eitc', 'qualifying_widow', 'single', 'tax_forgiveness']

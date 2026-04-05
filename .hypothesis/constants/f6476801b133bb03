@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/auth_pages.py
+# hypothesis_version: 6.141.1
+
+[302, '/', '//', '/\\', '/admin', '/auth/login', '/auth/mfa-setup', '/auth/mfa-verify', '/auth/register', '/auth/reset-password', '/cpa/dashboard', '/forgot-password', '/intelligent-advisor', '/landing', '/login', '/mfa-setup', '/mfa-verify', '/register', '/reset-password', '/signin', '/signup', 'admin', 'anonymous', 'auth-pages', 'auth/login.html', 'auth/mfa_setup.html', 'auth/mfa_verify.html', 'auth/signup.html', 'branding', 'client', 'consumer', 'cpa', 'cpa_client', 'cpa_team', 'firm_user', 'next', 'next_url', 'platform_admin', 'request', 'reset_token', 'role', 'user_type', 'value']

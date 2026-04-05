@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/ai_compliance_reviewer.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.8, 2048, 4096, 'ComplianceCategory', 'ComplianceIssue', 'ComplianceRiskLevel', 'Form 8867', 'N/A', 'Unknown', 'Unknown Issue', '[', ']', 'ai_confidence', 'aotc_due_diligence', 'category', 'circular_230', 'credit_type', 'critical', 'ctc_due_diligence', 'description', 'disclosure', 'eitc_due_diligence', 'error', 'evidence', 'form_number', 'fraud_indicators', 'high', 'is_compliant', 'is_satisfied', 'issues', 'low', 'medium', 'overall_penalty_risk', 'overall_risk_level', 'penalty_risk', 'recommended_action', 'recommended_actions', 'record_keeping', 'regulation_reference', 'requirement', 'return_id', 'risk_level', 'title', 'unknown', '{', '}']

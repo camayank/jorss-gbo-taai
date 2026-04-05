@@ -24,7 +24,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
-    <style>
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * {
             margin: 0;
             padding: 0;
@@ -497,7 +497,7 @@
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
                 <span>
-                    Tax deadline in {{ deadline_context.days_remaining if deadline_context else 60 }} days
+                    {{ deadline_context.deadline_label if deadline_context and deadline_context.deadline_label else 'Year-end planning cutoff' }} in {{ deadline_context.days_remaining if deadline_context else 60 }} days
                 </span>
             </div>
 

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/advisory/__init__.py
+# hypothesis_version: 6.141.1
+
+['AINarrativeGenerator', 'AIReportSummarizer', 'AdvisoryReportResult', 'ClientProfile', 'CommunicationStyle', 'GeneratedNarrative', 'MultiLevelSummaries', 'ReportSummary', 'ReportType', 'SummaryLevel', 'TaxSophistication']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/advisory/report_summarizer.py
+# hypothesis_version: 6.141.1
+
+[100, 277, 280, 400, 500, 1200, 3600, '"\'', '...', 'AIReportSummarizer', 'MultiLevelSummaries', 'N/A', 'ReportSummary', 'Section', 'SummaryLevel', 'Unknown', 'action_count', 'agi', 'all_opportunities', 'all_summaries', 'char_count', 'client', 'confidence_score', 'content', 'current_year', 'detailed', 'detailed_summary', 'effective_rate', 'email_summary', 'executive', 'executive_summary', 'filing_status', 'generated_at', 'immediate', 'immediate_actions', 'internal', 'key_metrics', 'key_points', 'level', 'metrics', 'one_liner', 'potential_savings', 'priority', 'recommendations', 'savings', 'sections', 'tax_year', 'taxable_income', 'the taxpayer', 'threading', 'title', 'top_opportunities', 'top_opportunity', 'top_recommendations', 'total_income', 'total_tax', 'tweet', 'tweet_summary', 'word_count']

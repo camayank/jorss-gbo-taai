@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/journey_orchestrator.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.6, 10.0, 100, 50000, '/app', '/documents', '/intelligent-advisor', '/scenarios', 'CPA_APPROVED', 'Check Status', 'Download Report', 'Review Return', 'Talk to Tax Advisor', 'Upload Documents', 'View Confirmation', 'View Report', 'View Scenarios', '_', 'action', 'active', 'await_review', 'completed', 'completion_pct', 'continue_advisor', 'cpa_review', 'cta_label', 'cta_url', 'current_stage', 'documents', 'download_report', 'explore_scenarios', 'filed', 'intake', 'journey', 'journey_cost', 'journey_next', 'label', 'message', 'name', 'pending', 'profiling', 'report', 'return_draft', 'review_return', 'scenarios', 'stages', 'start_advisor', 'status', 'upload_documents', 'view_confirmation']

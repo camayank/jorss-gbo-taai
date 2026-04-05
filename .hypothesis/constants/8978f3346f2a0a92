@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/validation.py
+# hypothesis_version: 6.141.1
+
+[100, 250, 254, 255, 1000, 1900, '\x00', '$', ',', '.', '..', '/', '0', '0.', '00', '000', '0000', '1', '666', '9', '999999999.99', ';', 'US', 'ValidationError', '[^a-zA-Z0-9._-]', '\\', '\\D', '_', 'ein', 'filing_status', 'head_of_household', 'hoh', 'income', 'married', 'married_joint', 'married_separate', 'qualifying_widow', 'sanitize_decimal', 'sanitize_ein', 'sanitize_email', 'sanitize_filename', 'sanitize_integer', 'sanitize_list', 'sanitize_phone', 'sanitize_ssn', 'sanitize_string', 'sanitize_tax_amount', 'sanitize_tax_year', 'single', 'ssn', 'tax_year', 'tax_year is required', 'widow', 'widower']

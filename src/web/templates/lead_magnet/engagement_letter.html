@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
-    <style>
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * {
             margin: 0;
             padding: 0;

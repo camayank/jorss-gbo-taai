@@ -290,6 +290,7 @@ class Partner(Base):
     login_page_url = Column(String(500), nullable=True)
     api_enabled = Column(Boolean, default=False)
     api_key_hash = Column(String(64), nullable=True)
+    api_key_expires_at = Column(DateTime, nullable=True)
     api_rate_limit = Column(Integer, default=1000)
     is_active = Column(Boolean, default=True, index=True)
     contract_start_date = Column(DateTime, nullable=True)

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/agent/tax_agent.py
+# hypothesis_version: 6.141.1
+
+[0.3, 500, 1000, ',', '1099-MISC', '; ', 'Employer', '_', '__dict__', 'address', 'assistant', 'collection_stage', 'content', 'credits', 'date_of_birth', 'deductions', 'email', 'filing_status', 'first_name', 'from_dict', 'head', 'household', 'income', 'joint', 'last_name', 'married', 'messages', 'occupation', 'personal_info', 'phone', 'review', 'role', 'separate', 'single', 'ssn', 'surviving spouse', 'system', 'tax_return', 'taxpayer', 'to_dict', 'together', 'user', 'widow']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8824.py
+# hypothesis_version: 6.141.1
+
+[0.0, 180, 2017, 2025, 'Tax year', 'basis', 'basis_property_given', 'boot_received', 'calculations', 'capital_gain', 'compliant', 'controlled_entity', 'days_to_complete', 'days_to_identify', 'deferred', 'deferred_gain', 'exchange_deadline', 'exchange_info', 'exchange_type', 'exchange_valid', 'family', 'gain_deferred', 'gain_recognized', 'identification_date', 'identification_valid', 'improvement', 'is_related', 'is_taxable', 'mixed', 'new_property_basis', 'none', 'ordinary_income', 'partnership_partner', 'personal_property', 'proceeds', 'property_given', 'property_received', 'property_type', 'real_property', 'realized_gain', 'receipt_date', 'recognized_gain', 'related_party', 'reverse', 'section_1231_gain', 'simultaneous', 'tax_year', 'transfer_date', 'trust_beneficiary', 'valid_timeline']

@@ -169,11 +169,64 @@ window.openWorkflowSelector = window.openWorkflowSelector || function() {
   DevLogger.log('Workflow selector not loaded');
 };
 
+// ── Welcome Gate Modal ───────────────────────────────────────────────────────
+
+/**
+ * Initialize welcome gate modal: show on first visit, hide if already accepted.
+ */
+function initializeWelcomeGate() {
+  const overlay = document.getElementById('welcomeGateOverlay');
+  const checkbox = document.getElementById('welcomeAccept');
+  const button = document.getElementById('welcomeContinue');
+
+  if (!overlay || !checkbox || !button) return;
+
+  // Check if user already accepted
+  if (sessionStorage.getItem('welcome_accepted') === '1') {
+    overlay.style.display = 'none';
+    return;
+  }
+
+  // Show welcome gate
+  overlay.style.display = 'flex';
+
+  // Update button state based on checkbox
+  checkbox.addEventListener('change', function() {
+    if (this.checked) {
+      button.disabled = false;
+      button.style.background = 'var(--ink)';
+      button.style.color = 'var(--amber)';
+      button.style.cursor = 'pointer';
+    } else {
+      button.disabled = true;
+      button.style.background = 'var(--stone-200)';
+      button.style.color = 'var(--stone-500)';
+      button.style.cursor = 'not-allowed';
+    }
+  });
+
+  // Handle continue button
+  button.addEventListener('click', function() {
+    if (checkbox.checked) {
+      sessionStorage.setItem('welcome_accepted', '1');
+      overlay.style.display = 'none';
+      // Focus on input for better UX
+      const input = document.getElementById('userInput');
+      if (input) input.focus();
+    }
+  });
+}
+
+window.initializeWelcomeGate = initializeWelcomeGate;
+
 
 // ── Single consolidated DOMContentLoaded ─────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   DevLogger.log('Page loaded, initializing...');
+
+  // 0. Welcome gate modal
+  initializeWelcomeGate();
 
   // 1. Consent system
   setupAdvisorConsent();

@@ -4,286 +4,499 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full Analysis Locked | {{ cpa.firm_name or cpa.display_name }}</title>
+    <title>Your Full Analysis Is Ready | {{ cpa.firm_name or cpa.display_name }}</title>
     {% if cpa.favicon_url %}
     <link rel="icon" href="{{ cpa.favicon_url }}">
     {% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
-    <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+        :root {
+            --navy: #0B1D3A;
+            --gold: #C9A84C;
+            --gold-light: #e8c97a;
+            --font-heading: 'Playfair Display', serif;
+            --font-body: 'DM Sans', sans-serif;
         }
 
-        :root {
-            --primary-color: {{ cpa.primary_color or '#1e3a5f' }};
-            --secondary-color: {{ cpa.secondary_color or '#152b47' }};
-            --text-dark: var(--color-gray-800);
-            --text-muted: var(--color-gray-500);
-            --bg-light: var(--color-gray-50);
-            --white: var(--white);
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: var(--leading-relaxed);
-
-            color: var(--text-dark);
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            font-family: var(--font-body);
+            background: var(--navy);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: var(--space-5);
+            padding: 24px;
         }
 
-        .container {
-            max-width: 500px;
+        /* ---- BLURRED CONTENT BEHIND OVERLAY ---- */
+        .locked-page {
+            position: relative;
             width: 100%;
+            max-width: 780px;
         }
 
-        .locked-card {
-            background: var(--white);
-            border-radius: var(--radius-3xl);
-
-            padding: 50px var(--space-10);
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(11, 29, 58, 0.15);
+        /* Simulated blurred report content */
+        .blurred-report {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            filter: blur(4px);
+            opacity: 0.55;
+            pointer-events: none;
+            user-select: none;
         }
 
-        .locked-icon {
-            width: 100px;
-            height: 100px;
-            background: var(--color-warning-100);
-            border-radius: 50%;
+        .blurred-section {
+            margin-bottom: 24px;
+        }
+
+        .blurred-section-title {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            color: var(--navy);
+            border-left: 3px solid var(--gold);
+            padding-left: 12px;
+            margin-bottom: 12px;
+        }
+
+        .blurred-row {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            margin: 0 auto var(--space-6);
-            font-size: 3rem;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0eee8;
         }
 
-        h1 {
-            font-size: 1.6rem;
-            margin-bottom: var(--space-3);
+        .blurred-strategy-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.95rem;
         }
 
-        .description {
-            color: var(--text-muted);
-            margin-bottom: 30px;
-        }
-
-        /* Requirements */
-        .requirements {
-            background: var(--bg-light);
-            border-radius: var(--radius-2xl);
-            padding: var(--space-6);
-            text-align: left;
-            margin-bottom: 30px;
-        }
-
-        .requirements-title {
-            font-weight: var(--font-semibold);
-            margin-bottom: var(--space-4);
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .requirement-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            padding: var(--space-3) 0;
-            border-bottom: 1px solid var(--color-gray-200);
-        }
-
-        .requirement-item:last-child {
-            border-bottom: none;
-        }
-
-        .requirement-status {
-            width: var(--space-7);
-
-            height: var(--space-7);
-
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .status-complete {
-            background: #dcfce7;
-            color: var(--color-success-700);
-        }
-
-        .status-pending {
-            background: var(--color-error-100);
-            color: var(--color-error-800);
-        }
-
-        .requirement-text {
-            flex: 1;
-        }
-
-        .requirement-label {
-            font-weight: var(--font-semibold);
-        }
-
-        .requirement-desc {
+        .blurred-savings-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 3px 12px;
+            border-radius: 20px;
             font-size: 0.85rem;
-            color: var(--text-muted);
+            font-weight: 700;
         }
 
-        /* CTA */
-        .cta-section {
-            margin-bottom: var(--space-5);
+        .blurred-confidence {
+            font-size: 0.8rem;
+            color: #64748b;
         }
 
-        .cta-button {
-            display: inline-block;
+        /* ---- FROSTED GLASS OVERLAY ---- */
+        .locked-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(11, 29, 58, 0.82);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        .overlay-card {
+            background: white;
+            border-radius: 20px;
+            padding: 48px 40px;
+            text-align: center;
+            max-width: 460px;
             width: 100%;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            padding: var(--space-4) 30px;
-            border-radius: var(--radius-xl);
+            box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .overlay-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+        }
+
+        /* Lock icon */
+        .lock-icon-wrap {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 4px 16px rgba(201,168,76,0.3);
+        }
+
+        .lock-icon-wrap svg {
+            width: 40px;
+            height: 40px;
+            color: var(--gold);
+        }
+
+        .overlay-headline {
+            font-family: var(--font-heading);
+            font-size: 1.75rem;
+            color: var(--navy);
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+
+        .overlay-subhead {
+            font-size: 0.95rem;
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .overlay-subhead strong {
+            color: var(--navy);
+        }
+
+        /* Strategy count teaser */
+        .strategy-count-banner {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .strategy-count-num {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            color: var(--navy);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .strategy-count-text {
+            text-align: left;
+            font-size: 0.85rem;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        .strategy-count-text strong {
+            color: var(--navy);
+            display: block;
+        }
+
+        /* CTAs */
+        .overlay-cta-primary {
+            display: block;
+            width: 100%;
+            background: var(--gold);
+            color: var(--navy);
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-weight: 700;
             font-size: 1rem;
-            font-weight: var(--font-semibold);
             text-decoration: none;
+            margin-bottom: 12px;
+            transition: all 0.15s;
             border: none;
             cursor: pointer;
-            transition: all var(--transition-base);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
         }
 
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        .overlay-cta-primary:hover {
+            background: var(--gold-light);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(201,168,76,0.4);
         }
 
-        .cta-button.secondary {
-            background: var(--bg-light);
-            color: var(--text-dark);
-            box-shadow: none;
-            border: 1px solid var(--color-gray-200);
-        }
-
-        .cta-button.secondary:hover {
-            background: var(--color-gray-100);
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-top: var(--space-4);
-            color: var(--text-muted);
+        .overlay-cta-secondary {
+            display: block;
+            width: 100%;
+            text-align: center;
+            color: var(--navy);
+            font-size: 0.9rem;
             text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.15s;
+            border: 1px solid #e2e8f0;
         }
 
-        .back-link:hover {
-            color: var(--primary-color);
+        .overlay-cta-secondary:hover { background: #f8fafc; }
+
+        /* Trust signals */
+        .trust-signals {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 0.75rem;
+            color: #94a3b8;
         }
 
-        /* CPA Contact */
-        .cpa-contact {
-            margin-top: 30px;
-            padding-top: var(--space-5);
-            border-top: 1px solid var(--color-gray-200);
+        .trust-signals span::before {
+            content: '✓ ';
+            color: #10b981;
+            font-weight: 700;
         }
 
-        .cpa-contact-title {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: var(--space-2);
+        /* Urgency pill */
+        .urgency-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 16px;
         }
 
-        .cpa-name {
-            font-weight: var(--font-semibold);
+        /* Email preview form */
+        .email-preview-form {
+            margin-top: 12px;
+            display: none;
+        }
+
+        .email-preview-form.visible { display: block; }
+
+        .email-preview-form input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            outline: none;
+            font-family: var(--font-body);
+        }
+
+        .email-preview-form input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+
+        .email-preview-submit {
+            width: 100%;
+            padding: 10px;
+            background: var(--navy);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
         }
 
         @media (max-width: 640px) {
-            .locked-card {
-                padding: 30px var(--space-5);
-            }
-
-            h1 {
-                font-size: 1.4rem;
-            }
+            .locked-overlay { padding: 16px; }
+            .overlay-card { padding: 32px 24px; }
+            .overlay-headline { font-size: 1.4rem; }
+            .blurred-report { display: none; }
+            .locked-overlay { position: static; border-radius: 16px; }
+            .locked-page { display: block; }
         }
+
+        /* Empty state */
+        .empty-state-card {
+            background: white;
+            border-radius: 20px;
+            padding: 56px 40px;
+            text-align: center;
+            max-width: 460px;
+            margin: 0 auto;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+        }
+        .empty-state-icon-wrap {
+            width: 72px; height: 72px;
+            background: #f1f5f9;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .empty-state-icon-wrap svg { width: 36px; height: 36px; color: #94a3b8; }
+        .empty-state-card h2 {
+            font-size: 1.4rem;
+            color: #0B1D3A;
+            margin-bottom: 10px;
+        }
+        .empty-state-card p {
+            font-size: 0.92rem; color: #64748b;
+            line-height: 1.65; margin-bottom: 24px;
+        }
+        .empty-state-cta {
+            display: inline-block;
+            background: #C9A84C; color: #0B1D3A;
+            font-weight: 700; font-size: 0.95rem;
+            padding: 12px 28px; border-radius: 8px;
+            text-decoration: none; transition: all 0.15s;
+        }
+        .empty-state-cta:hover { background: #d9b96a; transform: translateY(-1px); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="locked-card">
-            <div class="locked-icon">{{ icon('lock-closed') }}</div>
+{% if session_data and session_data.strategy_count and (session_data.strategy_count | int) > 0 %}
+    <div class="locked-page">
 
-            <h1>Full Analysis Not Yet Available</h1>
-            <p class="description">
-                Your complete tax analysis requires both CPA engagement and
-                acknowledgment of the engagement letter.
-            </p>
-
-            <!-- Requirements Checklist -->
-            <div class="requirements">
-                <div class="requirements-title">Requirements to Unlock</div>
-
-                <div class="requirement-item">
-                    <div class="requirement-status {% if session_data and session_data.engaged %}status-complete{% else %}status-pending{% endif %}">
-                        {% if session_data and session_data.engaged %}{{ icon('check') }}{% else %}1{% endif %}
-                    </div>
-                    <div class="requirement-text">
-                        <div class="requirement-label">CPA Engagement</div>
-                        <div class="requirement-desc">
-                            {{ cpa.display_name }} reviews and accepts your case
-                        </div>
-                    </div>
+        <!-- Blurred report content (tantalizing preview) -->
+        <div class="blurred-report" aria-hidden="true">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #C9A84C;">
+                <div>
+                    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;margin-bottom:4px;">Confidential Tax Analysis</div>
+                    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:#0B1D3A;">Full Optimization Report</div>
                 </div>
-
-                <div class="requirement-item">
-                    <div class="requirement-status {% if session_data and session_data.engagement_letter_acknowledged %}status-complete{% else %}status-pending{% endif %}">
-                        {% if session_data and session_data.engagement_letter_acknowledged %}{{ icon('check') }}{% else %}2{% endif %}
-                    </div>
-                    <div class="requirement-text">
-                        <div class="requirement-label">Engagement Letter</div>
-                        <div class="requirement-desc">
-                            Review and acknowledge the engagement terms
-                        </div>
-                    </div>
+                <div style="text-align:right;font-size:0.8rem;color:#64748b;">
+                    Tax Year: 2024<br>
+                    Report Type: Premium
                 </div>
             </div>
+            {% set strategy_titles = [
+                ('S-Corp Election Analysis', '$8,200–$14,400/yr', 'High'),
+                ('Solo 401(k) Contribution Strategy', '$4,800–$9,600/yr', 'High'),
+                ('Augusta Rule Home Rental', '$1,800–$3,600/yr', 'Medium'),
+                ('Qualified Business Income Deduction', '$3,200–$6,400/yr', 'High'),
+                ('Retirement Income Optimization', '$2,100–$4,200/yr', 'High'),
+                ('Opportunity Zone Investment', '$5,000–$12,000/yr', 'Medium'),
+            ] %}
+            {% for title, savings, confidence in strategy_titles %}
+            <div class="blurred-section">
+                {% if loop.first %}
+                <div class="blurred-section-title">2. Advanced Optimization Strategies</div>
+                {% endif %}
+                <div class="blurred-row">
+                    <div>
+                        <div class="blurred-strategy-name">{{ title }}</div>
+                        <div class="blurred-confidence">Confidence: {{ confidence }} · IRS-compliant strategy</div>
+                    </div>
+                    <div class="blurred-savings-badge">+{{ savings }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
 
-            <!-- CTA Section -->
-            <div class="cta-section">
-                {% if not (session_data and session_data.engagement_letter_acknowledged) %}
-                <a href="/lead-magnet/engagement-letter?session={{ session_id }}&lead={{ session_data.lead_id if session_data else '' }}" class="cta-button">
-                    Review Engagement Letter
+        <!-- Frosted glass overlay -->
+        <div class="locked-overlay">
+            <div class="overlay-card">
+
+                <div class="urgency-pill">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    Analysis expires in <span id="expiryCountdown">23:47:12</span>
+                </div>
+
+                <div class="lock-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                </div>
+
+                <h1 class="overlay-headline">Your Full Analysis<br>Is Ready</h1>
+                <p class="overlay-subhead">
+                    Schedule a 20-minute call with <strong>{{ cpa.display_name or cpa.firm_name }}</strong>
+                    to unlock all your advanced strategies — including S-Corp elections, retirement maximization, and entity restructuring.
+                </p>
+
+                <div class="strategy-count-banner">
+                    <div class="strategy-count-num">{{ session_data.strategy_count if session_data and session_data.strategy_count else '6' }}+</div>
+                    <div class="strategy-count-text">
+                        <strong>Advanced strategies identified</strong>
+                        Based on your specific tax profile
+                    </div>
+                </div>
+
+                <a href="{{ cpa.booking_url or '/for-cpas' }}" class="overlay-cta-primary">
+                    Schedule Free 20-Min Consultation →
                 </a>
-                {% else %}
-                <div class="cta-button secondary" style="cursor: default;">
-                    Waiting for CPA Review
+
+                <a href="#" class="overlay-cta-secondary" id="emailPreviewToggle"
+                   onclick="document.getElementById('emailPreviewForm').classList.toggle('visible'); this.style.display='none'; return false;">
+                    Enter your email to preview →
+                </a>
+
+                <div class="email-preview-form" id="emailPreviewForm">
+                    <form method="POST" action="/api/lead-magnet/email-preview">
+                        <input type="hidden" name="session_id" value="{{ session_id or '' }}">
+                        <input type="email" name="email" placeholder="your@email.com" required autocomplete="email">
+                        <button type="submit" class="email-preview-submit">Send Me a Preview →</button>
+                    </form>
                 </div>
-                {% endif %}
-            </div>
 
-            <a href="/lead-magnet/report?session={{ session_id }}" class="back-link">
-                ← Back to Teaser Report
-            </a>
+                <div class="trust-signals">
+                    <span>No obligation</span>
+                    <span>20 minutes</span>
+                    <span>Free</span>
+                </div>
 
-            <!-- CPA Contact -->
-            <div class="cpa-contact">
-                <div class="cpa-contact-title">Questions? Contact</div>
-                <div class="cpa-name">{{ cpa.display_name }}</div>
-                {% if cpa.email %}
-                <a href="mailto:{{ cpa.email }}" style="color: var(--primary-color);">{{ cpa.email }}</a>
-                {% endif %}
+                <div style="margin-top:20px;">
+                    <a href="/lead-magnet/report?session={{ session_id }}"
+                       style="font-size:0.8rem;color:#94a3b8;text-decoration:none;">
+                        ← Back to teaser report
+                    </a>
+                </div>
             </div>
         </div>
     </div>
+
+    <script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    // Countdown timer — counts down from 24h from page load
+    (function() {
+        const stored = sessionStorage.getItem('analysisExpiry');
+        const expiry = stored ? parseInt(stored, 10) : Date.now() + 86400000;
+        if (!stored) sessionStorage.setItem('analysisExpiry', expiry);
+        const el = document.getElementById('expiryCountdown');
+        if (!el) return;
+        function tick() {
+            const remaining = Math.max(0, expiry - Date.now());
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+        tick();
+        setInterval(tick, 1000);
+    })();
+    </script>
+    </div>{# end .locked-page #}
+{% else %}
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:linear-gradient(135deg,#0B1D3A 0%,#162d5a 100%);">
+        <div class="empty-state-card">
+            <div class="empty-state-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v4m0 4h.01"/>
+                </svg>
+            </div>
+            <h2>No Advanced Strategies Yet</h2>
+            <p>
+                Your current tax profile didn't surface advanced optimization strategies.
+                That's actually good news — it means you may already be well-optimized,
+                or you could benefit from a quick call to explore further.
+            </p>
+            <a href="{{ cpa.booking_url or '/for-cpas' }}" class="empty-state-cta">
+                Talk to {{ cpa.display_name or 'a CPA' }} &rarr;
+            </a>
+            <div style="margin-top:16px;">
+                <a href="/lead-magnet/report?session={{ session_id }}"
+                   style="font-size:0.8rem;color:#94a3b8;text-decoration:none;">
+                    ← Back to your report
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}
 </body>
 </html>

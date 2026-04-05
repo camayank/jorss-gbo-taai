@@ -39,11 +39,8 @@ MAGIC_SIGNATURES = [
     # TIFF Big Endian: 4D 4D 00 2A
     (b'MM\x00*', 0, 'image/tiff', {'tif', 'tiff'}),
 
-    # GIF87a
-    (b'GIF87a', 0, 'image/gif', {'gif'}),
-
-    # GIF89a
-    (b'GIF89a', 0, 'image/gif', {'gif'}),
+    # WebP: RIFF....WEBP  (compound check — RIFF header + WEBP at offset 8)
+    (b'RIFF', 0, 'image/webp', {'webp'}),
 ]
 
 # Allowed MIME types for document upload
@@ -52,12 +49,13 @@ ALLOWED_MIME_TYPES: Set[str] = {
     'image/png',
     'image/jpeg',
     'image/tiff',
-    'image/gif',
+    'image/webp',
 }
 
-# Allowed extensions (lowercase)
+# Allowed extensions (lowercase, with and without dot prefix for convenience)
 ALLOWED_EXTENSIONS: Set[str] = {
-    'pdf', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'gif'
+    'pdf', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'webp',
+    '.pdf', '.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp',
 }
 
 # Dangerous patterns in filenames
@@ -96,9 +94,33 @@ def validate_magic_bytes(content: bytes) -> Tuple[Optional[str], Optional[Set[st
         sig_end = offset + len(signature)
         if len(content) >= sig_end:
             if content[offset:sig_end] == signature:
+                # WebP compound check: RIFF header at 0 AND WEBP at offset 8
+                if mime_type == 'image/webp':
+                    if len(content) >= 12 and content[8:12] == b'WEBP':
+                        return mime_type, extensions
+                    # RIFF but not WEBP — not a webp file
+                    continue
                 return mime_type, extensions
 
     return None, None
+
+
+def get_file_type_from_content(content: bytes) -> Optional[str]:
+    """
+    Return short type name ('pdf', 'png', 'jpeg', 'tiff', 'webp') for content,
+    or None if unrecognized.
+    """
+    mime, _ = validate_magic_bytes(content)
+    if mime is None:
+        return None
+    _mime_to_type = {
+        'application/pdf': 'pdf',
+        'image/png': 'png',
+        'image/jpeg': 'jpeg',
+        'image/tiff': 'tiff',
+        'image/webp': 'webp',
+    }
+    return _mime_to_type.get(mime)
 
 
 def sanitize_filename(filename: str) -> str:

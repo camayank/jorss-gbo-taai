@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/projection/multi_year_projections.py
+# hypothesis_version: 6.141.1
+
+[0.15, '#059669', '#1e3a5f', '#d97706', '#dc2626', '0', '0.01', '0.025', '0.03', '0.07', '0.10', '0.12', '0.22', '0.24', '0.32', '0.35', '0.37', '0.7', '1', '1.15', '100', '103350', '11925', '15750', '197300', '23500', '250525', '48475', '50000', '626350', '7000', '8000', '999999999', 'Retirement Balance', 'TaxReturn', 'Total Income', 'Total Tax', 'age', 'area', 'bar', 'business_growth', 'business_launch', 'charitable_cash', 'color', 'data', 'datasets', 'events', 'income_growth', 'inflation', 'investment_return', 'job_promotion', 'label', 'life_event', 'life_events', 'line', 'medical_expenses', 'medicare_eligible', 'milestones', 'mortgage_interest', 'notes', 'property_taxes', 'rmd_required', 'roi_percent', 'spouse_retirement', 'summary', 'tax_law_change', 'total_income', 'total_savings', 'total_tax', 'type', 'year', 'years']

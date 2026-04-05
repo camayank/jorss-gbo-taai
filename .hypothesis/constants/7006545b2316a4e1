@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rules/rule_engine.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100.0, 100, 1000, 1024, 2025, '*.yaml', '1.0', 'Fully phased out', 'No limit defined', 'No phaseout applies', 'No threshold defined', 'Rule is inactive', 'Unknown', 'category', 'conflicts_with', 'definitions', 'description', 'end', 'estimated_impact', 'failed', 'info', 'irs_form', 'irs_publication', 'irs_reference', 'is_active', 'limit', 'limits_by_status', 'message', 'name', 'passed', 'phase_out_end', 'phase_out_start', 'phase_pct', 'prerequisites', 'r', 'rate', 'recommendation', 'rule_id', 'rule_name', 'rule_type', 'rules', 'severity', 'single', 'start', 'tax_year', 'threshold', 'thresholds_by_status', 'total_evaluations', 'total_time_ms', 'validation', 'value', 'version']

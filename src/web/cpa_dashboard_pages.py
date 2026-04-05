@@ -906,6 +906,23 @@ async def cpa_analytics(
         trends = {"dates": [], "new_leads": [], "conversions": []}
         max_leads = 1
 
+    # Get audit-based analytics
+    try:
+        from cpa_panel.services.pipeline_service import get_pipeline_service
+        service = get_pipeline_service()
+
+        audit_tax_savings = service.get_tax_savings_metrics(cpa_id)
+        audit_return_metrics = service.get_return_processing_metrics(cpa_id)
+        audit_lead_funnel = service.get_lead_conversion_funnel_audit(cpa_id)
+        audit_recommendations = service.get_recommendation_acceptance_metrics(cpa_id)
+
+    except Exception as e:
+        logger.warning(f"Failed to get audit analytics: {e}")
+        audit_tax_savings = {"total_savings": 0, "by_client": [], "avg_savings": 0}
+        audit_return_metrics = {"total_returns": 0, "avg_processing_days": 0, "acceptance_rate": 0}
+        audit_lead_funnel = {"magnet_leads": 0, "assigned_clients": 0, "conversion_rate": 0}
+        audit_recommendations = {"total_recommendations": 0, "accepted_count": 0, "acceptance_rate": 0}
+
     # AI practice summary
     ai_practice_summary = None
     try:
@@ -946,6 +963,128 @@ async def cpa_analytics(
     except Exception as e:
         logger.warning(f"AI practice summary failed: {e}")
 
+    # Recent advisor sessions (last 10 completed)
+    recent_advisor_sessions = []
+    try:
+        from database.session_persistence import SessionPersistence
+        tenant_id = get_tenant_id_from_user(current_user)
+        all_sessions = SessionPersistence().list_sessions(tenant_id)
+        for s in all_sessions[:20]:
+            sd = s.data if hasattr(s, "data") else {}
+            profile = sd.get("profile", {})
+            strategies = sd.get("strategies", [])
+            if not strategies:
+                continue
+            name = profile.get("name") or profile.get("email", "")
+            if not name:
+                continue
+            recent_advisor_sessions.append({
+                "session_id": s.session_id,
+                "name": name,
+                "date": (s.last_activity or s.created_at or "")[:10],
+                "strategy_count": len(strategies),
+                "income": profile.get("total_income") or profile.get("self_employment_income") or 0,
+                "state": profile.get("state", ""),
+            })
+            if len(recent_advisor_sessions) >= 10:
+                break
+    except Exception as e:
+        logger.warning(f"Could not load recent advisor sessions: {e}")
+
+    # ── Advisor question-level drop-off funnel ─────────────────────────────
+    advisor_dropoff = {
+        "total_sessions": 0,
+        "reached_basics": 0,
+        "reached_income_detail": 0,
+        "reached_deductions": 0,
+        "reached_retirement": 0,
+        "reached_investments": 0,
+        "completed": 0,
+        "avg_completeness": 0.0,
+        "abandoned_at": {
+            "basics": 0,
+            "income_detail": 0,
+            "deductions": 0,
+            "retirement": 0,
+            "investments": 0,
+        },
+    }
+    try:
+        from web.intelligent_advisor_api import chat_engine as _chat_engine  # noqa: PLC0415
+        _tenant_id_df = get_tenant_id_from_user(current_user)
+        _df_sessions = SessionPersistence().list_sessions(_tenant_id_df)
+        _total_completeness = 0.0
+        _total_with_completeness = 0
+
+        for _s in _df_sessions:
+            _sd = _s.data if hasattr(_s, "data") else {}
+            _profile = _sd.get("profile", {})
+            if not _profile:
+                continue
+
+            advisor_dropoff["total_sessions"] += 1
+
+            # Stage 1 — basics: filing_status + some income
+            _has_basics = bool(_profile.get("filing_status")) and bool(
+                _profile.get("total_income") or _profile.get("self_employment_income")
+                or _profile.get("w2_wages") or _profile.get("business_income")
+            )
+            if not _has_basics:
+                continue
+            advisor_dropoff["reached_basics"] += 1
+
+            # Stage 2 — income detail: age captured
+            _has_income_detail = bool(_profile.get("_asked_age") or _profile.get("age"))
+            if not _has_income_detail:
+                advisor_dropoff["abandoned_at"]["basics"] += 1
+                continue
+            advisor_dropoff["reached_income_detail"] += 1
+
+            # Stage 3 — deductions
+            _has_deductions = bool(_profile.get("_asked_deductions"))
+            if not _has_deductions:
+                advisor_dropoff["abandoned_at"]["income_detail"] += 1
+                continue
+            advisor_dropoff["reached_deductions"] += 1
+
+            # Stage 4 — retirement
+            _has_retirement = bool(_profile.get("_asked_retirement"))
+            if not _has_retirement:
+                advisor_dropoff["abandoned_at"]["deductions"] += 1
+                continue
+            advisor_dropoff["reached_retirement"] += 1
+
+            # Stage 5 — investments
+            _has_investments = bool(
+                _profile.get("_asked_investments")
+                or _profile.get("_asked_k1")
+                or _profile.get("_asked_rental")
+            )
+            if not _has_investments:
+                advisor_dropoff["abandoned_at"]["retirement"] += 1
+                continue
+            advisor_dropoff["reached_investments"] += 1
+
+            # Stage 6 — completed (≥70% profile completeness)
+            try:
+                _completeness = _chat_engine.calculate_profile_completeness(_profile)
+            except Exception:
+                _completeness = 0.0
+            _total_completeness += _completeness
+            _total_with_completeness += 1
+
+            if _completeness >= 0.70:
+                advisor_dropoff["completed"] += 1
+            else:
+                advisor_dropoff["abandoned_at"]["investments"] += 1
+
+        if _total_with_completeness > 0:
+            advisor_dropoff["avg_completeness"] = round(
+                _total_completeness / _total_with_completeness * 100, 1
+            )
+    except Exception as e:
+        logger.warning(f"Could not build advisor drop-off funnel: {e}")
+
     return templates.TemplateResponse(
         "cpa/analytics.html",
         {
@@ -957,6 +1096,12 @@ async def cpa_analytics(
             "trends": trends,
             "max_leads": max_leads,
             "ai_practice_summary": ai_practice_summary,
+            "recent_advisor_sessions": recent_advisor_sessions,
+            "advisor_dropoff": advisor_dropoff,
+            "audit_tax_savings": audit_tax_savings,
+            "audit_return_metrics": audit_return_metrics,
+            "audit_lead_funnel": audit_lead_funnel,
+            "audit_recommendations": audit_recommendations,
             "active_page": "analytics",
         }
     )
@@ -1214,11 +1359,11 @@ async def cpa_billing_page(
         # Fallback: hardcoded plans matching subscription model
         plans = [
             {"name": "Starter", "price": 199, "leads_limit": 100, "team_limit": 3,
-             "features": ["Lead scoring", "Basic analytics"]},
+             "features": ["Lead scoring", "Basic analytics"], "stale": True},
             {"name": "Professional", "price": 499, "leads_limit": 500, "team_limit": 10,
-             "features": ["Lead scoring", "Custom branding", "Analytics dashboard", "Email notifications"]},
+             "features": ["Lead scoring", "Custom branding", "Analytics dashboard", "Email notifications"], "stale": True},
             {"name": "Enterprise", "price": 999, "leads_limit": "Unlimited", "team_limit": "Unlimited",
-             "features": ["All Professional features", "White-label", "API access", "Priority support", "Custom domain"]},
+             "features": ["All Professional features", "White-label", "API access", "Priority support", "Custom domain"], "stale": True},
         ]
 
     # Try to load real invoices from database
@@ -1652,7 +1797,7 @@ async def cpa_return_review_page(
 # NOTIFICATIONS PAGE
 # =============================================================================
 
-@router.get("/notifications", response_class=HTMLResponse)
+@cpa_dashboard_router.get("/notifications", response_class=HTMLResponse)
 async def cpa_notifications_page(request: Request):
     """CPA Notifications center — lists all notifications with read/unread state."""
     try:
@@ -1671,4 +1816,62 @@ async def cpa_notifications_page(request: Request):
             "active_page": "notifications",
             "page_title": "Notifications",
         }
+    )
+
+
+@cpa_dashboard_router.get("/advisor/review/{session_id}", response_class=HTMLResponse)
+async def cpa_advisor_review(
+    request: Request,
+    session_id: str,
+    current_user: dict = Depends(require_cpa_auth),
+):
+    """CPA Advisor Session Review — view full Q&A conversation and identified strategies."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+
+    conversation_history: list = []
+    client_profile: dict = {}
+    strategies: list = []
+    session_date: str = ""
+
+    try:
+        from database.session_persistence import SessionPersistence
+        persistence = SessionPersistence()
+        tenant_id = get_tenant_id_from_user(current_user)
+        sess = persistence.load_unified_session(session_id, tenant_id=tenant_id)
+        if sess:
+            sd = sess.data if hasattr(sess, "data") else (sess if isinstance(sess, dict) else {})
+            conversation_history = sd.get("conversation", [])
+            client_profile = sd.get("profile", {})
+            raw_strategies = sd.get("strategies", [])
+            for s in raw_strategies:
+                if hasattr(s, "dict"):
+                    strategies.append(s.dict())
+                elif isinstance(s, dict):
+                    strategies.append(s)
+            created = sd.get("created_at") or getattr(sess, "created_at", None)
+            if created:
+                try:
+                    if isinstance(created, str):
+                        session_date = created[:10]
+                    elif hasattr(created, "strftime"):
+                        session_date = created.strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning(f"Could not load advisor review session {session_id}: {e}")
+
+    return templates.TemplateResponse(
+        "cpa/advisor_review.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "current_user": current_user,
+            "active_page": "analytics",
+            "page_title": "Advisor Session Review",
+            "session_id": session_id,
+            "session_date": session_date,
+            "client_profile": client_profile,
+            "conversation_history": conversation_history,
+            "strategies": strategies,
+        },
     )

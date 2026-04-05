@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/new_york.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.03078, 0.03762, 0.03819, 0.03876, 0.04, 0.045, 0.0525, 0.0585, 0.0625, 0.0685, 0.0965, 0.103, 0.109, 0.3, 330, 1000, 2025, 8000, 8500, 11200, 11700, 12000, 12800, 13900, 14400, 16050, 17150, 17650, 20000, 20900, 21600, 23600, 25000, 27900, 30000, 45000, 50000, 60000, 80650, 90000, 107650, 110000, 161550, 215400, 269300, 323200, 1077550, 1616450, 2155350, 5000000, 25000000, 'NY', 'New York', 'TaxReturn', 'bronx', 'brooklyn', 'federal_agi', 'head_of_household', 'itemized', 'manhattan', 'married_joint', 'married_separate', 'new york', 'new york city', 'ny_eitc', 'nyc', 'qualifying_widow', 'queens', 'single', 'standard', 'staten island']

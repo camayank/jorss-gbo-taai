@@ -22,6 +22,12 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, List
 from functools import lru_cache
 
+from dotenv import load_dotenv
+
+# Load .env before any os.environ reads so API keys are always present
+# regardless of whether the caller (script, test, server) loads it first.
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 
@@ -158,6 +164,15 @@ def _load_all_configs() -> Dict[AIProvider, ProviderConfig]:
         AIProvider.GOOGLE: _get_google_config(),
         AIProvider.PERPLEXITY: _get_perplexity_config(),
     }
+
+
+def reload_provider_configs() -> None:
+    """Clear the config cache and reload from environment.
+
+    Call this if environment variables change after initial import
+    (e.g. in tests that set os.environ after importing this module).
+    """
+    _load_all_configs.cache_clear()
 
 
 def get_provider_config(provider: AIProvider) -> ProviderConfig:

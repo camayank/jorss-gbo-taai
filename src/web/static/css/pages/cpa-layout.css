@@ -347,3 +347,60 @@
     display: none;
   }
 }
+
+/* ==========================================
+   RESPONSIVE BREAKPOINTS
+   ========================================== */
+
+@media (max-width: 1024px) {
+  .summary-cards-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .dashboard-two-col  { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 768px) {
+  .cpa-sidebar, .sidebar {
+    position: fixed !important;
+    left: -280px !important;
+    top: 0;
+    height: 100vh;
+    z-index: 200;
+    transition: left 0.3s ease;
+    width: 280px !important;
+    overflow-y: auto;
+  }
+  .cpa-sidebar.open, .sidebar.open {
+    left: 0 !important;
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+  }
+  .sidebar-overlay.show {
+    display: block;
+  }
+  .main-content, .cpa-main {
+    margin-left: 0 !important;
+  }
+  .summary-grid, .summary-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .clients-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .leads-table { font-size: 0.85rem; }
+  .hide-mobile { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .summary-grid, .summary-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .clients-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .hide-small { display: none !important; }
+  .billing-grid { grid-template-columns: 1fr !important; }
+}

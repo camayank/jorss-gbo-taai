@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/workflow/approval.py
+# hypothesis_version: 6.141.1
+
+[2025, '2.0', ':', 'APPROVAL_REVOKED', 'CPA_APPROVAL', 'CPA_APPROVED', 'approval_date', 'approval_details', 'approval_timestamp', 'certificate_type', 'certificate_version', 'checklist_completed', 'circular_230', 'cpa_id', 'cpa_name', 'cpa_reviewer_id', 'cpa_reviewer_name', 'current_data_hash', 'data_changed', 'data_integrity_valid', 'data_unchanged', 'default', 'disclaimers', 'filing_status', 'general', 'gross_income', 'issued_at', 'message', 'reason', 'refund_or_owed', 'return_data_hash', 'return_reference', 'review_notes', 'session_id', 'signature_hash', 'signature_valid', 'status', 'tax_liability', 'tax_year', 'taxable_income', 'taxpayer_name', 'total_credits', 'total_deductions', 'total_payments', 'valid', 'verification', 'verification_status', 'verified']

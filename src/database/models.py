@@ -173,7 +173,6 @@ class DependentRelationship(str, PyEnum):
     UNCLE = "uncle"
     AUNT = "aunt"
     OTHER_RELATIVE = "other_relative"
-    NONE = "none"
 
 
 # =============================================================================
@@ -216,7 +215,7 @@ class TaxReturnRecord(Base):
 
     # Amendment Tracking
     is_amended = Column(Boolean, default=False, index=True)
-    original_return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True)
+    original_return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="SET NULL"), nullable=True)
     amendment_number = Column(Integer, default=0)
 
     # Firm and Client linkage (added for firm isolation)
@@ -332,9 +331,8 @@ class TaxReturnRecord(Base):
     credit_records = relationship("CreditRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     dependent_records = relationship("DependentRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     state_returns = relationship("StateReturnRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
-    # Keep audit_logs and worksheets as lazy load (not commonly needed in list views)
-    audit_logs = relationship("AuditLogRecord", back_populates="tax_return", cascade="save-update, merge")
-    computation_worksheets = relationship("ComputationWorksheet", back_populates="tax_return", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLogRecord", back_populates="tax_return", cascade="save-update, merge", lazy="selectin")
+    computation_worksheets = relationship("ComputationWorksheet", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     amended_returns = relationship("TaxReturnRecord", backref="original_return", remote_side=[return_id])
 
     # Constraints
@@ -369,13 +367,13 @@ class TaxpayerRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Link to Tax Return
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Secondary Key (for lookup without exposing SSN)
-    ssn_hash = Column(String(64), nullable=False, index=True)
+    ssn_hash = Column(String(64), nullable=False, index=True, unique=True)
 
     # Personal Information (PII - encrypt at rest)
-    ssn_encrypted = Column(String(256), nullable=True, comment="AES-256 encrypted SSN")
+    ssn_encrypted = Column(String(256), nullable=False, default="", comment="AES-256 encrypted SSN")
     first_name = Column(String(100), nullable=False)
     middle_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=False)
@@ -456,7 +454,7 @@ class TaxpayerRecord(Base):
         return None
 
     __table_args__ = (
-        Index('ix_taxpayer_ssn_hash', 'ssn_hash'),
+        UniqueConstraint('ssn_hash', name='uq_taxpayer_ssn_hash'),
         Index('ix_taxpayer_spouse_ssn_hash', 'spouse_ssn_hash'),
         Index('ix_taxpayer_name', 'last_name', 'first_name'),
     )
@@ -477,7 +475,7 @@ class IncomeRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key to Tax Return
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Income Source Classification
     source_type = Column(Enum(IncomeSourceType), nullable=False, index=True)
@@ -540,7 +538,7 @@ class W2Record(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Employer Information
     employer_name = Column(String(200), nullable=False)
@@ -618,7 +616,7 @@ class Form1099Record(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Form Type
     form_type = Column(Enum(Form1099Type), nullable=False, index=True)
@@ -708,7 +706,7 @@ class DeductionRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Deduction Classification
     deduction_type = Column(Enum(DeductionType), nullable=False, index=True)
@@ -778,7 +776,7 @@ class CreditRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Credit Classification
     credit_type = Column(Enum(CreditType), nullable=False, index=True)
@@ -839,7 +837,7 @@ class DependentRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Dependent Information
     ssn_hash = Column(String(64), nullable=False)
@@ -918,7 +916,7 @@ class StateReturnRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Keys
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # State Identification
     state_code = Column(String(2), nullable=False, index=True)
@@ -1053,7 +1051,7 @@ class ComputationWorksheet(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Worksheet Identification
     worksheet_type = Column(String(50), nullable=False, index=True, comment="tax_computation, eitc, ctc, etc.")
@@ -1146,7 +1144,7 @@ class DocumentRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Keys
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="SET NULL"), nullable=True, index=True)
     taxpayer_id = Column(UUID(as_uuid=True), ForeignKey("taxpayers.taxpayer_id"), nullable=True, index=True)
 
     # Document Classification
@@ -1210,7 +1208,7 @@ class ExtractedFieldRecord(Base):
     field_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     # Foreign Key
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.document_id"), nullable=False, index=True)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Field Identification
     source_field_name = Column(String(100), nullable=False, comment="Field name from document (e.g., 'Box 1')")
@@ -1262,7 +1260,7 @@ class DocumentProcessingLog(Base):
     log_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     # Foreign Key
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.document_id"), nullable=False, index=True)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Processing Step
     step_name = Column(String(100), nullable=False, comment="upload, ocr, extraction, validation, apply")
@@ -1367,7 +1365,7 @@ class ClientRecord(Base):
     client_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     # Foreign Key to Preparer
-    preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id"), nullable=False, index=True)
+    preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id", ondelete="RESTRICT"), nullable=False, index=True)
 
     # Foreign Key to Firm (direct link for firm-scoped queries)
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=False, index=True)
@@ -1381,7 +1379,7 @@ class ClientRecord(Base):
     # Client Info
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
-    email = Column(String(255), nullable=True)
+    email = Column(String(255), nullable=True, unique=True)
     phone = Column(String(20), nullable=True)
 
     # Address
@@ -1430,8 +1428,8 @@ class ClientSessionRecord(Base):
     firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Keys
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.client_id"), nullable=False, index=True)
-    preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id"), nullable=False, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.client_id", ondelete="RESTRICT"), nullable=False, index=True)
+    preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id", ondelete="RESTRICT"), nullable=False, index=True)
 
     # Tax Year
     tax_year = Column(Integer, nullable=False, default=2025, index=True)
@@ -1440,7 +1438,7 @@ class ClientSessionRecord(Base):
     status = Column(Enum(ClientStatusDB), nullable=False, default=ClientStatusDB.NEW, index=True)
 
     # Work State References
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="SET NULL"), nullable=True)
     scenario_ids = Column(JSONB, nullable=True, default=list, comment="List of scenario UUIDs")
     recommendation_plan_id = Column(UUID(as_uuid=True), nullable=True)
 

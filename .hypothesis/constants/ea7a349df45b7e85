@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/realtime/websocket_routes.py
+# hypothesis_version: 6.141.1
+
+[300, 4001, '/announce', '/broadcast', '/cleanup', '/connections', '/notify/{user_id}', '/ws', ':', 'Announcement message', 'Announcement title', 'Authentication token', 'ENVIRONMENT', 'Event message', 'Event title', 'Event type', 'Notification message', 'Notification title', 'Optional link', 'WebSocket', 'cleaned_connections', 'connections', 'delivered', 'dev', 'development', 'email', 'event_id', 'firm_id', 'firms_reached', 'info', 'message', 'normal', 'recipients', 'role', 'sub', 'success', 'tenant_id', 'test', 'title', 'total', 'total_connections', 'user', 'user_id']

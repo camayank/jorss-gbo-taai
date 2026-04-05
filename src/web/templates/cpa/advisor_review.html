@@ -1,0 +1,319 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Advisor Session Review{% endblock %}
+{% block page_title %}Advisor Session Review{% endblock %}
+
+{% block extra_styles %}
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+  /* ── Status banner ────────────────────────────────────────────────────── */
+  .review-mode-banner {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: var(--radius-lg, 8px);
+    padding: 10px 16px;
+    margin-bottom: var(--space-6, 24px);
+    font-size: 0.85rem;
+    color: #856404;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Section cards ────────────────────────────────────────────────────── */
+  .review-card {
+    background: var(--white, #fff);
+    border-radius: var(--radius-2xl, 16px);
+    padding: var(--space-6, 24px);
+    margin-bottom: var(--space-6, 24px);
+    border: 1px solid var(--border-color, #e8edf5);
+  }
+  .review-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: #0B1D3A;
+    font-weight: 700;
+    margin-bottom: var(--space-4, 16px);
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e8edf5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .review-card-title .gold-accent {
+    width: 4px;
+    height: 20px;
+    background: #C9A84C;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Profile summary grid ─────────────────────────────────────────────── */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .profile-fact {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .profile-fact-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #8899aa;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .profile-fact-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0B1D3A;
+  }
+
+  /* ── Conversation timeline ───────────────────────────────────────────── */
+  .timeline {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: start;
+  }
+  .timeline-role {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 8px;
+    border-radius: 99px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .timeline-role.advisor { background: #e8edf5; color: #0B1D3A; }
+  .timeline-role.client { background: #fef9ec; color: #856404; }
+  .timeline-content {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #334155;
+  }
+
+  /* ── Strategy cards ──────────────────────────────────────────────────── */
+  .strategy-review-card {
+    border: 1px solid #e8edf5;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .strategy-review-card.cpa-match {
+    border-left: 4px solid #C9A84C;
+  }
+  .strategy-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #0B1D3A;
+    margin-bottom: 6px;
+  }
+  .strategy-savings {
+    display: inline-block;
+    background: #ecfdf5;
+    color: #065f46;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-bottom: 8px;
+  }
+  .strategy-badge {
+    display: inline-block;
+    background: #fef9ec;
+    color: #92600a;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 6px;
+  }
+  .cpa-notes-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8899aa;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .cpa-notes-input {
+    width: 100%;
+    border: 1px solid #dde3ee;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.83rem;
+    font-family: 'DM Sans', sans-serif;
+    resize: vertical;
+    min-height: 52px;
+    color: #334155;
+  }
+  .cpa-notes-input:focus {
+    outline: none;
+    border-color: #C9A84C;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+  }
+
+  /* ── Action bar ─────────────────────────────────────────────────────── */
+  .action-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0 0;
+    border-top: 2px solid #e8edf5;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-approve {
+    background: #C9A84C;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 22px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+  }
+  .btn-approve:hover { background: #b8944a; color: #fff; }
+  .btn-schedule {
+    background: #0B1D3A;
+    color: #C9A84C;
+    border: 2px solid #C9A84C;
+    border-radius: 8px;
+    padding: 9px 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+  }
+  .btn-schedule:hover { background: #132a54; color: #C9A84C; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Review Mode Banner -->
+<div class="review-mode-banner">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  <strong>Review Mode</strong> — Client cannot see this page.
+  Session: <code>{{ session_id[:8] }}…</code>
+  {% if session_date %} · {{ session_date }}{% endif %}
+</div>
+
+<!-- 1. Profile Summary -->
+<div class="review-card">
+  <div class="review-card-title"><span class="gold-accent"></span>Client Profile</div>
+  <div class="profile-grid">
+    {% set facts = [
+      ("Filing Status", client_profile.get("filing_status", "—") | replace("_", " ") | title),
+      ("Total Income", "$" + "{:,.0f}".format(client_profile.get("total_income", 0)) if client_profile.get("total_income") else "—"),
+      ("Income Type", client_profile.get("income_type", "—") | replace("_", " ") | title),
+      ("State", client_profile.get("state", "—")),
+      ("Dependents", client_profile.get("dependents", "—") | string),
+      ("Business Entity", client_profile.get("business_entity", "—") | replace("_", " ") | title),
+    ] %}
+    {% for label, value in facts %}
+    <div class="profile-fact">
+      <div class="profile-fact-label">{{ label }}</div>
+      <div class="profile-fact-value">{{ value }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- 2. Conversation Timeline -->
+<div class="review-card">
+  <div class="review-card-title"><span class="gold-accent"></span>Q&A Conversation ({{ conversation_history | length }} messages)</div>
+  {% if conversation_history %}
+  <ul class="timeline">
+    {% for msg in conversation_history %}
+    <li class="timeline-item">
+      <span class="timeline-role {{ 'advisor' if msg.role == 'assistant' else 'client' }}">
+        {{ "Advisor" if msg.role == "assistant" else "Client" }}
+      </span>
+      <div class="timeline-content">{{ msg.content | truncate(300) }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p style="color:#8899aa;font-size:0.88rem;">No conversation history available for this session.</p>
+  {% endif %}
+</div>
+
+<!-- 3. Strategies Identified -->
+<div class="review-card">
+  <div class="review-card-title"><span class="gold-accent"></span>Strategies Identified ({{ strategies | length }})</div>
+  {% if strategies %}
+    {% for s in strategies %}
+    <div class="strategy-review-card {{ 'cpa-match' if s.get('cpa_recommended') else '' }}">
+      <div class="strategy-title">{{ s.get("title", "Strategy") }}</div>
+      {% if s.get("estimated_savings") %}
+      <span class="strategy-savings">Est. ${"{:,.0f}".format(s.estimated_savings)} savings</span>
+      {% endif %}
+      {% if s.get("cpa_badge") %}
+      <span class="strategy-badge">{{ s.cpa_badge }}</span>
+      {% endif %}
+      <div style="font-size:0.83rem;color:#64748b;margin-bottom:8px;">{{ s.get("summary", s.get("description", "")) | truncate(180) }}</div>
+      <div class="cpa-notes-label">CPA Notes (saved locally)</div>
+      <textarea
+        class="cpa-notes-input"
+        placeholder="Add your notes for this strategy…"
+        oninput="saveNote('{{ session_id }}_{{ loop.index }}', this.value)"
+        onload="this.value = loadNote('{{ session_id }}_{{ loop.index }}')"
+      ></textarea>
+    </div>
+    {% endfor %}
+  {% else %}
+  <p style="color:#8899aa;font-size:0.88rem;">No strategies identified yet for this session.</p>
+  {% endif %}
+</div>
+
+<!-- 4. Action Bar -->
+<div class="action-bar">
+  <a href="/results?session_id={{ session_id }}" class="btn-approve" target="_blank">
+    Approve &amp; View Full Report →
+  </a>
+  <a href="/cpa/appointments?client={{ session_id }}" class="btn-schedule">
+    Schedule Consultation
+  </a>
+  <span style="font-size:0.8rem;color:#8899aa;margin-left:auto;">
+    Notes are saved in your browser only. Export via PDF for permanent records.
+  </span>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+function saveNote(key, value) {
+  try { sessionStorage.setItem('cpa_note_' + key, value); } catch(e) {}
+}
+function loadNote(key) {
+  try { return sessionStorage.getItem('cpa_note_' + key) || ''; } catch(e) { return ''; }
+}
+// Restore notes on page load
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.cpa-notes-input').forEach(function(ta) {
+    var key = ta.getAttribute('onload')?.match(/'([^']+)'/)?.[1];
+    if (key) ta.value = loadNote(key);
+  });
+});
+</script>
+{% endblock %}

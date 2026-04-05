@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/oregon.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0475, 0.0675, 0.0875, 0.099, 0.12, 236, 472, 2025, 2745, 4300, 4440, 5495, 7500, 8600, 10750, 21500, 125000, 250000, 'OR', 'Oregon', 'TaxReturn', 'exemption_credit', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'or_eitc', 'qualifying_widow', 'single', 'standard']

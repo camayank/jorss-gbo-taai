@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/pipeline_service.py
+# hypothesis_version: 6.141.1
+
+[100, 300, 600, 1200, '%Y-%m-%d', 'ADVISORY_READY', 'BROWSING', 'CURIOUS', 'EVALUATING', 'HIGH_LEVERAGE', 'No leads found', 'Offer discovery call', 'Review lead status', 'advanced_by', 'average_score', 'avg_value', 'bottleneck_stage', 'conversion_rate', 'conversions', 'converted_at', 'converted_leads', 'count', 'cpa', 'created_at', 'current_state', 'dates', 'display_name', 'error', 'estimated_value', 'is_monetizable', 'is_priority', 'lead', 'leads', 'leads_by_state', 'leads_per_day', 'leads_per_week', 'manual_advance', 'message', 'metrics', 'new_leads', 'pipeline', 'priority_queue', 'priority_score', 'recommended_action', 'schedule', 'state', 'states_with_leads', 'success', 'summary', 'tax_savings', 'timestamp', 'total_leads', 'total_monetizable', 'total_pipeline_value', 'total_value', 'visibility']

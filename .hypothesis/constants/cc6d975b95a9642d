@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/rhode_island.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0375, 0.0475, 0.0599, 0.15, 2025, 4800, 9600, 10550, 15825, 21100, 73450, 166950, 'RI', 'Rhode Island', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'ri_eitc', 'single', 'standard']

@@ -24,8 +24,8 @@ def get_connecticut_config() -> StateTaxConfig:
         brackets={
             # Connecticut 2025 brackets (7 brackets)
             "single": [
-                (0, 0.03),          # 3% on first $10,000
-                (10000, 0.05),      # 5% on $10,000 - $50,000
+                (0, 0.02),          # 2% on first $10,000 (reduced from 3% per CT SB 2, effective 2024)
+                (10000, 0.045),     # 4.5% on $10,000 - $50,000 (reduced from 5% per CT SB 2)
                 (50000, 0.055),     # 5.5% on $50,000 - $100,000
                 (100000, 0.06),     # 6% on $100,000 - $200,000
                 (200000, 0.065),    # 6.5% on $200,000 - $250,000
@@ -33,8 +33,8 @@ def get_connecticut_config() -> StateTaxConfig:
                 (500000, 0.0699),   # 6.99% on over $500,000
             ],
             "married_joint": [
-                (0, 0.03),
-                (20000, 0.05),
+                (0, 0.02),
+                (20000, 0.045),
                 (100000, 0.055),
                 (200000, 0.06),
                 (400000, 0.065),
@@ -42,8 +42,8 @@ def get_connecticut_config() -> StateTaxConfig:
                 (1000000, 0.0699),
             ],
             "married_separate": [
-                (0, 0.03),
-                (10000, 0.05),
+                (0, 0.02),
+                (10000, 0.045),
                 (50000, 0.055),
                 (100000, 0.06),
                 (200000, 0.065),
@@ -51,8 +51,8 @@ def get_connecticut_config() -> StateTaxConfig:
                 (500000, 0.0699),
             ],
             "head_of_household": [
-                (0, 0.03),
-                (16000, 0.05),
+                (0, 0.02),
+                (16000, 0.045),
                 (80000, 0.055),
                 (160000, 0.06),
                 (320000, 0.065),
@@ -60,8 +60,8 @@ def get_connecticut_config() -> StateTaxConfig:
                 (800000, 0.0699),
             ],
             "qualifying_widow": [
-                (0, 0.03),
-                (20000, 0.05),
+                (0, 0.02),
+                (20000, 0.045),
                 (100000, 0.055),
                 (200000, 0.06),
                 (400000, 0.065),

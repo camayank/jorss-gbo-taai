@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/k1_basis_api.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100, 400, 404, 500, 501, '%Y-%m-%d', '/api/v1/k1-basis', '/health', 'Adjustment amount', 'EIN of the entity', 'K-1 Basis Tracking', 'Ownership percentage', 'Tax year', 'Type of adjustment', 'adjustment_added', 'adjustment_id', 'at_risk', 'audit_available', 'basis_calculation', 'deleted', 'distribution_added', 'distribution_id', 'entities', 'entity', 'entity_id', 'k1_basis_available', 'loss_limitation', 'new_ending_basis', 'operational', 'partnership', 's_corporation', 'status', 'tax_year', 'timestamp', 'total_distribution', 'total_ending_basis', 'total_entities', 'trust_estate', 'unavailable']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/engagement/pdf_generator.py
+# hypothesis_version: 6.141.1
+
+[0.25, 0.5, 0.75, '#1e3a5f', '%B %d, %Y', '; ', '<br/>', 'AGREEMENT', 'Address', 'BodyText', 'Bullet', 'Client', 'Date: _____________', 'Disclaimer', 'FEES', 'FirmHeader', 'Heading2', 'Helvetica-Bold', 'LIMITATIONS', 'Legal advice', 'Normal', 'SCOPE OF SERVICES', 'SectionHeading', 'Signature', 'Sincerely,', 'Standard', 'T', 'Tax Advisory Firm', 'Tax Services', 'Z', '_', 'amended_return', 'client_address', 'client_name', 'complexity_tier', 'cpa_credentials', 'cpa_firm_name', 'cpa_name', 'fee_amount', 'fee_description', 'firm_address', 'generated_at', 'letter_type', 'primary_color', 'services', 'tax_advisory', 'tax_planning', 'tax_preparation', 'tax_year']

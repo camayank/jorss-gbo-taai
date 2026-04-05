@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/secure_logger.py
+# hypothesis_version: 6.141.1
+
+['SanitizingLogFilter', 'SecureLogger', '_', 'action', 'args', 'details', 'event_type', 'exc_info', 'exc_text', 'extra', 'get_logger', 'log_data_access', 'log_security_event', 'log_user_action', 'msg', 'resource', 'sanitize_exception', 'sanitize_log_message', 'severity', 'success', 'user_id']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/rbac/services.py
+# hypothesis_version: 6.141.1
+
+[100, 'Access denied', 'Hierarchy violation', 'Invalid permissions', 'Invalid role_id', 'Role assigned', 'Role created', 'Role deleted', 'Role does not exist', 'Role is in use', 'Role not found', 'Role removed', 'Unknown permission', 'bind', 'engine', 'enterprise', 'get_bind', 'professional', 'run_sync', 'starter', 'sync_engine', 'url', 'value']

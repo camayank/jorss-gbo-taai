@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/virginia.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.03, 0.05, 0.0575, 0.2, 930, 2025, 3000, 5000, 8500, 12000, 15000, 17000, 30000, 'TaxReturn', 'VA', 'Virginia', 'federal_agi', 'head_of_household', 'itemized', 'low_income_credit', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard', 'va_eitc']

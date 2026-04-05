@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/scenario_persistence.py
+# hypothesis_version: 6.141.1
+
+['base_snapshot', 'base_snapshot_id', 'calculated_at', 'created_at', 'created_by', 'data', 'description', 'draft', 'input_hash', 'is_recommended', 'modifications', 'name', 'result', 'return_id', 'scenario_id', 'scenario_type', 'snapshot_id', 'status', 'tax_returns.db', 'version', 'what_if']

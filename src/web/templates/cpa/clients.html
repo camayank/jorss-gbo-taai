@@ -5,7 +5,7 @@
 {% block page_title %}Client Management{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .clients-header {
         display: flex;
         justify-content: space-between;
@@ -46,16 +46,20 @@
     .client-card {
         background: var(--white);
         border-radius: var(--radius-xl);
-
         border: 1px solid var(--border-color);
         padding: var(--space-5);
-
         transition: all 0.15s ease;
+        text-decoration: none;
+        color: inherit;
+        display: block;
     }
 
     .client-card:hover {
-        box-shadow: 0 4px 12px rgba(11, 29, 58, 0.08);
+        box-shadow: 0 4px 16px rgba(11, 29, 58, 0.12);
         transform: translateY(-2px);
+        border-color: var(--color-navy, #0B1D3A);
+        text-decoration: none;
+        color: inherit;
     }
 
     .client-card-header {
@@ -69,18 +73,17 @@
 
     .client-avatar {
         width: var(--space-12);
-
         height: var(--space-12);
-
         border-radius: 50%;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        background: linear-gradient(135deg, var(--color-navy, #0B1D3A), var(--color-navy-light, #1a3560));
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
         font-weight: var(--font-semibold);
-
-        font-size: 1.2rem;
+        font-size: 0.9rem;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
     }
 
     .client-name {
@@ -115,17 +118,51 @@
     .client-actions {
         display: flex;
         gap: var(--space-2);
-
         padding-top: var(--space-4);
-
         border-top: 1px solid var(--border-color);
+        align-items: center;
+        justify-content: space-between;
     }
 
     .client-actions .btn {
-        flex: 1;
         font-size: 0.85rem;
         padding: var(--space-2) var(--space-3);
+    }
 
+    .client-arrow {
+        margin-left: auto;
+        color: var(--color-navy, #0B1D3A);
+        opacity: 0.4;
+        transition: opacity 0.15s, transform 0.15s;
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+
+    .client-card:hover .client-arrow {
+        opacity: 1;
+        transform: translateX(3px);
+    }
+
+    .client-filing-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        background: var(--badge-info-bg, #DBEAFE);
+        color: var(--badge-info-text, #2563EB);
+        white-space: nowrap;
+    }
+
+    .client-tax-amount {
+        font-size: 0.85rem;
+        font-weight: var(--font-semibold);
+        color: var(--color-navy, #0B1D3A);
+    }
+
+    .client-tax-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
     }
 
     .status-indicator {
@@ -209,25 +246,30 @@
 </div>
 
 <div class="search-bar" x-data="{ query: '' }">
-    <input type="text" class="search-input" placeholder="Search clients by name or email..." x-model="query" @input="
+    <input type="text" class="search-input" placeholder="Search clients by name or email..." x-model="query" aria-label="Search clients" @input="
         document.querySelectorAll('.client-card').forEach(card => {
             const text = card.textContent.toLowerCase();
             card.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
         })
     ">
-    <button class="btn btn-secondary" @click="query = ''; document.querySelectorAll('.client-card').forEach(c => c.style.display = '')">Clear</button>
+    <button class="btn btn-secondary" aria-label="Clear search" @click="query = ''; document.querySelectorAll('.client-card').forEach(c => c.style.display = '')">Clear</button>
 </div>
 
 {% if clients %}
 <div class="clients-grid">
     {% for client in clients %}
-    <div class="client-card">
+    {% set name_parts = (client.name or 'CL').split() %}
+    {% set initials = (name_parts[0][0] + (name_parts[1][0] if name_parts|length > 1 else name_parts[0][1] if name_parts[0]|length > 1 else ''))|upper %}
+    <a href="/cpa/clients/{{ client.id }}" class="client-card">
         <div class="client-card-header">
-            <div class="client-avatar">{{ client.name[0] if client.name else 'C' }}</div>
-            <div>
+            <div class="client-avatar">{{ initials }}</div>
+            <div style="flex:1; min-width:0;">
                 <div class="client-name">{{ client.name or 'Client' }}</div>
                 <div class="client-email">{{ client.email }}</div>
             </div>
+            {% if client.filing_status %}
+            <span class="client-filing-badge">{{ client.filing_status | replace('_', ' ') | title }}</span>
+            {% endif %}
         </div>
         <div class="client-details">
             {% if client.phone %}
@@ -238,15 +280,27 @@
             <div class="client-detail">
                 <span>{{ icon('calendar') }}</span> Client since {{ client.created_at[:10] if client.created_at else 'N/A' }}
             </div>
+            {% if client.estimated_tax_savings or client.total_tax_owed %}
+            <div class="client-detail" style="margin-top: var(--space-1);">
+                {% if client.estimated_tax_savings %}
+                <span class="client-tax-label">Est. Savings:</span>&nbsp;
+                <span class="client-tax-amount">${{ "{:,.0f}".format(client.estimated_tax_savings | float) }}</span>
+                {% elif client.total_tax_owed %}
+                <span class="client-tax-label">Tax Owed:</span>&nbsp;
+                <span class="client-tax-amount">${{ "{:,.0f}".format(client.total_tax_owed | float) }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
             <div class="client-detail">
                 <span class="status-indicator active">{{ icon('check') }} Active</span>
             </div>
         </div>
         <div class="client-actions">
-            <a href="/cpa/leads/{{ client.id }}" class="btn btn-secondary">View Details</a>
-            <a href="mailto:{{ client.email }}?subject=Tax Advisory — {{ client.name or 'Client' }}" class="btn btn-primary" style="text-decoration:none; text-align:center;">Contact</a>
+            <span class="btn btn-secondary" style="pointer-events:none;">View Details</span>
+            <a href="mailto:{{ client.email }}?subject=Tax Advisory — {{ client.name or 'Client' }}" class="btn btn-primary" style="text-decoration:none; text-align:center;" onclick="event.stopPropagation()">Contact</a>
+            <span class="client-arrow">→</span>
         </div>
-    </div>
+    </a>
     {% endfor %}
 </div>
 {% else %}
@@ -262,7 +316,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 document.addEventListener('DOMContentLoaded', async function() {
   const grid = document.querySelector('.clients-grid');
   const emptyState = document.querySelector('.empty-state')?.closest('.card');
@@ -282,25 +336,38 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (!container) return;
       const newGrid = document.createElement('div');
       newGrid.className = 'clients-grid';
-      newGrid.innerHTML = clients.map(c => `
-        <div class="client-card">
+      newGrid.innerHTML = clients.map(c => {
+        const parts = (c.name || 'CL').split(' ');
+        const initials = (parts[0][0] + (parts.length > 1 ? parts[1][0] : (parts[0][1] || ''))).toUpperCase();
+        const filingBadge = c.filing_status ? `<span class="client-filing-badge">${c.filing_status.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</span>` : '';
+        const taxLine = c.estimated_tax_savings
+          ? `<div class="client-detail"><span class="client-tax-label">Est. Savings:</span>&nbsp;<span class="client-tax-amount">$${Number(c.estimated_tax_savings).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>`
+          : c.total_tax_owed
+            ? `<div class="client-detail"><span class="client-tax-label">Tax Owed:</span>&nbsp;<span class="client-tax-amount">$${Number(c.total_tax_owed).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>`
+            : '';
+        return `
+        <a href="/cpa/clients/${c.id || c.client_id}" class="client-card">
           <div class="client-card-header">
-            <div class="client-avatar">${(c.name || c.email || 'C')[0].toUpperCase()}</div>
-            <div>
+            <div class="client-avatar">${initials}</div>
+            <div style="flex:1;min-width:0;">
               <div class="client-name">${c.name || 'Client'}</div>
               <div class="client-email">${c.email || ''}</div>
             </div>
+            ${filingBadge}
           </div>
           <div class="client-details">
             ${c.phone ? `<div class="client-detail"><span>📞</span> ${c.phone}</div>` : ''}
             <div class="client-detail"><span>📅</span> Client since ${c.created_at ? c.created_at.slice(0,10) : 'N/A'}</div>
+            ${taxLine}
             <div class="client-detail"><span class="status-indicator active">✓ Active</span></div>
           </div>
           <div class="client-actions">
-            <a href="/cpa/leads/${c.id || c.client_id}" class="btn btn-secondary">View Details</a>
-            <a href="mailto:${c.email}?subject=Tax Advisory — ${c.name || 'Client'}" class="btn btn-primary" style="text-decoration:none;text-align:center;">Contact</a>
+            <span class="btn btn-secondary" style="pointer-events:none;">View Details</span>
+            <a href="mailto:${c.email}?subject=Tax Advisory — ${c.name || 'Client'}" class="btn btn-primary" style="text-decoration:none;text-align:center;" onclick="event.stopPropagation()">Contact</a>
+            <span class="client-arrow">→</span>
           </div>
-        </div>`).join('');
+        </a>`;
+      }).join('');
       if (emptyState) emptyState.replaceWith(newGrid);
       else container.prepend(newGrid);
     }

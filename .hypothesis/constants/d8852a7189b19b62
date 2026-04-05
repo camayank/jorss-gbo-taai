@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/ai/tax_research_service.py
+# hypothesis_version: 6.141.1
+
+[0.05, 0.1, 0.2, 0.5, 1.0, 200, 500, 1000, 2000, 3600, '-', '...', '0123456789.-•) ', ':', 'General research', 'IRC Section', 'IRS', 'IRS Publication', 'IRS Publication \\d+', 'ResearchCategory', 'ResearchResult', 'TaxLimit', 'TaxResearchService', 'all', 'cache_size', 'cache_ttl_seconds', 'categories_cached', 'citations', 'consult', 'depends', 'form_number', 'general', 'irs_guidance', 'latency_ms', 'limit_category', 'may vary', 'model', 'provider', 'state', 'state_tax', 'tax_court', 'tax_forms', 'tax_limits', 'tax_news', 'tax_year', 'tokens', 'uncertain', 'unclear', '•']

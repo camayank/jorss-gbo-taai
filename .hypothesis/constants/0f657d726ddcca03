@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/deadlines/deadline_service.py
+# hypothesis_version: 6.141.1
+
+[100, 2025, 'both', 'by_status', 'by_type', 'by_urgency', 'completed', 'completion_rate', 'cpa', 'deadline', 'deadlines_by_date', 'due_this_month', 'due_this_week', 'first_day', 'high', 'last_day', 'month', 'normal', 'overdue', 'reminder', 'should_send_on', 'total', 'total_deadlines', 'urgent', 'warning', 'year']

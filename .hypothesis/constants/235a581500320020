@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/ml/classifiers/openai_classifier.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 0.5, 1.0, 500, 8000, '\n...[truncated]...\n', 'confidence', 'document_type', 'empty_text', 'error', 'key_indicators', 'model', 'openai', 'reason', 'reasoning', 'tokens_used', 'unknown']

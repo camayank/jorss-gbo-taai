@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/north_dakota.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0195, 0.025, 2025, 37375, 44725, 59850, 74750, 137550, 225975, 243700, 275100, 'ND', 'North Dakota', 'TaxReturn', 'federal', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 'single']

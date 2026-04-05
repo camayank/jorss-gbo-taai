@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/pricing_routes.py
+# hypothesis_version: 6.141.1
+
+[100, 404, 500, '/pricing/tiers', 'Additional Service', 'Client', 'Pricing', 'USD', 'assessed_tier', 'base_price', 'capital_gains', 'client_name', 'complexity_tier', 'currency', 'detected_factors', 'disclaimer', 'discount_amount', 'discount_percent', 'estimated_hours', 'final_price', 'max', 'name', 'notes', 'price', 'price_override', 'pricing', 'quote', 'quote_id', 'rental_income', 'schedule_c', 'schedule_d', 'schedule_e', 'schedule_k1s', 'services', 'services_total', 'session_id', 'state_returns', 'success', 'tier_name', 'tier_override', 'valid_days', 'value_justification']

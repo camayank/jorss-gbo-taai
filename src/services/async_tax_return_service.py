@@ -40,9 +40,15 @@ class CalculationResult:
     success: bool
     breakdown: Optional[CalculationBreakdown] = None
     state_result: Optional[Dict[str, Any]] = None
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: Optional[List[str]] = field(default_factory=list)
+    warnings: Optional[List[str]] = field(default_factory=list)
     computation_time_ms: int = 0
+
+    def __post_init__(self):
+        if self.errors is None:
+            self.errors = []
+        if self.warnings is None:
+            self.warnings = []
 
 
 class AsyncTaxReturnService:

@@ -56,12 +56,12 @@ def get_minnesota_config() -> StateTaxConfig:
         },
         starts_from="federal_taxable_income",  # MN starts from federal taxable income
         standard_deduction={
-            # MN standard deductions for 2025 (indexed)
-            "single": 14575,
-            "married_joint": 29150,
-            "married_separate": 14575,
-            "head_of_household": 21850,
-            "qualifying_widow": 29150,
+            # MN conforms to federal standard deduction (2025 OBBBA amounts)
+            "single": 15750,
+            "married_joint": 31500,
+            "married_separate": 15750,
+            "head_of_household": 23850,
+            "qualifying_widow": 31500,
         },
         personal_exemption_amount={
             # MN has no personal exemptions (uses deductions)

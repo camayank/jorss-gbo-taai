@@ -46,7 +46,7 @@ def get_massachusetts_config() -> StateTaxConfig:
         pension_exclusion_limit=2000,  # MA pension income deduction
         military_pay_exempt=True,  # MA exempts military pay
         eitc_percentage=0.40,  # MA EITC is 40% of federal
-        child_tax_credit_amount=180,  # MA child care credit
+        child_tax_credit_amount=240,  # MA dependent care credit (2025 per MA DOR)
         has_local_tax=False,
         # Note: Millionaire tax (4% surtax on income over $1M) handled in calculator
     )

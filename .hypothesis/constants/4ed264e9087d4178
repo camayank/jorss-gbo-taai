@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/repositories/scenario_repository.py
+# hypothesis_version: 6.141.1
+
+['comparison_data', 'comparison_id', 'created_at', 'is_recommended', 'name', 'return_id', 'scenario_data', 'scenario_id', 'scenario_ids', 'scenario_type', 'status', 'updated_at', 'winner_id']

@@ -29,6 +29,7 @@ class FlowQuestion:
     skip_field: str = ""
     asked_field: str = ""
     follow_up_of: Optional[str] = None
+    hint: str = ""  # One-line "why we're asking" shown below the question
 
     # ── eligibility check ──────────────────────────────────────────────
 
@@ -69,7 +70,10 @@ class FlowEngine:
     """Adaptive question engine — picks the best next question for a profile."""
 
     def __init__(self):
-        from src.web.advisor.question_registry import ALL_QUESTIONS
+        try:
+            from web.advisor.question_registry import ALL_QUESTIONS
+        except ImportError:
+            from src.web.advisor.question_registry import ALL_QUESTIONS
         self._questions: list[FlowQuestion] = ALL_QUESTIONS
 
     # ── public API ─────────────────────────────────────────────────────

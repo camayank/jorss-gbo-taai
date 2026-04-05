@@ -35,25 +35,73 @@ from web.helpers.error_responses import (
     safe_error_message,
     create_loading_response,
 )
+from fastapi import HTTPException
 from web.utils.file_validation import (
     validate_upload,
     validate_magic_bytes,
+    get_file_type_from_content,
     sanitize_filename,
     FileValidationError,
     ALLOWED_MIME_TYPES,
     ALLOWED_EXTENSIONS,
     MAGIC_SIGNATURES,
 )
+
 # Compatibility aliases for old test references
 MAX_FILE_SIZE = 50 * 1024 * 1024  # Old default was 50MB
 ALLOWED_CONTENT_TYPES = ALLOWED_MIME_TYPES
 MAGIC_BYTES = {ext: True for sig in MAGIC_SIGNATURES for ext in sig[3]}
-validate_uploaded_file = None  # Removed — use validate_upload()
-get_file_type_from_content = None  # Removed — use validate_magic_bytes()
-_validate_file_size = None  # Internal — removed
-_validate_content_type = None  # Internal — removed
-_validate_extension = None  # Internal — removed
-_validate_magic_bytes = None  # Internal — removed
+
+
+def validate_uploaded_file(upload_file, content: bytes):
+    """Compat wrapper — raises HTTPException on validation failure."""
+    filename = getattr(upload_file, 'filename', None) or 'upload'
+    # Reject files whose extension is not in the allowed set (catches .exe, .js, etc.)
+    if '.' in filename:
+        ext = filename.rsplit('.', 1)[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"File extension '.{ext}' is not allowed")
+    try:
+        validate_upload(content, filename,
+                        max_size_bytes=MAX_FILE_SIZE, allowed_types=ALLOWED_CONTENT_TYPES)
+    except FileValidationError as e:
+        msg = str(e)
+        code = 413 if ('size' in msg.lower() or 'exceeds' in msg.lower()) else 400
+        raise HTTPException(status_code=code, detail=msg)
+    ct = getattr(upload_file, 'content_type', None)
+    if ct and ct not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Content type '{ct}' not allowed")
+
+
+def _validate_file_size(content: bytes):
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="File is empty")
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large")
+
+
+def _validate_content_type(content_type):
+    if content_type is None:
+        return
+    if content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Content type not allowed: {content_type}")
+
+
+def _validate_extension(filename):
+    if filename is None:
+        return
+    if '.' in filename:
+        ext = '.' + filename.rsplit('.', 1)[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"Extension not allowed: {ext}")
+
+
+def _validate_magic_bytes(content: bytes):
+    if not content or len(content) < 8:
+        return  # Too short to determine — allowed
+    mime, _ = validate_magic_bytes(content)
+    if mime is None:
+        raise HTTPException(status_code=400, detail="Invalid file content (magic bytes mismatch)")
 
 
 # ===================================================================

@@ -192,6 +192,103 @@
     .activity-text { font-size: 0.9rem; margin-bottom: var(--space-0-5); }
     .activity-text strong { font-weight: var(--font-semibold); }
     .activity-time { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Appointments widget */
+    .appts-widget {
+        background: var(--white);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-color);
+        padding: var(--space-4) var(--space-5);
+        margin-bottom: var(--space-6);
+        display: flex;
+        gap: var(--space-4);
+        align-items: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .appts-widget-label {
+        font-size: 0.8rem;
+        font-weight: var(--font-semibold);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .appt-chip {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-2) var(--space-3);
+        text-decoration: none;
+        color: var(--text-dark);
+        white-space: nowrap;
+        transition: all 0.15s;
+        flex-shrink: 0;
+    }
+
+    .appt-chip:hover {
+        background: var(--white);
+        border-color: var(--color-navy, #0B1D3A);
+        color: var(--color-navy, #0B1D3A);
+    }
+
+    .appt-chip-time {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--color-navy, #0B1D3A);
+    }
+
+    .appt-chip-name {
+        font-size: 0.85rem;
+        font-weight: var(--font-medium);
+    }
+
+    .appts-empty {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* Dashboard tabs */
+    .dashboard-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: var(--space-6);
+    }
+
+    .dash-tab {
+        padding: var(--space-2-5) var(--space-5);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: var(--font-medium);
+        color: var(--text-muted);
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .dash-tab:hover {
+        color: var(--text-dark);
+    }
+
+    .dash-tab.active {
+        color: var(--color-navy, #0B1D3A);
+        border-bottom-color: var(--color-navy, #0B1D3A);
+        font-weight: var(--font-semibold);
+    }
+
+    .dash-panel { display: none; }
+    .dash-panel.active { display: block; }
 {% endblock %}
 
 {% block content %}
@@ -201,6 +298,24 @@
         Welcome back{% if cpa.first_name %}, {{ cpa.first_name }}{% endif %}!
     </h2>
     <p style="color: var(--text-muted);">Here's what's happening with your leads today.</p>
+</div>
+
+<!-- Upcoming Appointments -->
+<div class="appts-widget">
+    <span class="appts-widget-label">{{ icon('calendar') }} Today</span>
+    {% if appointments and appointments|length > 0 %}
+        {% for appt in appointments[:5] %}
+        <a href="/cpa/appointments/{{ appt.id }}" class="appt-chip">
+            <span class="appt-chip-time">{{ appt.time or '—' }}</span>
+            <span class="appt-chip-name">{{ appt.client_name or appt.lead_name or 'Client' }}</span>
+        </a>
+        {% endfor %}
+        {% if appointments|length > 5 %}
+        <a href="/cpa/appointments" class="appt-chip" style="border-style:dashed;">+{{ appointments|length - 5 }} more</a>
+        {% endif %}
+    {% else %}
+        <span class="appts-empty">No appointments scheduled today &mdash; <a href="/cpa/appointments" style="color:var(--color-navy,#0B1D3A);">schedule one</a></span>
+    {% endif %}
 </div>
 
 <!-- Summary Cards -->
@@ -252,6 +367,14 @@
     </a>
 </div>
 
+<!-- Dashboard Tabs -->
+<div class="dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+    <button class="dash-tab active" role="tab" aria-selected="true" aria-controls="panel-overview" onclick="switchDashTab('overview', this)">Overview</button>
+    <button class="dash-tab" role="tab" aria-selected="false" aria-controls="panel-activity" onclick="switchDashTab('activity', this)">Recent Activity</button>
+    <button class="dash-tab" role="tab" aria-selected="false" aria-controls="panel-actions" onclick="switchDashTab('actions', this)">Quick Actions</button>
+</div>
+
+<div id="panel-overview" class="dash-panel active" role="tabpanel">
 <!-- Dashboard Grid -->
 <div class="dashboard-grid">
     <!-- Recent Leads -->
@@ -262,10 +385,10 @@
         </div>
 
         {% if leads and leads|length > 0 %}
-        <table class="lead-table">
+        <table class="lead-table" role="grid" aria-label="Recent leads">
             <thead>
-                <tr>
-                    <th>Lead</th>
+                <tr role="row">
+                    <th role="columnheader">Lead</th>
                     <th>State</th>
                     <th>Temperature</th>
                     <th>Est. Savings</th>
@@ -409,10 +532,97 @@
         </div>
     </div>
 </div>
+</div>{# end panel-overview #}
+
+<div id="panel-activity" class="dash-panel" role="tabpanel">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Recent Activity</h3>
+        </div>
+        <div class="card-body">
+            {% if activities and activities|length > 0 %}
+            {% for activity in activities %}
+            <div class="activity-item">
+                <div class="activity-icon">
+                    {% if activity.type == 'new_lead' %}{{ icon('arrow-down-tray') }}
+                    {% elif activity.type == 'state_change' %}{{ icon('arrow-path') }}
+                    {% elif activity.type == 'engagement' %}💬
+                    {% elif activity.type == 'conversion' %}{{ icon('check-circle') }}
+                    {% else %}{{ icon('star') }}{% endif %}
+                </div>
+                <div class="activity-content">
+                    <div class="activity-text">
+                        <strong>{{ activity.lead_name }}</strong> {{ activity.description }}
+                    </div>
+                    <div class="activity-time">{{ activity.time_ago }}</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state" style="padding: var(--space-10);">
+                <div class="empty-state-icon">📜</div>
+                <p>Activity will appear here as leads engage.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="panel-actions" class="dash-panel" role="tabpanel">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Quick Actions</h3>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions">
+                <a href="/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}" target="_blank" class="quick-action hover-lift">
+                    <span class="quick-action-icon">{{ icon('arrow-right') }}</span>
+                    <span class="quick-action-text">View Lead Magnet</span>
+                </a>
+                <a href="/cpa/branding" class="quick-action hover-lift">
+                    <span class="quick-action-icon">🎨</span>
+                    <span class="quick-action-text">Edit Branding</span>
+                </a>
+                <a href="/cpa/analytics" class="quick-action hover-lift">
+                    <span class="quick-action-icon">{{ icon('chart-bar') }}</span>
+                    <span class="quick-action-text">View Analytics</span>
+                </a>
+                <a href="/cpa/leads?export=csv" class="quick-action hover-lift">
+                    <span class="quick-action-icon">{{ icon('arrow-down-tray') }}</span>
+                    <span class="quick-action-text">Export Leads</span>
+                </a>
+                <a href="/cpa/appointments" class="quick-action hover-lift">
+                    <span class="quick-action-icon">{{ icon('calendar') }}</span>
+                    <span class="quick-action-text">Appointments</span>
+                </a>
+                <a href="/cpa/tasks" class="quick-action hover-lift">
+                    <span class="quick-action-icon">{{ icon('clipboard-document-list') }}</span>
+                    <span class="quick-action-text">My Tasks</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    // Dashboard tab switcher
+    function switchDashTab(panel, tabEl) {
+        document.querySelectorAll('.dash-tab').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+        if (tabEl) {
+            tabEl.classList.add('active');
+            tabEl.setAttribute('aria-selected', 'true');
+        }
+        const target = document.getElementById('panel-' + panel);
+        if (target) target.classList.add('active');
+    }
+
     // Auto-refresh dashboard data every 30 seconds
     setTimeout(function() {
         location.reload();

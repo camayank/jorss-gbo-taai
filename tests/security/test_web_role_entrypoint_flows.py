@@ -17,8 +17,9 @@ def test_client_login_route_exists():
 def test_workspace_route_no_longer_renders_broken_template_for_anonymous():
     client = TestClient(app)
     response = client.get("/app/workspace", follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["location"] == "/login?next=/cpa/dashboard"
+    # 301 Moved Permanently → /cpa/dashboard (which enforces auth in turn)
+    assert response.status_code == 301
+    assert response.headers["location"] == "/cpa/dashboard"
 
 
 def test_portal_route_requires_login_for_anonymous_users():

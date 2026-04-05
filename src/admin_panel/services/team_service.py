@@ -339,7 +339,10 @@ class TeamService:
         if not invitation:
             return {"error": "Invalid or expired invitation"}
 
-        if invitation.expires_at < datetime.now(timezone.utc):
+        expires_at = invitation.expires_at
+        if expires_at is not None and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at is not None and expires_at < datetime.now(timezone.utc):
             invitation.status = InvitationStatus.EXPIRED.value
             await self.db.commit()
             return {"error": "Invitation has expired"}

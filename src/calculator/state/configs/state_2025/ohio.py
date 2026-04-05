@@ -27,7 +27,7 @@ def get_ohio_config() -> StateTaxConfig:
             "single": [
                 (0, 0.0),           # 0% on first $26,050
                 (26050, 0.02765),   # 2.765% on $26,050 - $100,000
-                (100000, 0.0375),   # 3.75% on over $100,000
+                (100000, 0.035),    # 3.5% on over $100,000 (per 2024 reform)
             ],
             "married_joint": [
                 (0, 0.0),

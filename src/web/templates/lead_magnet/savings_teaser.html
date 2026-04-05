@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * {
             margin: 0;
             padding: 0;
@@ -949,12 +949,15 @@
         function updateProfileAwareMessaging(tokens) {
             const labelNode = document.getElementById('savingsLabel');
             const noteNode = document.getElementById('savingsNote');
+            const savingsAmountNode = document.getElementById('savingsAmount');
             if (!labelNode || !noteNode) return;
 
             const persistedState = sessionStorage.getItem('lm_state_code');
             const persistedOccupation = sessionStorage.getItem('lm_occupation_type');
+            const persistedIncome = sessionStorage.getItem('lm_income_bracket');
             const stateCode = (tokens && tokens.state_code) || persistedState || 'US';
             const occupationType = (tokens && tokens.occupation_type) || persistedOccupation || 'w2';
+            const incomeBracket = (tokens && tokens.income_bracket) || persistedIncome || 'mid';
             const filingStatus = ((tokens && (tokens.filing_status_label || tokens.filing_status)) || 'your filing profile').replace(/_/g, ' ');
 
             const occupationMap = {
@@ -965,11 +968,57 @@
                 investor: 'investors',
                 retired: 'retirees'
             };
+
+            // Income-type specific ranges by occupation + income bracket
+            // Format: [low, high, context_phrase]
+            const incomeTypeRanges = {
+                w2: {
+                    low:  ['$400', '$1,200', 'optimizing withholding and retirement contributions'],
+                    mid:  ['$1,200', '$3,800', 'maximizing 401(k), HSA, and itemized deductions'],
+                    high: ['$3,500', '$9,200', 'backdoor Roth, RSU timing, and bunching strategies'],
+                },
+                freelancer: {
+                    low:  ['$1,800', '$4,400', 'home office, QBI deduction, and SE tax reduction'],
+                    mid:  ['$3,200', '$7,800', 'entity structuring, retirement accounts, and QBI'],
+                    high: ['$6,500', '$18,000', 'S-Corp election, Solo 401(k), and Augusta Rule'],
+                },
+                self_employed: {
+                    low:  ['$2,000', '$5,500', 'SE tax deduction, home office, and retirement accounts'],
+                    mid:  ['$4,000', '$11,000', 'entity restructuring, Solo 401(k), and QBI strategies'],
+                    high: ['$8,000', '$22,000', 'S-Corp, defined benefit plan, and income shifting'],
+                },
+                business_owner: {
+                    low:  ['$3,000', '$8,000', 'Section 179, entity elections, and salary/distribution mix'],
+                    mid:  ['$6,000', '$18,000', 'S-Corp election, retirement plans, and cost segregation'],
+                    high: ['$12,000', '$40,000', 'defined benefit plans, opportunity zones, and QSBS'],
+                },
+                investor: {
+                    low:  ['$1,500', '$4,500', 'tax-loss harvesting and long-term capital gains timing'],
+                    mid:  ['$3,500', '$10,000', 'capital gains deferral, QOZ, and depreciation recapture'],
+                    high: ['$8,000', '$30,000', 'opportunity zones, cost basis optimization, and 1031 exchanges'],
+                },
+                retired: {
+                    low:  ['$600', '$2,200', 'RMD optimization, Social Security timing, and pension planning'],
+                    mid:  ['$1,800', '$5,500', 'Roth conversions, RMD laddering, and Medicare IRMAA planning'],
+                    high: ['$4,000', '$12,000', 'estate planning, charitable giving strategies, and IRA optimization'],
+                },
+            };
+
             const audience = occupationMap[occupationType] || 'taxpayers';
             const stateText = stateCode !== 'US' ? stateCode : 'your state';
+            const typeRanges = incomeTypeRanges[occupationType] || incomeTypeRanges.w2;
+            const bracket = ['low','mid','high'].includes(incomeBracket) ? incomeBracket : 'mid';
+            const [rangeLow, rangeHigh, rangeFocus] = typeRanges[bracket];
 
             labelNode.textContent = `For ${audience} in ${stateText}, overpayment risk is often hidden.`;
-            noteNode.textContent = `Using ${filingStatus} assumptions, this range highlights likely strategy gaps before a CPA review.`;
+
+            // Only update savings amount if not already set from session/API data
+            const existingSavings = sessionStorage.getItem('missed_savings_range');
+            if (!existingSavings && savingsAmountNode) {
+                savingsAmountNode.textContent = `${rangeLow} – ${rangeHigh}`;
+            }
+
+            noteNode.textContent = `${audience.charAt(0).toUpperCase() + audience.slice(1)} in ${stateText} typically find savings through ${rangeFocus}.`;
         }
 
         function renderSubscores(subscores) {

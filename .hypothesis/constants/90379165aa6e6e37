@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/authentication.py
+# hypothesis_version: 6.141.1
+
+[b'=', 3600, 86400, '.', '1', '=', 'APP_ENVIRONMENT', 'Authorization', 'Bearer', 'Bearer ', 'HS256', 'Insufficient role', 'Invalid token', 'Invalid token format', 'JWT', 'JWT_SECRET', 'JWT_SECRET_KEY', 'REDIS_URL', 'Rate limit exceeded', 'Token expired', 'USE_REDIS_AUTH', 'WWW-Authenticate', 'admin', 'alg', 'auth_token', 'development', 'exp', 'iat', 'jti', 'metadata', 'permissions', 'preparer', 'production', 'reviewer', 'revoked_jtis', 'role', 'sub', 'taxpayer', 'tenant_id', 'true', 'typ', 'utf-8', 'yes']

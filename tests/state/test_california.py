@@ -92,8 +92,8 @@ class TestCaliforniaConfig:
         """Test standard deduction amounts."""
         config = get_california_config()
 
-        assert config.standard_deduction["single"] == 5363
-        assert config.standard_deduction["married_joint"] == 10726
+        assert config.standard_deduction["single"] == 5706
+        assert config.standard_deduction["married_joint"] == 11412
 
     def test_config_social_security_exempt(self):
         """Test Social Security exemption flag."""
@@ -127,7 +127,7 @@ class TestCaliforniaCalculator:
         assert result.federal_agi == tax_return.adjusted_gross_income
 
         # Taxable income should be AGI minus standard deduction
-        expected_taxable = tax_return.adjusted_gross_income - 5363
+        expected_taxable = tax_return.adjusted_gross_income - 5706
         assert result.state_taxable_income == expected_taxable
 
         # Tax should be positive
@@ -159,7 +159,7 @@ class TestCaliforniaCalculator:
         result = calc.calculate(tax_return)
 
         assert result.deduction_used == "standard"
-        assert result.state_standard_deduction == 5363
+        assert result.state_standard_deduction == 5706
 
     def test_standard_deduction_married_joint(self):
         """Test standard deduction for married filing jointly."""
@@ -171,7 +171,7 @@ class TestCaliforniaCalculator:
 
         result = calc.calculate(tax_return)
 
-        assert result.state_standard_deduction == 10726
+        assert result.state_standard_deduction == 11412
 
     def test_exemption_credits(self):
         """Test exemption credits are calculated."""

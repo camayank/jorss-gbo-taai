@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/auth_dependencies.py
+# hypothesis_version: 6.141.1
+
+['billing', 'client', 'cpa_role', 'cpa_team', 'direct_client', 'firm_client', 'firm_user', 'partner', 'platform_admin', 'role', 'staff', 'super_admin', 'support', 'user_type', 'value']

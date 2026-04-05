@@ -15,7 +15,7 @@ from calculator.state.state_registry import register_state
 def get_utah_config() -> StateTaxConfig:
     return StateTaxConfig(
         state_code="UT", state_name="Utah", tax_year=2025, is_flat_tax=True,
-        flat_rate=0.0465,  # 4.65% flat rate
+        flat_rate=0.0455,  # 4.55% flat rate (reduced from 4.65% per UT SB 69, effective TY 2024)
         brackets=None, starts_from="federal_agi",
         standard_deduction={"single": 0, "married_joint": 0, "married_separate": 0,
                            "head_of_household": 0, "qualifying_widow": 0},
@@ -30,7 +30,7 @@ def get_utah_config() -> StateTaxConfig:
 
 @register_state("UT", 2025)
 class UtahCalculator(BaseStateCalculator):
-    """Utah - flat 4.65% rate with taxpayer credit system."""
+    """Utah - flat 4.55% rate with taxpayer credit system (SB 69 reduced from 4.65% effective TY 2024)."""
 
     def __init__(self):
         super().__init__(get_utah_config())

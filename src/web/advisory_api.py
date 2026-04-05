@@ -64,11 +64,10 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Create router
+# Create router (public — auth handled per-route or via session token)
 router = APIRouter(
     prefix="/api/v1/advisory-reports",
     tags=["Advisory Reports"],
-    dependencies=[Depends(require_auth)],
 )
 
 # Database setup

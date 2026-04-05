@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/session_persistence.py
+# hypothesis_version: 6.141.1
+
+[100, 500, 1000, 2025, ' AND session_id = ?', ' AND tenant_id = ?', ',', '?', 'CPA_APPROVED', 'INTEGER DEFAULT 1', 'SESSION_STORAGE_TYPE', 'TEXT', 'agent', 'approval_timestamp', 'calculated_results', 'completed', 'completeness_score', 'cpa_reviewer_id', 'cpa_reviewer_id = ?', 'cpa_reviewer_name', 'created_at', 'data', 'default', 'entries', 'entry_count', 'firm_id', 'generic', 'is_anonymous', 'last_status_change', 'last_updated', 'redis', 'return_data', 'return_id', 'review_notes', 'review_notes = ?', 'session_id', 'sqlite', 'state', 'status', 'status = ?', 'tax_returns.db', 'tax_year', 'tenant_id', 'unified_filing', 'updated_at', 'updated_at = ?', 'user_id', 'v', 'workflow_type']

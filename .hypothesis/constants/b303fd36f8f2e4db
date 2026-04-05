@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/alembic_helpers.py
+# hypothesis_version: 6.141.1
+
+['\nMigration History:', '-', '--autogenerate', '--verbose', '-a', '-v', '1', 'AUTO_MIGRATE', 'Migrations complete', '__main__', 'alembic', 'alembic.ini', 'base', 'check', 'current', 'current_revision', 'database_type', 'downgrade', 'error', 'head', 'head_revision', 'healthy', 'help', 'history', 'pending_migrations', 'postgresql', 'revision', 'sqlalchemy.url', 'sqlite', 'stamp', 'status', 'true', 'up_to_date', 'upgrade', 'yes']

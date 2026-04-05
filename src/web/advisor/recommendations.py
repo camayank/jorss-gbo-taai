@@ -58,7 +58,7 @@ async def acknowledge_standards(request: AcknowledgmentRequest, _session: str = 
         }
     except Exception as e:
         logger.error(f"Acknowledgment error: {e}")
-        return {"status": "error", "message": "Unable to record acknowledgment."}
+        raise HTTPException(status_code=500, detail="Unable to record acknowledgment.")
 
 
 @router.post("/strategies")
@@ -73,7 +73,7 @@ async def get_strategies(request=None, _session: str = Depends(verify_session_to
 
         return {
             "strategies": [s.dict() for s in strategies],
-            "total_potential_savings": sum(s.estimated_savings for s in strategies),
+            "total_potential_savings": sum((s.estimated_savings or 0) for s in strategies),
             "top_3": [s.dict() for s in strategies[:3]],
         }
     except Exception as e:
@@ -125,7 +125,7 @@ async def get_ai_metrics(_ctx=None):
     try:
         from rbac.dependencies import require_platform_admin
     except ImportError:
-        pass
+        logger.error("rbac.dependencies.require_platform_admin not available — /ai-metrics endpoint is UNPROTECTED")
 
     try:
         from services.ai.metrics_service import get_ai_metrics_service

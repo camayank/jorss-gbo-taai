@@ -100,7 +100,11 @@ class APIKey:
         """Check if key is active (not revoked or expired)."""
         if self.revoked:
             return False
-        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
+        expires = self.expires_at
+        if expires:
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+        if expires and datetime.now(timezone.utc) > expires:
             return False
         return True
 
@@ -154,6 +158,8 @@ def _is_key_active(key_data: dict) -> bool:
     if expires_at:
         try:
             exp = datetime.fromisoformat(expires_at) if isinstance(expires_at, str) else expires_at
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
             if datetime.now(timezone.utc) > exp:
                 return False
         except (ValueError, TypeError):

@@ -3,7 +3,7 @@
 {% block theme %}default{% endblock %}
 
 {% block head_extra %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   @media print {
     .no-print, .no-print * { display: none !important; }
     .main-content { margin: 0 !important; padding: 0 !important; }

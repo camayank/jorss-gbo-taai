@@ -118,8 +118,10 @@ class IowaCalculator(BaseStateCalculator):
     def calculate_state_subtractions(self, tax_return: "TaxReturn") -> float:
         subtractions = 0.0
         subtractions += tax_return.income.taxable_social_security
-        if tax_return.income.retirement_income > 0:
-            subtractions += min(tax_return.income.retirement_income, 6000)
+        # Iowa SF 2442 (2022): retirement income fully exempt for taxpayers age 55+, effective 2023+
+        taxpayer_age = getattr(tax_return.taxpayer, "age", 0) or 0
+        if tax_return.income.retirement_income > 0 and taxpayer_age >= 55:
+            subtractions += tax_return.income.retirement_income
         return subtractions
 
     def calculate_state_additions(self, tax_return: "TaxReturn") -> float:

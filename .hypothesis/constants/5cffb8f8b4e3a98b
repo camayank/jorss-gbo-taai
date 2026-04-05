@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/realtime/connection_manager.py
+# hypothesis_version: 6.141.1
+
+[300, 'connected_at', 'connections_by_firm', 'firm_id', 'heartbeat', 'last_activity', 'message', 'messages_received', 'messages_sent', 'session_id', 'subscribe', 'subscribed_events', 'subscribed_sessions', 'timestamp', 'total_connections', 'type', 'unsubscribe', 'user_email', 'user_id', 'user_role']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/utils/rate_limiter.py
+# hypothesis_version: 6.141.1
+
+[100, 429, 'Rate limit exceeded', 'error', 'global', 'message', 'remaining', 'retry_after', 'session_id']

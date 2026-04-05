@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/schedule_d.py
+# hypothesis_version: 6.141.1
+
+[0.0, 1500.0, 3000.0, 2025, 'A', 'B', 'C', 'D', 'E', 'F', 'Filing status', 'Net gain or loss', 'Tax year', 'Total adjustments', 'Total cost basis', 'Total proceeds', 'collectibles', 'collectibles_28_gain', 'filing_status', 'form_1040_line_7', 'is_net_gain', 'is_net_loss', 'line_10_box_f', 'line_12_passthrough', 'line_14_lt_carryover', 'line_16_combined', 'line_1b_box_a', 'line_2_box_b', 'line_3_box_c', 'line_4_other_st_gain', 'line_5_passthrough', 'line_6_st_carryover', 'line_8b_box_d', 'line_9_box_e', 'long_term', 'loss_limit', 'married_separate', 'net_capital_gain', 'net_long_term', 'net_short_term', 'new_carryover', 'new_lt_carryover', 'new_st_carryover', 'part_i', 'part_ii', 'part_iii', 'preferential_income', 'qualified_dividends', 'regular', 'section_1202', 'section_1250', 'short_term', 'single', 'tax_year', 'total_new_carryover']

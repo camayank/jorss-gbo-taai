@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/tenant_scoped_store.py
+# hypothesis_version: 6.141.1
+
+[10000, 'default', 'store']

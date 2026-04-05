@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8829.py
+# hypothesis_version: 6.141.1
+
+[0.0, 2.564, 5.0, 300.0, 1500.0, 8760.0, 100, 2025, 8760, 'Deduction method', 'Line 25: Insurance', 'Line 26: Rent', 'Line 28: Utilities', 'Name of business', 'Tax year', 'Type of home', 'apartment', 'boat', 'business_percentage', 'business_use_type', 'condo', 'daycare', 'deduction', 'direct_expenses', 'eligible_square_feet', 'house', 'insurance', 'is_limited', 'line_39_business_pct', 'max_deduction', 'meeting_clients', 'method', 'mobile_home', 'mortgage_interest', 'operating_carryover', 'other', 'principal_place', 'rate_per_sqft', 'real_estate_taxes', 'regular', 'rent', 'repairs', 'separate_structure', 'simplified', 'square_feet', 'storage', 'tax_year', 'total_allowable', 'utilities']

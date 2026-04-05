@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/appointments/__init__.py
+# hypothesis_version: 6.141.1
+
+['Appointment', 'AppointmentService', 'AppointmentStatus', 'AppointmentType', 'CPAAvailability', 'TimeSlot']

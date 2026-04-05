@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/journey_api.py
+# hypothesis_version: 6.141.1
+
+['/api/journey', '/next-step', '/progress', 'All steps complete!', 'Journey', 'X-Tenant-ID', 'X-User-ID', 'action', 'anonymous', 'default', 'message']

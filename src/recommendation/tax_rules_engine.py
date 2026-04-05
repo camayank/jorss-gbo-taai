@@ -337,11 +337,11 @@ INCOME_RULES = [
     TaxRule(
         rule_id="INC036",
         name="1099-K Threshold",
-        description="Third-party payment processors report on 1099-K if over $600",
+        description="Third-party payment processors report on 1099-K if over $2,500 (2025 transitional threshold per IRS Notice 2024-85; statutory floor $600 applies in future years)",
         category=RuleCategory.INCOME,
         severity=RuleSeverity.HIGH,
-        irs_reference="Form 1099-K",
-        threshold=600.0
+        irs_reference="Form 1099-K; IRS Notice 2024-85",
+        threshold=2500.0
     ),
     TaxRule(
         rule_id="INC037",
@@ -472,7 +472,7 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED001",
         name="Standard Deduction - Single",
-        description="Standard deduction for single filers ($15,750 for 2025)",
+        description="Standard deduction for single filers ($15,750 for 2025 per OBBBA)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 63",
@@ -481,7 +481,7 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED002",
         name="Standard Deduction - MFJ",
-        description="Standard deduction for married filing jointly ($31,500 for 2025)",
+        description="Standard deduction for married filing jointly ($31,500 for 2025 per OBBBA)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 63",
@@ -490,7 +490,7 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED003",
         name="Standard Deduction - HOH",
-        description="Standard deduction for head of household ($23,625 for 2025)",
+        description="Standard deduction for head of household ($23,625 for 2025 per OBBBA)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 63",
@@ -526,12 +526,12 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED007",
         name="SALT Cap",
-        description="State and local tax deduction capped at $10,000 ($5,000 MFS)",
+        description="SALT deduction capped at $40,000 for AGI ≤ $500K (OBBBA 2025); $20,000 MFS. Was $10,000 pre-OBBBA.",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 164(b)(6)",
-        limit=10000.0,
-        limits_by_status={"married_separate": 5000.0}
+        limit=40000.0,
+        limits_by_status={"married_separate": 20000.0}
     ),
     TaxRule(
         rule_id="DED008",
@@ -595,11 +595,11 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED015",
         name="Medical Miles Deduction",
-        description="Medical travel at 22 cents per mile (2025)",
+        description="Medical travel at 21 cents per mile (2025 per IRS Notice 2025-5)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.LOW,
-        irs_reference="Publication 502",
-        rate=0.22
+        irs_reference="Publication 502; IRS Notice 2025-5",
+        rate=0.21
     ),
 
     # Mortgage Interest
@@ -713,11 +713,11 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED028",
         name="Qualified Charitable Distribution",
-        description="QCDs from IRA directly to charity (age 70.5+, up to $105,000)",
+        description="QCDs from IRA directly to charity (age 70.5+, up to $108,000 for 2025)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 408(d)(8)",
-        limit=105000.0
+        limit=108000.0
     ),
     TaxRule(
         rule_id="DED029",
@@ -750,13 +750,13 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED032",
         name="Student Loan Interest Deduction",
-        description="Up to $2,500 deductible; phases out at higher incomes",
+        description="Up to $2,500 deductible; phases out $85K–$100K (single) / $170K–$200K (MFJ) for 2025",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.MEDIUM,
         irs_reference="IRC Section 221",
         limit=2500.0,
-        phase_out_start=90000.0,  # Single
-        phase_out_end=110000.0
+        phase_out_start=85000.0,  # Single/HOH per Rev. Proc. 2024-40 (was $90K — incorrect prior value)
+        phase_out_end=100000.0
     ),
     TaxRule(
         rule_id="DED033",
@@ -788,12 +788,12 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED036",
         name="IRA Deduction - Covered by Plan",
-        description="If covered by employer plan, IRA deduction phases out",
+        description="If covered by employer plan, IRA deduction phases out ($79,000–$89,000 single; $126,000–$146,000 MFJ for 2025)",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.MEDIUM,
         irs_reference="IRC Section 219(g)",
-        phase_out_start=87000.0,  # Single, covered by plan
-        phase_out_end=107000.0
+        phase_out_start=79000.0,  # Single/HOH, covered by plan — 2025 per Rev. Proc. 2024-40
+        phase_out_end=89000.0
     ),
     TaxRule(
         rule_id="DED037",
@@ -884,11 +884,11 @@ DEDUCTION_RULES = [
     TaxRule(
         rule_id="DED047",
         name="Bonus Depreciation",
-        description="60% bonus depreciation in 2025 (phasing down)",
+        description="100% bonus depreciation in 2025 — OBBBA restored full immediate expensing for property placed in service after Dec 31, 2024",
         category=RuleCategory.DEDUCTION,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 168(k)",
-        rate=0.60
+        rate=1.00
     ),
     TaxRule(
         rule_id="DED048",
@@ -2050,13 +2050,13 @@ SELF_EMPLOYMENT_RULES = [
     TaxRule(
         rule_id="SE025",
         name="Excess Business Loss",
-        description="Business losses limited to $305,000 single / $610,000 MFJ",
+        description="Business losses limited to $313,000 single / $626,000 MFJ (2025 inflation-adjusted per Rev. Proc. 2024-40 §3.24)",
         category=RuleCategory.SELF_EMPLOYMENT,
         severity=RuleSeverity.HIGH,
-        irs_reference="IRC Section 461(l)",
+        irs_reference="IRC Section 461(l); Rev. Proc. 2024-40",
         limits_by_status={
-            "single": 305000.0,
-            "married_joint": 610000.0
+            "single": 313000.0,
+            "married_joint": 626000.0
         }
     ),
 ]
@@ -2597,11 +2597,11 @@ RETIREMENT_RULES = [
     TaxRule(
         rule_id="RET007",
         name="QCD from IRA",
-        description="Qualified Charitable Distributions up to $105,000 from IRA",
+        description="Qualified Charitable Distributions up to $108,000 from IRA (2025)",
         category=RuleCategory.RETIREMENT,
         severity=RuleSeverity.MEDIUM,
         irs_reference="IRC Section 408(d)(8)",
-        limit=105000.0
+        limit=108000.0
     ),
     TaxRule(
         rule_id="RET008",
@@ -2711,11 +2711,11 @@ HEALTHCARE_RULES = [
     TaxRule(
         rule_id="HC005",
         name="FSA Carryover Limit",
-        description="Up to $640 FSA carryover allowed if plan permits",
+        description="Up to $660 FSA carryover allowed if plan permits (2025 per Rev. Proc. 2024-40)",
         category=RuleCategory.HEALTHCARE,
         severity=RuleSeverity.MEDIUM,
-        irs_reference="Notice 2021-15",
-        limit=640.0
+        irs_reference="Rev. Proc. 2024-40",
+        limit=660.0
     ),
     TaxRule(
         rule_id="HC006",
@@ -2962,7 +2962,7 @@ REAL_ESTATE_RULES = [
     TaxRule(
         rule_id="RE009",
         name="Property Tax Deduction",
-        description="Real property taxes subject to $10K SALT cap",
+        description="Real property taxes subject to SALT cap ($40K per OBBBA 2025, was $10K)",
         category=RuleCategory.REAL_ESTATE,
         severity=RuleSeverity.MEDIUM,
         irs_reference="IRC Section 164"
@@ -3060,11 +3060,11 @@ BUSINESS_RULES = [
     TaxRule(
         rule_id="BUS008",
         name="Employer Retirement Plan Credit",
-        description="Up to $500/year for new small employer retirement plan",
+        description="Up to $5,000/year for 3 years for new small employer retirement plan (SECURE 2.0 Act, effective 2023+; 100% of admin costs for ≤50 employees, capped at $5,000/year)",
         category=RuleCategory.BUSINESS,
-        severity=RuleSeverity.LOW,
-        irs_reference="IRC Section 45E",
-        limit=500.0
+        severity=RuleSeverity.MEDIUM,
+        irs_reference="IRC Section 45E; SECURE 2.0 Act",
+        limit=5000.0
     ),
     TaxRule(
         rule_id="BUS009",

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/repositories/user_auth_repository.py
+# hypothesis_version: 6.141.1
+
+['*', 'add_notes', 'admin', 'admin_id', 'approve_returns', 'assigned_cpa_id', 'changed_at', 'client_id', 'consumer', 'cpa_client', 'cpa_team', 'create_scenarios', 'created_at', 'credentials', 'edit_returns', 'email', 'firm_admin', 'firm_id', 'firm_name', 'firm_owner', 'first_name', 'id', 'ip_address', 'is_active', 'last_login', 'last_login_at', 'last_name', 'locked_until', 'manage_billing', 'manage_settings', 'manage_team', 'manager', 'mfa_enabled', 'owner', 'password_hash', 'permissions', 'phone', 'platform_admin', 'preparer', 'preparer_id', 'reviewer', 'role', 'send_messages', 'senior_preparer', 'upload_documents', 'user_id', 'user_type', 'view_analytics', 'view_clients', 'view_own_return', 'view_returns', 'viewer']

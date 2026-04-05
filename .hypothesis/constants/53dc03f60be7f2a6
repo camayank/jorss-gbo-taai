@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/mississippi.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.044, 1500, 2025, 2300, 3400, 4600, 6000, 8000, 12000, 'MS', 'Mississippi', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

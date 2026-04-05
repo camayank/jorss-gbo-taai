@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/practice_intelligence/intelligence_service.py
+# hypothesis_version: 6.141.1
+
+[0.0, 1.0, 2.0, 2.5, 3.0, 4.0, 5.0, 100, 2023, 2024, 'advisory_count', 'advisory_percentage', 'amended_return', 'as_of', 'audit_representation', 'breakdown', 'change_pct', 'complexity_tier', 'compliance_count', 'current', 'current_avg', 'current_year', 'distribution', 'engagement_type', 'insight', 'insights', 'metrics', 'percentages', 'prior', 'prior_avg', 'prior_year', 'refund_amount', 'refund_comparison', 'scope_notice', 'tax_advisory', 'tax_planning', 'tax_preparation', 'tenant_id', 'tier_1_simple', 'tier_2_moderate', 'tier_3_complex', 'tier_5_ultra_complex', 'total_deductions', 'total_returns', 'total_tax', 'volume_comparison', 'yoy_value_surface']

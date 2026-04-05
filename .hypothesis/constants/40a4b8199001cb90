@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/indiana.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.015, 0.03, 0.1, 0.5, 1000, 1500, 2000, 2025, 2500, 5000, 'IN', 'Indiana', 'TaxReturn', 'federal_agi', 'head_of_household', 'in_eitc', 'married_joint', 'married_separate', 'none', 'qualifying_widow', 'single', 'unified_tax_credit']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/schedule_b.py
+# hypothesis_version: 6.141.1
+
+[0.0, 1500.0, 10000.0, 2025, ', ', 'N/A', 'No', 'Tax year', 'Type of account', 'Type of interest', 'Unknown', 'Various Investments', 'Yes', 'account_count', 'amount', 'bank', 'capital_gain', 'countries', 'fbar_required', 'fbar_threshold', 'federal_tax_withheld', 'foreign_tax_paid', 'has_foreign_accounts', 'line_3_subtotal', 'line_7a_answer', 'line_7b_countries', 'line_8_answer', 'name', 'nondividend', 'oid', 'ordinary', 'ordinary_dividends', 'part_i_interest', 'part_ii_dividends', 'part_iii_foreign', 'payer_count', 'payers', 'qualified', 'qualified_dividends', 'requires_fbar', 'requires_schedule_b', 'schedule_b_required', 'section_199a', 'seller_financed', 'tax_exempt', 'tax_exempt_interest', 'tax_year', 'taxable', 'taxable_interest', 'total_maximum_value', 'type', 'us_savings_bond']

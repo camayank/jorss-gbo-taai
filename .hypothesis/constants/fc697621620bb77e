@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/mfa_api.py
+# hypothesis_version: 6.141.1
+
+[400, 401, 403, 404, 500, 2147483647, '-', '/api/mfa', '/backup-codes-count', '/disable', '/setup', '/status', '/validate', '/verify-setup', '=', '>I', '>Q', 'CA4CPA', 'Invalid MFA code', 'MFA is not enabled', 'MFA_BACKUP_SECRET', 'User not found', '^\\d{6}$', 'access_token', 'backup_code', 'backup_codes', 'backup_codes_count', 'count', 'created_at', 'disabled', 'email', 'enabled', 'expires_in', 'generic', 'has_backup_codes', 'message', 'method', 'mfa', 'mfa_enabled', 'pending_setup', 'refresh_token', 'secret', 'sha1', 'status', 'success', 'tenant_id', 'token_type', 'totp', 'user', 'user_id', 'utf-8', 'valid', 'warning']

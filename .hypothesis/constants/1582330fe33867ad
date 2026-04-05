@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/k1_basis.py
+# hypothesis_version: 6.141.1
+
+[0.0, '1_beginning_basis', '2_contributions', '3_income_gain', '4_tax_exempt_income', '5_distributions', '7_losses_deductions', '8_ending_basis', 'Capital contribution', 'adjustment_count', 'at_risk', 'at_risk_amount', 'basis_calculation', 'beginning_basis', 'contribution_cash', 'current_year_losses', 'distribution_cash', 'distribution_count', 'ein', 'ending_basis', 'entities', 'entity', 'entity_ein', 'entity_name', 'entity_type', 'id', 'loss_limitation', 'losses_allowed', 'losses_suspended', 'name', 'ownership', 'ownership_percentage', 'partnership', 'prior_year_suspended', 's_corporation', 'tax_exempt_income', 'tax_year', 'total_decreases', 'total_ending_basis', 'total_entities', 'total_increases', 'total_losses', 'trust_estate', 'type']

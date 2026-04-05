@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/recommendation/orchestrator.py
+# hypothesis_version: 6.141.1
+
+[0.6, 1000, ', ', '1031_exchange', '[^\\w\\s]', '\\s+', 'adaptive_questions', 'agi', 'amt_risk', 'backdoor_roth', 'charitable_strategy', 'complexity_router', 'cpa_knowledge', 'cpa_opportunities', 'credit_optimizer', 'critical', 'days_to_deadline', 'deduction_analyzer', 'education_savings', 'entity_optimizer', 'filing_status', 'foreign_tax_credit', 'has_dependents', 'high', 'home_sale', 'installment_sale', 'investment_optimizer', 'is_self_employed', 'lead_score', 'level', 'low', 'medicare_irmaa', 'medium', 'merged_from', 'message', 'normal', 'opportunity_detector', 'planning_insights', 'qbi_optimizer', 'realtime_estimator', 'recommendations', 'refund_estimator', 'rental_depreciation', 'retirement_optimizer', 'rules_based', 'smart_deductions', 'social_security', 'tax_drivers', 'tax_impact', 'tax_strategy_advisor', 'timing_strategy', 'urgency']

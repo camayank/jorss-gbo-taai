@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/feature_flag.py
+# hypothesis_version: 6.141.1
+
+[100, 255, 500, 'CASCADE', 'FeatureFlag', 'FeatureUsage', 'Planned removal date', 'SET NULL', 'User', 'all, delete-orphan', 'category', 'enterprise', 'feature', 'feature_flags', 'feature_key', 'feature_usage', 'firm_id', 'firms.firm_id', 'is_enabled_globally', 'ix_feature_category', 'ix_feature_enabled', 'professional', 'starter', 'usage_records', 'used_at', 'users.user_id']

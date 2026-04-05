@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
-    <style>
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * {
             margin: 0;
             padding: 0;
@@ -1568,35 +1568,77 @@
 
             const recsDiv = document.createElement('div');
 
-            if (content?.top_recommendations && Array.isArray(content.top_recommendations)) {
+            if (content?.top_recommendations && Array.isArray(content.top_recommendations) && content.top_recommendations.length > 0) {
+                // Group by normalised priority
+                const groups = { high: [], medium: [], low: [], other: [] };
                 content.top_recommendations.forEach((rec, i) => {
                     if (!rec) return;
-
-                    const recDiv = document.createElement('div');
-                    recDiv.className = 'recommendation';
-
-                    const title = escapeHtml(rec.title);
-                    const description = escapeHtml(rec.description);
-                    const actionRequired = escapeHtml(rec.action_required);
-                    const irsReference = escapeHtml(rec.irs_reference);
-                    const savings = safeNumber(rec.savings);
-
-                    const priority = escapeHtml(rec.priority || 'current_year');
-                    const priorityLabel = priority.replace(/_/g, ' ');
-                    const priorityClass = `priority-${priority.replace(/_/g, '-')}`;
-
-                    recDiv.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <h4 style="margin: 0;">${i + 1}. ${title}</h4>
-                            <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
-                        </div>
-                        <div class="savings">Potential Savings: $${savings.toLocaleString('en-US', {minimumFractionDigits: 0})}</div>
-                        <p>${description}</p>
-                        <div class="action"><strong>Action Required:</strong> ${actionRequired}</div>
-                        ${irsReference ? `<p style="font-size: 0.9em; color: var(--color-gray-500); margin-top: var(--space-2-5);"><em>IRS Reference: ${irsReference}</em></p>` : ''}
-                    `;
-                    recsDiv.appendChild(recDiv);
+                    const p = (rec.priority || '').toLowerCase();
+                    const bucket = ['high','immediate'].includes(p) ? 'high'
+                                 : ['medium','current_year','moderate'].includes(p) ? 'medium'
+                                 : ['low','next_year','long_term'].includes(p) ? 'low' : 'other';
+                    groups[bucket].push({ rec, origIdx: i });
                 });
+
+                const groupLabels = { high: '🔴 High Priority', medium: '🟡 Medium Priority', low: '🟢 Lower Priority', other: 'Other Strategies' };
+                let globalIdx = 0;
+
+                ['high', 'medium', 'low', 'other'].forEach(bucket => {
+                    if (!groups[bucket].length) return;
+                    const groupHeader = document.createElement('div');
+                    groupHeader.className = 'rec-group-header';
+                    groupHeader.textContent = groupLabels[bucket];
+                    recsDiv.appendChild(groupHeader);
+
+                    groups[bucket].forEach(({ rec }) => {
+                        globalIdx++;
+                        const recDiv = document.createElement('div');
+                        recDiv.className = 'recommendation rec-expandable';
+                        recDiv.dataset.recIdx = globalIdx;
+
+                        const title = escapeHtml(rec.title);
+                        const description = escapeHtml(rec.description);
+                        const actionRequired = escapeHtml(rec.action_required);
+                        const irsReference = escapeHtml(rec.irs_reference);
+                        const savings = safeNumber(rec.savings || rec.estimated_savings);
+                        const priority = escapeHtml(rec.priority || 'current_year');
+                        const priorityLabel = priority.replace(/_/g, ' ');
+                        const priorityClass = `priority-${priority.replace(/_/g, '-')}`;
+                        const savingsDisplay = savings > 0
+                            ? `<div class="savings">Potential Savings: $${savings.toLocaleString('en-US', {minimumFractionDigits: 0})}</div>`
+                            : `<div class="savings savings-tbd">Savings: Est. TBD</div>`;
+
+                        recDiv.innerHTML = `
+                            <div class="rec-card-header" onclick="toggleRecCard(this)" aria-expanded="false" role="button" tabindex="0">
+                                <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+                                    <span class="rec-num">${globalIdx}</span>
+                                    <h4 style="margin:0;font-size:1rem;">${title}</h4>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                                    <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
+                                    <span class="rec-chevron" aria-hidden="true">&#9660;</span>
+                                </div>
+                            </div>
+                            <div class="rec-card-body" hidden>
+                                ${savingsDisplay}
+                                <p>${description}</p>
+                                ${actionRequired ? `<div class="action"><strong>Action Required:</strong> ${actionRequired}</div>` : ''}
+                                ${irsReference ? `<p style="font-size:0.9em;color:var(--color-gray-500);margin-top:8px;"><em>IRS Reference: ${irsReference}</em></p>` : ''}
+                            </div>
+                        `;
+                        recsDiv.appendChild(recDiv);
+                    });
+                });
+            } else {
+                // Empty state
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.cssText = 'text-align:center;padding:40px 20px;color:var(--color-gray-500);';
+                emptyDiv.innerHTML = `
+                    <div style="font-size:2.5rem;margin-bottom:12px;">📋</div>
+                    <div style="font-weight:600;margin-bottom:8px;">No recommendations available yet</div>
+                    <p style="font-size:0.9rem;">Recommendations will appear here once your full report has been processed.</p>
+                `;
+                recsDiv.appendChild(emptyDiv);
             }
 
             div.appendChild(recsDiv);
@@ -1857,6 +1899,23 @@
             // Navigate back to intelligent advisor for new analysis
             window.location.href = '/intelligent-advisor';
         });
+    </script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    function toggleRecCard(headerEl) {
+        var body = headerEl.nextElementSibling;
+        if (!body) return;
+        var isExpanded = headerEl.getAttribute('aria-expanded') === 'true';
+        body.hidden = isExpanded;
+        headerEl.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+        var chevron = headerEl.querySelector('.rec-chevron');
+        if (chevron) chevron.style.transform = isExpanded ? '' : 'rotate(180deg)';
+    }
+    document.addEventListener('keydown', function(e) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('rec-card-header')) {
+            e.preventDefault();
+            toggleRecCard(e.target);
+        }
+    });
     </script>
 </body>
 </html>

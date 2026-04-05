@@ -293,22 +293,56 @@ class OpenAIAdapter(BaseProviderAdapter):
         response = await self.complete(messages, model=model, temperature=0.1)
 
         import json
-        try:
-            return json.loads(response.content)
-        except json.JSONDecodeError:
-            # Try to extract JSON from response
-            content = response.content
-            if "```json" in content:
-                parts = content.split("```json")
-                if len(parts) > 1:
-                    inner_parts = parts[1].split("```")
-                    content = inner_parts[0] if inner_parts else parts[1]
-            elif "```" in content:
-                parts = content.split("```")
-                if len(parts) > 1:
-                    inner_parts = parts[1].split("```")
-                    content = inner_parts[0] if inner_parts else parts[1]
-            return json.loads(content.strip())
+        import re as _re
+
+        def _repair_and_parse(raw: str) -> dict:
+            """Extract JSON from raw LLM output, repairing common issues."""
+            content = raw.strip()
+
+            # 1. Strip markdown code fences
+            for fence in ("```json", "```"):
+                if fence in content:
+                    parts = content.split(fence)
+                    if len(parts) >= 3:
+                        content = parts[1].strip()
+                        break
+                    elif len(parts) == 2:
+                        content = parts[1].split("```")[0].strip()
+                        break
+
+            # 2. Fast path — try as-is first
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                pass
+
+            # 3. Extract outermost JSON object/array
+            for start_char, end_char in [('{', '}'), ('[', ']')]:
+                start = content.find(start_char)
+                end = content.rfind(end_char)
+                if start != -1 and end > start:
+                    candidate = content[start:end + 1]
+                    try:
+                        return json.loads(candidate)
+                    except json.JSONDecodeError:
+                        # Apply lightweight repairs
+                        repaired = candidate
+                        # Remove trailing commas before ] or }
+                        repaired = _re.sub(r',\s*([\]}])', r'\1', repaired)
+                        # Replace single-quoted strings with double-quoted
+                        repaired = _re.sub(r"(?<![\\])'", '"', repaired)
+                        # Remove JavaScript-style comments
+                        repaired = _re.sub(r'//[^\n]*\n', '\n', repaired)
+                        try:
+                            return json.loads(repaired)
+                        except json.JSONDecodeError:
+                            pass
+
+            # 4. Final fallback — return empty opportunities dict
+            logger.warning("JSON repair exhausted all strategies; returning empty result")
+            return {"opportunities": []}
+
+        return _repair_and_parse(response.content)
 
 
 class AnthropicAdapter(BaseProviderAdapter):

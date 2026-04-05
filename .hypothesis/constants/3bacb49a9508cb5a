@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/support_api.py
+# hypothesis_version: 6.141.1
+
+[100, 200, 400, 404, 5000, '/api/cpa/support', '/stats/summary', '/{ticket_id}', 'DATABASE_PATH', 'Detailed description', 'Filter by category', 'Filter by status', 'Maximum results', 'Message content', 'Support Tickets', 'Ticket not found', 'Ticket subject', 'author_id', 'author_name', 'billing', 'by_category', 'by_status', 'category', 'closed', 'content', 'created_at', 'created_by', 'created_by_name', 'data', 'description', 'feature', 'firm_id', 'high', 'in_progress', 'is_staff', 'limit', 'low', 'message', 'message_count', 'message_id', 'messages', 'normal', 'offset', 'open', 'open_tickets', 'other', 'platform.db', 'priority', 'resolved', 'status', 'subject', 'technical', 'ticket', 'ticket_id', 'ticket_updated_at', 'tickets', 'total', 'total_tickets', 'updated_at', 'urgent']

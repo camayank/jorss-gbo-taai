@@ -94,7 +94,7 @@
     </div>
   </header>
 
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .page-header {
       background: var(--card-bg, white);
       border-bottom: 1px solid var(--color-gray-200);

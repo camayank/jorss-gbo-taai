@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/idaho.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.05695, 120, 205, 2025, 15750, 23850, 31500, 'ID', 'Idaho', 'TaxReturn', 'federal', 'grocery_credit', 'head_of_household', 'id_child_tax_credit', 'married_joint', 'married_separate', 'qualifying_widow', 'single']

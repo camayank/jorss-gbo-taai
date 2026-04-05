@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/arizona.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.025, 40.0, 100.0, 100, 502, 2025, 2500, 3751, 15750, 20000, 23850, 31500, 40000, 'AZ', 'Arizona', 'TaxReturn', 'dependent_credit', 'family_tax_credit', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'property_tax_credit', 'qualifying_widow', 'single', 'standard']

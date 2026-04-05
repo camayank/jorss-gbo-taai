@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/security/validators.py
+# hypothesis_version: 6.141.1
+
+[b'%PDF', b'II*\x00', b'MM\x00*', b'\x89PNG', b'\xff\xd8\xff', 250, 254, 255, 1024, '\x00', '.', '..', '.jpeg', '.jpg', '.pdf', '.png', '.tif', '.tiff', '/', 'Access denied', 'ConnectionError', 'Email is required', 'File is empty', 'FileNotFoundError', 'Invalid data format', 'Invalid email format', 'KeyError', 'PermissionError', 'TimeoutError', 'TypeError', 'ValueError', '[.]', '[\\s\\-\\.\\(\\)]', '[^a-zA-Z0-9._-]', '\\', '^[a-zA-Z0-9_-]+$', '^\\+?[0-9]{10,15}$', '_', 'application/pdf', 'detected_mime_type', 'file_size', 'image/jpeg', 'image/jpg', 'image/png', 'image/tiff', 'safe_filename', 'unnamed_file']

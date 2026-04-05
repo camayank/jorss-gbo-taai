@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/schedule_2.py
+# hypothesis_version: 6.141.1
+
+[0.0, 2025, 'CalculationBreakdown', 'Description of tax', 'EV credit recapture', 'Part I: Tax', 'Part II: Other Taxes', 'Related IRS form', 'Schedule2', 'Tax amount', 'Tax year', 'Type of other tax', 'accumulation', 'annuity_interest', 'archer_msa', 'credit_recapture', 'form_1040_line_17', 'form_1040_line_23', 'form_4137_tax', 'golden_parachute', 'hctc', 'interest_453a_453i', 'investment_credit', 'is_required', 'line_11_niit', 'line_18_subtotal', 'line_1_amt', 'line_21_total', 'line_2_ptc_repayment', 'line_3_total', 'look_back', 'low_income_housing', 'lump_sum', 'nqdc', 'other', 'part_1', 'part_2', 'ptc_repayment', 'qual_plan_dist', 'schedule_h_total_tax', 'section_72m5', 'self_employment_tax', 'tax_year']

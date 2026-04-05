@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/returns.py
+# hypothesis_version: 6.141.1
+
+[100, 400, 404, 500, 2025, '...', '/api/returns', '/queue/{status}', '/save', '/{return_id}', '/{session_id}/notes', '/{session_id}/status', 'CPA Reviewer', 'CPA_APPROVED', 'DRAFT', 'IN_REVIEW', 'Note added', 'Return deleted', 'Return not found', 'Session not found', 'Tax Returns', 'User', 'application/json', 'approval_signature', 'approval_timestamp', 'author', 'content-type', 'count', 'cpa_reviewer_id', 'cpa_reviewer_name', 'created_at', 'data', 'default', 'error', 'firm_id', 'general', 'id', 'last_status_change', 'limit', 'message', 'note', 'notes', 'offset', 'queue_status', 'reason', 'return', 'return_id', 'return_status', 'returns', 'review_notes', 'session_id', 'status', 'submitted_at', 'success', 'tax_session_id', 'tax_year', 'text', 'type', 'updated_at', 'user_id']

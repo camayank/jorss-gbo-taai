@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/firm.py
+# hypothesis_version: 6.141.1
+
+[100, 255, 365, 500, 2025, '#059669', '#1e3a5f', 'America/New_York', 'CASCADE', 'EIN/License verified', 'Enterprise only', 'Hex color code', 'Invitation', 'MM/DD/YYYY', 'Subscription', 'USA', 'USD', 'Unnamed Firm', 'UsageMetrics', 'User', 'all, delete-orphan', 'ck_firm_status', 'ck_firm_tier', 'created_at', 'enterprise', 'firm', 'firm_settings', 'firms', 'firms.firm_id', 'ix_firm_created', 'ix_firm_subscription', 'starter', 'subscription_status', 'subscription_tier', 'trial']

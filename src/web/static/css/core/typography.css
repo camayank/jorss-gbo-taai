@@ -1,7 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 /**
  * Typography System
  * Consistent text styles across the application.
  */
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--body-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 /* =========================
    HEADINGS
@@ -15,9 +26,9 @@ h1, h2, h3, h4, h5, h6,
   letter-spacing: var(--tracking-tight);
 }
 
-/* Serif headings for premium feel */
-h1, h2, .heading-serif {
-  font-family: var(--font-serif);
+/* Display headings — unified font */
+h1, h2, .heading-serif, .heading-display {
+  font-family: var(--font-display, var(--font-sans));
 }
 
 h1, .h1 {

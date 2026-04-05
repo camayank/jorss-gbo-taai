@@ -5,275 +5,1167 @@
 {% block page_title %}Client Messages{% endblock %}
 
 {% block extra_styles %}
-<style>
-    .messaging-layout {
-        display: grid;
-        grid-template-columns: 320px 1fr;
-        gap: 0;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-xl);
-        overflow: hidden;
-        height: calc(100vh - 200px);
-        min-height: 500px;
-        background: var(--bg-primary);
-    }
-    .conversation-list {
-        border-right: 1px solid var(--border-color);
-        overflow-y: auto;
-    }
-    .conv-header {
-        padding: var(--space-4) var(--space-5);
-        border-bottom: 1px solid var(--border-color);
-        font-weight: var(--font-semibold);
-        font-size: 0.95rem;
-        background: var(--bg-secondary);
-    }
-    .conv-item {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        padding: var(--space-4) var(--space-5);
-        cursor: pointer;
-        border-bottom: 1px solid var(--border-color-light, #f0f0f0);
-        transition: background 0.15s;
-    }
-    .conv-item:hover, .conv-item.active { background: var(--color-primary-50); }
-    .conv-avatar {
-        width: 40px; height: 40px;
-        border-radius: 50%;
-        background: var(--color-primary-100);
-        color: var(--color-primary-700);
-        display: flex; align-items: center; justify-content: center;
-        font-weight: var(--font-semibold);
-        flex-shrink: 0;
-    }
-    .conv-info { flex: 1; min-width: 0; }
-    .conv-name { font-weight: var(--font-medium); font-size: 0.9rem; }
-    .conv-preview {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .conv-time { font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; }
-    .conv-unread {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: var(--color-primary-500);
-        flex-shrink: 0;
-    }
+/* ── Messaging Layout ───────────────────────────────────────────────── */
+.msg-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 148px);
+    min-height: 520px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: var(--bg-primary);
+    box-shadow: 0 2px 12px rgba(11,29,58,.07);
+}
 
-    .chat-area { display: flex; flex-direction: column; }
-    .chat-header {
-        padding: var(--space-4) var(--space-5);
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        background: var(--bg-secondary);
-    }
-    .chat-header-name { font-weight: var(--font-semibold); }
-    .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: var(--space-5);
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-    }
-    .msg { max-width: 70%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: 0.9rem; line-height: 1.5; }
-    .msg.sent {
-        align-self: flex-end;
-        background: var(--color-primary-500);
-        color: white;
-        border-bottom-right-radius: var(--radius-sm);
-    }
-    .msg.received {
-        align-self: flex-start;
-        background: var(--bg-secondary);
-        border-bottom-left-radius: var(--radius-sm);
-    }
-    .msg-time { font-size: 0.7rem; opacity: 0.7; margin-top: var(--space-1); }
-    .chat-input-area {
-        padding: var(--space-4) var(--space-5);
-        border-top: 1px solid var(--border-color);
-        display: flex;
-        gap: var(--space-3);
-    }
-    .chat-input-area input {
-        flex: 1;
-        padding: var(--space-3) var(--space-4);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        font-size: 0.9rem;
-    }
-    .chat-empty {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        text-align: center;
-        padding: var(--space-8);
-    }
+/* ── Left Panel ─────────────────────────────────────────────────────── */
+.conv-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+.conv-panel-top {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fff;
+}
+.conv-panel-title {
+    font-weight: 600;
+    font-size: .9rem;
+    color: #0B1D3A;
+    letter-spacing: .01em;
+}
+.conv-search-wrap {
+    position: relative;
+}
+.conv-search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+.conv-search {
+    width: 100%;
+    padding: 7px 10px 7px 32px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: .82rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color .15s;
+}
+.conv-search:focus { border-color: #C9A84C; }
+.btn-new-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    background: #C9A84C;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+}
+.btn-new-msg:hover { background: #b8963e; }
+.btn-new-msg:active { transform: scale(.98); }
+.btn-new-msg svg { width: 15px; height: 15px; }
 
-    @media (max-width: 768px) {
-        .messaging-layout { grid-template-columns: 1fr; height: auto; }
-        .conversation-list { max-height: 300px; }
+.conv-list {
+    flex: 1;
+    overflow-y: auto;
+}
+.conv-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .12s;
+    position: relative;
+}
+.conv-item:hover { background: #f8fafc; }
+.conv-item.active {
+    background: #eef2ff;
+    border-left: 3px solid #C9A84C;
+}
+.conv-item.active .conv-name { color: #0B1D3A; }
+.conv-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #0B1D3A;
+    color: #C9A84C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .85rem;
+    flex-shrink: 0;
+    letter-spacing: .02em;
+}
+.conv-item.active .conv-avatar {
+    background: #C9A84C;
+    color: #fff;
+}
+.conv-body { flex: 1; min-width: 0; }
+.conv-name {
+    font-weight: 600;
+    font-size: .85rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.conv-preview {
+    font-size: .76rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.conv-preview.unread {
+    color: #0B1D3A;
+    font-weight: 600;
+}
+.conv-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+}
+.conv-time { font-size: .7rem; color: #94a3b8; }
+.conv-unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0B1D3A;
+    display: block;
+}
+.conv-empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: #94a3b8;
+}
+.conv-empty-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 12px;
+    opacity: .35;
+}
+.conv-empty p { font-size: .82rem; margin-top: 6px; }
+
+/* Skeleton */
+.skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+}
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.skel-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.skel-avatar { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; }
+.skel-lines { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.skel-line { height: 10px; }
+
+/* ── Right Panel ────────────────────────────────────────────────────── */
+.thread-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+}
+
+.thread-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #94a3b8;
+    padding: 48px;
+}
+.thread-empty-inner { max-width: 280px; }
+.thread-empty-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    color: #cbd5e1;
+}
+.thread-empty h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+}
+.thread-empty p { font-size: .83rem; line-height: 1.5; }
+
+.thread-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff;
+    min-height: 62px;
+}
+.thread-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.thread-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0B1D3A;
+    color: #C9A84C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .88rem;
+    flex-shrink: 0;
+}
+.thread-name {
+    font-weight: 700;
+    font-size: .95rem;
+    color: #0B1D3A;
+}
+.thread-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-top: 3px;
+}
+.badge-client { background: #fef3c7; color: #92400e; }
+.badge-business { background: #dbeafe; color: #1e40af; }
+.badge-direct { background: #dcfce7; color: #166534; }
+.thread-profile-link {
+    font-size: .75rem;
+    color: #C9A84C;
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.thread-profile-link:hover { text-decoration: underline; }
+.thread-subject {
+    font-size: .78rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.thread-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scroll-behavior: smooth;
+}
+
+.msg-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.msg-group.sent { align-items: flex-end; }
+.msg-group.received { align-items: flex-start; }
+.msg-sender {
+    font-size: .7rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 3px;
+    padding: 0 4px;
+}
+.msg-bubble {
+    max-width: 68%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: .875rem;
+    line-height: 1.55;
+    word-break: break-word;
+}
+.msg-group.sent .msg-bubble {
+    background: #0B1D3A;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+.msg-group.received .msg-bubble {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
+}
+.msg-time {
+    font-size: .67rem;
+    color: #94a3b8;
+    margin-top: 4px;
+    padding: 0 4px;
+}
+.msg-group.sent .msg-time { color: #94a3b8; }
+
+.date-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 8px;
+    color: #94a3b8;
+    font-size: .72rem;
+}
+.date-divider::before, .date-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.thread-input-bar {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: #fff;
+}
+.thread-textarea {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: .875rem;
+    font-family: inherit;
+    resize: none;
+    min-height: 42px;
+    max-height: 120px;
+    outline: none;
+    line-height: 1.5;
+    transition: border-color .15s;
+    overflow-y: auto;
+    background: #f8fafc;
+}
+.thread-textarea:focus { border-color: #C9A84C; background: #fff; }
+.thread-textarea::placeholder { color: #94a3b8; }
+.btn-send {
+    padding: 10px 18px;
+    background: #0B1D3A;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-send:hover { background: #162d5a; }
+.btn-send:active { transform: scale(.97); }
+.btn-send:disabled { opacity: .5; cursor: not-allowed; }
+.btn-send svg { width: 15px; height: 15px; }
+.btn-attach {
+    padding: 10px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #64748b;
+    transition: border-color .15s, color .15s;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.btn-attach:hover { border-color: #C9A84C; color: #C9A84C; }
+.btn-attach svg { width: 17px; height: 17px; }
+
+/* ── Compose Modal ──────────────────────────────────────────────────── */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(11,29,58,.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    backdrop-filter: blur(2px);
+}
+.modal-backdrop.hidden { display: none; }
+.modal-card {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(11,29,58,.25);
+    overflow: hidden;
+}
+.modal-header {
+    padding: 18px 22px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.modal-title { font-weight: 700; font-size: 1rem; color: #0B1D3A; }
+.btn-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 4px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: color .15s;
+}
+.btn-modal-close:hover { color: #0B1D3A; }
+.btn-modal-close svg { width: 18px; height: 18px; }
+.modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: .78rem; font-weight: 600; color: #374151; }
+.form-control {
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: .875rem;
+    font-family: inherit;
+    outline: none;
+    background: #f8fafc;
+    transition: border-color .15s;
+}
+.form-control:focus { border-color: #C9A84C; background: #fff; }
+.form-control[required] { }
+textarea.form-control { resize: vertical; min-height: 90px; }
+select.form-control { cursor: pointer; }
+.modal-footer {
+    padding: 14px 22px 18px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+.btn-cancel {
+    padding: 9px 18px;
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    border-radius: 8px;
+    font-size: .83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+.btn-cancel:hover { background: #e2e8f0; }
+.btn-submit {
+    padding: 9px 22px;
+    background: #C9A84C;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: .83rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+}
+.btn-submit:hover { background: #b8963e; }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Toast ──────────────────────────────────────────────────────────── */
+.msg-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: .83rem;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    z-index: 99999;
+    transform: translateY(0);
+    transition: opacity .3s, transform .3s;
+}
+.msg-toast.success { background: #166534; }
+.msg-toast.error { background: #991b1b; }
+.msg-toast.hide { opacity: 0; transform: translateY(10px); }
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .msg-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: unset;
     }
-</style>
+    .conv-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 280px;
+    }
+    .thread-panel { min-height: 420px; }
+    .msg-bubble { max-width: 88%; }
+}
 {% endblock %}
 
 {% block content %}
-<div class="messaging-layout" x-data="messagingApp()">
-    <!-- Conversation List -->
-    <div class="conversation-list">
-        <div class="conv-header">Conversations</div>
-        <template x-for="conv in conversations" :key="conv.id">
-            <div class="conv-item" :class="{ 'active': selectedId === conv.id }" @click="selectConversation(conv)">
-                <div class="conv-avatar" x-text="conv.client_name ? conv.client_name[0] : 'C'"></div>
-                <div class="conv-info">
-                    <div class="conv-name" x-text="conv.client_name || 'Client'"></div>
-                    <div class="conv-preview" x-text="conv.last_message || 'No messages yet'"></div>
-                </div>
-                <div class="conv-time" x-text="conv.updated_at || ''"></div>
-                <template x-if="conv.unread > 0">
-                    <div class="conv-unread"></div>
-                </template>
-            </div>
-        </template>
-        <template x-if="conversations.length === 0">
-            <div style="padding: var(--space-8); text-align: center; color: var(--text-muted);">
-                <p>No conversations yet.</p>
-                <p style="font-size: 0.85rem;">Messages from clients will appear here.</p>
-            </div>
-        </template>
-    </div>
+<div class="msg-layout" id="msgApp">
 
-    <!-- Chat Area -->
-    <div class="chat-area" x-show="selectedId">
-        <div class="chat-header">
-            <div class="conv-avatar" x-text="selectedConv?.client_name ? selectedConv.client_name[0] : 'C'"></div>
-            <div>
-                <div class="chat-header-name" x-text="selectedConv?.client_name || 'Client'"></div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);" x-text="selectedConv?.client_email || ''"></div>
+    <!-- ── LEFT: Conversation List ──────────────────────────────── -->
+    <div class="conv-panel">
+        <div class="conv-panel-top">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="conv-panel-title">Conversations</span>
+                <span id="convCount" style="font-size:.73rem;color:#94a3b8;"></span>
             </div>
+            <div class="conv-search-wrap">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m0 0A7.5 7.5 0 1 0 6.15 6.15a7.5 7.5 0 0 0 10.5 10.5Z"/>
+                </svg>
+                <input class="conv-search" type="search" id="convSearch" placeholder="Search conversations..." aria-label="Search conversations">
+            </div>
+            <button class="btn-new-msg" id="btnNewMsg" aria-label="New Message">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                New Message
+            </button>
         </div>
-        <div class="chat-messages" x-ref="chatMessages">
-            <template x-for="msg in messages" :key="msg.id">
-                <div class="msg" :class="msg.sender_type === 'cpa' ? 'sent' : 'received'">
-                    <div x-text="msg.content"></div>
-                    <div class="msg-time" x-text="msg.created_at"></div>
-                </div>
-            </template>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" x-model="newMessage" placeholder="Type a message..." @keydown.enter="sendMessage()">
-            <button class="btn btn-primary" @click="sendMessage()">Send</button>
+        <div class="conv-list" id="convList" role="list" aria-label="Conversations">
+            <!-- Loading skeletons -->
+            <div id="convSkeletons">
+                <div class="skel-item"><div class="skeleton skel-avatar"></div><div class="skel-lines"><div class="skeleton skel-line" style="width:60%"></div><div class="skeleton skel-line" style="width:85%"></div></div></div>
+                <div class="skel-item"><div class="skeleton skel-avatar"></div><div class="skel-lines"><div class="skeleton skel-line" style="width:50%"></div><div class="skeleton skel-line" style="width:78%"></div></div></div>
+                <div class="skel-item"><div class="skeleton skel-avatar"></div><div class="skel-lines"><div class="skeleton skel-line" style="width:70%"></div><div class="skeleton skel-line" style="width:60%"></div></div></div>
+            </div>
         </div>
     </div>
 
-    <template x-if="!selectedId">
-        <div class="chat-empty">
-            <div>
-                <div style="font-size: 2rem; margin-bottom: var(--space-3);">{{ icon('mail') }}</div>
+    <!-- ── RIGHT: Thread ────────────────────────────────────────── -->
+    <div class="thread-panel" id="threadPanel">
+
+        <!-- Empty state -->
+        <div class="thread-empty" id="threadEmpty">
+            <div class="thread-empty-inner">
+                <svg class="thread-empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H4.5a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5H4.5a2.25 2.25 0 0 0-2.25 2.25m19.5 0-9.75 6.75L2.25 6.75"/>
+                </svg>
                 <h3>Select a conversation</h3>
-                <p>Choose a client conversation from the left to start messaging.</p>
+                <p>Choose a client conversation from the left panel to start messaging, or create a new one.</p>
             </div>
         </div>
-    </template>
+
+        <!-- Thread header (hidden until conversation selected) -->
+        <div class="thread-header" id="threadHeader" style="display:none;">
+            <div class="thread-header-left">
+                <div class="thread-avatar" id="threadAvatar">?</div>
+                <div>
+                    <div class="thread-name" id="threadName">—</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+                        <span class="thread-badge badge-client" id="threadBadge">Client</span>
+                        <span class="thread-subject" id="threadSubject"></span>
+                    </div>
+                </div>
+            </div>
+            <a href="#" class="thread-profile-link" id="threadProfileLink" target="_blank">View Profile &rarr;</a>
+        </div>
+
+        <!-- Messages area (hidden until conversation selected) -->
+        <div class="thread-messages" id="threadMessages" style="display:none;" aria-live="polite" aria-label="Message thread"></div>
+
+        <!-- Input bar (hidden until conversation selected) -->
+        <div class="thread-input-bar" id="threadInputBar" style="display:none;">
+            <button class="btn-attach" title="Attach file" aria-label="Attach file" id="btnAttach">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"/>
+                </svg>
+            </button>
+            <textarea class="thread-textarea" id="msgInput" placeholder="Type a message… (Enter to send, Shift+Enter for new line)" rows="1" aria-label="Message input"></textarea>
+            <button class="btn-send" id="btnSend" aria-label="Send message">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/>
+                </svg>
+                Send
+            </button>
+        </div>
+    </div>
+
 </div>
 
-<script>
-function messagingApp() {
-    return {
-        conversations: [],
-        messages: [],
-        selectedId: null,
-        selectedConv: null,
-        newMessage: '',
-        cpaId: '{{ cpa_id|default("default") }}',
+<!-- ── Compose Modal ─────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="composeModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title" id="modalTitle">New Message</span>
+            <button class="btn-modal-close" id="btnModalClose" aria-label="Close modal">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-field">
+                <label class="form-label" for="composeClient">Client <span aria-hidden="true">*</span></label>
+                <select class="form-control" id="composeClient" required aria-required="true">
+                    <option value="">Loading clients…</option>
+                </select>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="composeSubject">Subject <span aria-hidden="true">*</span></label>
+                <input class="form-control" type="text" id="composeSubject" placeholder="e.g. 2024 Tax Return Update" required aria-required="true">
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="composeMessage">Message <span aria-hidden="true">*</span></label>
+                <textarea class="form-control" id="composeMessage" placeholder="Write your message here…" required aria-required="true"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" id="btnComposeCancl">Cancel</button>
+            <button class="btn-submit" id="btnComposeSend">Send Message</button>
+        </div>
+    </div>
+</div>
 
-        async init() {
-            await this.loadConversations();
-        },
+<!-- Toast -->
+<div class="msg-toast hide" id="msgToast" role="alert" aria-live="assertive"></div>
 
-        async loadConversations() {
-            try {
-                const resp = await fetch('/api/core/messages/conversations', {
-                    headers: { 'X-Tenant-Id': this.cpaId }
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    this.conversations = data.conversations || data || [];
-                }
-            } catch (e) {
-                console.warn('Could not load conversations:', e);
-                // Show empty state gracefully
-            }
-        },
+{% endblock %}
 
-        async selectConversation(conv) {
-            this.selectedId = conv.id;
-            this.selectedConv = conv;
-            try {
-                const resp = await fetch(`/api/core/messages/conversations/${conv.id}/messages`, {
-                    headers: { 'X-Tenant-Id': this.cpaId }
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    this.messages = data.messages || data || [];
-                }
-                // Mark as read
-                await fetch(`/api/core/messages/conversations/${conv.id}/read`, {
-                    method: 'POST',
-                    headers: { 'X-Tenant-Id': this.cpaId }
-                });
-                this.$nextTick(() => {
-                    if (this.$refs.chatMessages) {
-                        this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
-                    }
-                });
-            } catch (e) {
-                console.warn('Could not load messages:', e);
-            }
-        },
+{% block extra_scripts %}
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+(function () {
+'use strict';
 
-        async sendMessage() {
-            if (!this.newMessage.trim() || !this.selectedId) return;
-            const content = this.newMessage.trim();
-            this.newMessage = '';
+/* ── Config ─────────────────────────────────────────────────── */
+const CPA_ID = '{{ cpa_id | default("") }}';
+const CURRENT_USER_ID = '{{ current_user.id | default("") }}';
+const HEADERS = { 'Content-Type': 'application/json', ...(CPA_ID ? { 'X-Tenant-Id': CPA_ID } : {}) };
+const API = {
+    conversations:    '/api/messages/conversations',
+    conversation:     (id) => `/api/messages/conversations/${id}`,
+    messages:         (id) => `/api/messages/conversations/${id}/messages`,
+    read:             (id) => `/api/messages/conversations/${id}/read`,
+    compose:          '/api/messages/conversations',
+    clients:          '/api/cpa/clients',
+};
 
-            // Optimistic update
-            this.messages.push({
-                id: Date.now().toString(),
-                content: content,
-                sender_type: 'cpa',
-                created_at: new Date().toLocaleTimeString(),
-                read: false,
-            });
+/* ── State ──────────────────────────────────────────────────── */
+let allConversations  = [];
+let activeConvId      = null;
+let activeConv        = null;
+let pollConvTimer     = null;
+let pollThreadTimer   = null;
+let sending           = false;
 
-            this.$nextTick(() => {
-                if (this.$refs.chatMessages) {
-                    this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
-                }
-            });
+/* ── DOM refs ───────────────────────────────────────────────── */
+const $ = (id) => document.getElementById(id);
+const convList        = $('convList');
+const convSkeletons   = $('convSkeletons');
+const convSearch      = $('convSearch');
+const convCount       = $('convCount');
+const threadEmpty     = $('threadEmpty');
+const threadHeader    = $('threadHeader');
+const threadMessages  = $('threadMessages');
+const threadInputBar  = $('threadInputBar');
+const threadAvatar    = $('threadAvatar');
+const threadName      = $('threadName');
+const threadBadge     = $('threadBadge');
+const threadSubject   = $('threadSubject');
+const threadProfileLink = $('threadProfileLink');
+const msgInput        = $('msgInput');
+const btnSend         = $('btnSend');
+const composeModal    = $('composeModal');
+const composeClient   = $('composeClient');
+const composeSubject  = $('composeSubject');
+const composeMessage  = $('composeMessage');
+const toast           = $('msgToast');
 
-            try {
-                await fetch(`/api/core/messages/conversations/${this.selectedId}/messages`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Tenant-Id': this.cpaId,
-                    },
-                    body: JSON.stringify({ content: content, message_type: 'text' }),
-                });
-            } catch (e) {
-                console.warn('Could not send message:', e);
-            }
-        }
-    };
+/* ── Toast ──────────────────────────────────────────────────── */
+let toastTimer;
+function showToast(msg, type = 'success') {
+    clearTimeout(toastTimer);
+    toast.textContent = msg;
+    toast.className = 'msg-toast ' + type;
+    toastTimer = setTimeout(() => { toast.className = 'msg-toast hide'; }, 3200);
 }
+
+/* ── Helpers ────────────────────────────────────────────────── */
+function initials(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function fmtTime(iso) {
+    if (!iso) return '';
+    try {
+        const d = new Date(iso);
+        const now = new Date();
+        const diff = now - d;
+        if (diff < 60000) return 'just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (d.toDateString() === now.toDateString()) {
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    } catch { return ''; }
+}
+
+function fmtFullTime(iso) {
+    if (!iso) return '';
+    try {
+        return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+}
+
+function fmtDateLabel(iso) {
+    if (!iso) return '';
+    try {
+        const d = new Date(iso);
+        const now = new Date();
+        if (d.toDateString() === now.toDateString()) return 'Today';
+        const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    } catch { return ''; }
+}
+
+function convDisplayName(conv) {
+    if (!conv) return 'Unknown';
+    const others = (conv.participants || []).filter(p => p.type !== 'cpa');
+    if (others.length > 0) return others[0].name || 'Client';
+    return conv.subject || 'Conversation';
+}
+
+function convClientId(conv) {
+    if (!conv) return null;
+    const others = (conv.participants || []).filter(p => p.type !== 'cpa');
+    return others.length > 0 ? others[0].user_id : null;
+}
+
+function badgeClass(type) {
+    if (!type) return 'badge-client';
+    const t = type.toLowerCase();
+    if (t === 'business') return 'badge-business';
+    if (t === 'direct') return 'badge-direct';
+    return 'badge-client';
+}
+
+/* ── Conversation List Rendering ────────────────────────────── */
+function renderConvList(convs) {
+    const q = convSearch.value.trim().toLowerCase();
+    const filtered = q
+        ? convs.filter(c => {
+            const name = convDisplayName(c).toLowerCase();
+            const subj = (c.subject || '').toLowerCase();
+            const last = (c.last_message?.content || '').toLowerCase();
+            return name.includes(q) || subj.includes(q) || last.includes(q);
+        })
+        : convs;
+
+    convCount.textContent = filtered.length + ' conversation' + (filtered.length !== 1 ? 's' : '');
+
+    // Remove existing rendered items (keep skeletons node for removal reference)
+    convList.querySelectorAll('.conv-item, .conv-empty').forEach(el => el.remove());
+
+    if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'conv-empty';
+        empty.innerHTML = `
+            <svg class="conv-empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/>
+            </svg>
+            <p>${q ? 'No conversations match your search.' : 'No conversations yet.'}</p>
+            ${!q ? '<p style="margin-top:4px;font-size:.75rem;">Messages from clients will appear here.</p>' : ''}
+        `;
+        convList.appendChild(empty);
+        return;
+    }
+
+    filtered.forEach(conv => {
+        const name   = convDisplayName(conv);
+        const inits  = initials(name);
+        const last   = conv.last_message?.content || conv.subject || 'No messages yet';
+        const time   = fmtTime(conv.updated_at || conv.created_at);
+        const unread = (conv.unread_count || 0) > 0;
+        const isActive = conv.id === activeConvId;
+
+        const item = document.createElement('div');
+        item.className = 'conv-item' + (isActive ? ' active' : '');
+        item.setAttribute('role', 'listitem');
+        item.setAttribute('tabindex', '0');
+        item.setAttribute('data-id', conv.id);
+        item.setAttribute('aria-label', `Conversation with ${name}${unread ? ', unread messages' : ''}`);
+        item.innerHTML = `
+            <div class="conv-avatar">${inits}</div>
+            <div class="conv-body">
+                <div class="conv-name">${escHtml(name)}</div>
+                <div class="conv-preview${unread ? ' unread' : ''}">${escHtml(last.slice(0, 80))}</div>
+            </div>
+            <div class="conv-meta">
+                <span class="conv-time">${escHtml(time)}</span>
+                ${unread ? '<span class="conv-unread-dot" aria-label="Unread messages"></span>' : ''}
+            </div>
+        `;
+        item.addEventListener('click', () => selectConversation(conv));
+        item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectConversation(conv); } });
+        convList.appendChild(item);
+    });
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+/* ── Load Conversations ─────────────────────────────────────── */
+async function loadConversations(silent = false) {
+    try {
+        const res = await fetch(API.conversations, { headers: HEADERS });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const convs = Array.isArray(data) ? data : (data.conversations || data.items || []);
+        allConversations = convs;
+
+        if (convSkeletons) convSkeletons.remove();
+        renderConvList(convs);
+
+        // If active conv was updated remotely, refresh its thread silently
+        if (activeConvId) {
+            const updated = convs.find(c => c.id === activeConvId);
+            if (updated) activeConv = updated;
+        }
+    } catch (err) {
+        if (!silent) {
+            if (convSkeletons) convSkeletons.remove();
+            renderConvList([]);
+        }
+        console.warn('[Messaging] loadConversations error:', err);
+    }
+}
+
+/* ── Select Conversation ────────────────────────────────────── */
+async function selectConversation(conv) {
+    activeConvId = conv.id;
+    activeConv   = conv;
+
+    // Update left panel highlight
+    document.querySelectorAll('.conv-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === String(conv.id));
+    });
+
+    // Update right panel header
+    const name   = convDisplayName(conv);
+    const cid    = convClientId(conv);
+    threadAvatar.textContent  = initials(name);
+    threadName.textContent    = name;
+    threadBadge.textContent   = (conv.type || 'client').charAt(0).toUpperCase() + (conv.type || 'client').slice(1);
+    threadBadge.className     = 'thread-badge ' + badgeClass(conv.type);
+    threadSubject.textContent = conv.subject ? '· ' + conv.subject : '';
+    threadProfileLink.href    = cid ? `/cpa/clients/${cid}` : '#';
+    threadProfileLink.style.visibility = cid ? 'visible' : 'hidden';
+
+    // Show panels
+    threadEmpty.style.display  = 'none';
+    threadHeader.style.display = '';
+    threadMessages.style.display = '';
+    threadInputBar.style.display = '';
+
+    // Show loading state
+    threadMessages.innerHTML = '<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.82rem;">Loading messages…</div>';
+
+    await loadMessages(conv.id);
+
+    // Mark as read
+    try {
+        await fetch(API.read(conv.id), { method: 'POST', headers: HEADERS });
+    } catch {}
+
+    // Refresh list to clear unread badge
+    loadConversations(true);
+
+    // Start thread polling
+    clearInterval(pollThreadTimer);
+    pollThreadTimer = setInterval(() => refreshMessages(), 10000);
+
+    msgInput.focus();
+}
+
+/* ── Load Messages ──────────────────────────────────────────── */
+async function loadMessages(convId, append = false) {
+    try {
+        const res = await fetch(API.messages(convId), { headers: HEADERS });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const msgs = Array.isArray(data) ? data : (data.messages || data.items || []);
+        renderMessages(msgs);
+    } catch (err) {
+        if (!append) {
+            threadMessages.innerHTML = '<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.82rem;">Could not load messages.</div>';
+        }
+        console.warn('[Messaging] loadMessages error:', err);
+    }
+}
+
+async function refreshMessages() {
+    if (!activeConvId) return;
+    try {
+        const res = await fetch(API.messages(activeConvId), { headers: HEADERS });
+        if (!res.ok) return;
+        const data = await res.json();
+        const msgs = Array.isArray(data) ? data : (data.messages || data.items || []);
+        // Only re-render if count changed (avoid flicker)
+        const current = threadMessages.querySelectorAll('.msg-group').length;
+        if (msgs.length !== current) renderMessages(msgs);
+    } catch {}
+}
+
+/* ── Render Messages ────────────────────────────────────────── */
+function renderMessages(msgs) {
+    const wasAtBottom = isScrolledToBottom(threadMessages);
+    threadMessages.innerHTML = '';
+
+    if (!msgs.length) {
+        threadMessages.innerHTML = '<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.82rem;">No messages yet. Say hello!</div>';
+        return;
+    }
+
+    let lastDate = null;
+    msgs.forEach(msg => {
+        const isSent = msg.sender_type === 'cpa' || String(msg.sender_id) === String(CURRENT_USER_ID);
+        const dateLabel = fmtDateLabel(msg.created_at);
+
+        if (dateLabel !== lastDate) {
+            lastDate = dateLabel;
+            const div = document.createElement('div');
+            div.className = 'date-divider';
+            div.textContent = dateLabel;
+            threadMessages.appendChild(div);
+        }
+
+        const group = document.createElement('div');
+        group.className = 'msg-group ' + (isSent ? 'sent' : 'received');
+        group.innerHTML = `
+            <div class="msg-sender">${escHtml(isSent ? 'You' : (msg.sender_name || 'Client'))}</div>
+            <div class="msg-bubble" tabindex="0">${escHtml(msg.content || '')}</div>
+            <div class="msg-time" title="${escHtml(msg.created_at || '')}">${escHtml(fmtFullTime(msg.created_at))}</div>
+        `;
+        threadMessages.appendChild(group);
+    });
+
+    if (wasAtBottom || true /* always scroll to bottom on initial load */) {
+        threadMessages.scrollTop = threadMessages.scrollHeight;
+    }
+}
+
+function isScrolledToBottom(el) {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+}
+
+/* ── Send Message ───────────────────────────────────────────── */
+async function sendMessage() {
+    const content = msgInput.value.trim();
+    if (!content || !activeConvId || sending) return;
+
+    sending = true;
+    btnSend.disabled = true;
+    msgInput.value = '';
+    autoResize(msgInput);
+
+    // Optimistic bubble
+    const now = new Date().toISOString();
+    const tempGroup = document.createElement('div');
+    tempGroup.className = 'msg-group sent';
+    tempGroup.id = 'temp-msg';
+    tempGroup.innerHTML = `
+        <div class="msg-sender">You</div>
+        <div class="msg-bubble" style="opacity:.6">${escHtml(content)}</div>
+        <div class="msg-time">Sending…</div>
+    `;
+    threadMessages.appendChild(tempGroup);
+    threadMessages.scrollTop = threadMessages.scrollHeight;
+
+    try {
+        const res = await fetch(API.messages(activeConvId), {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify({ content, message_type: 'text', attachments: [] }),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        // Reload real messages
+        await loadMessages(activeConvId);
+        // Refresh conv list order
+        loadConversations(true);
+    } catch (err) {
+        const tmp = $('temp-msg');
+        if (tmp) {
+            tmp.querySelector('.msg-time').textContent = 'Failed to send';
+            tmp.querySelector('.msg-bubble').style.opacity = '1';
+            tmp.querySelector('.msg-bubble').style.background = '#fee2e2';
+            tmp.querySelector('.msg-bubble').style.color = '#991b1b';
+        }
+        showToast('Failed to send message. Please try again.', 'error');
+        console.warn('[Messaging] sendMessage error:', err);
+    } finally {
+        sending = false;
+        btnSend.disabled = false;
+        msgInput.focus();
+    }
+}
+
+/* ── Auto-resize textarea ───────────────────────────────────── */
+function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+/* ── Compose Modal ──────────────────────────────────────────── */
+async function openComposeModal() {
+    composeSubject.value = '';
+    composeMessage.value = '';
+    composeModal.classList.remove('hidden');
+    composeClient.innerHTML = '<option value="">Loading clients…</option>';
+
+    try {
+        const res = await fetch(API.clients, { headers: HEADERS });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const clients = Array.isArray(data) ? data : (data.clients || data.items || []);
+        composeClient.innerHTML = '<option value="">Select a client…</option>';
+        clients.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id || c.user_id || c.client_id;
+            opt.textContent = c.name || c.full_name || c.display_name || c.email || 'Unknown Client';
+            composeClient.appendChild(opt);
+        });
+    } catch {
+        composeClient.innerHTML = '<option value="">Could not load clients</option>';
+    }
+
+    composeClient.focus();
+}
+
+function closeComposeModal() {
+    composeModal.classList.add('hidden');
+}
+
+async function submitCompose() {
+    const recipientId = composeClient.value;
+    const subject     = composeSubject.value.trim();
+    const content     = composeMessage.value.trim();
+
+    if (!recipientId || !subject || !content) {
+        showToast('Please fill in all fields.', 'error');
+        return;
+    }
+
+    const btn = $('btnComposeSend');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try {
+        const res = await fetch(API.compose, {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify({
+                type: 'direct',
+                participant_ids: [recipientId],
+                subject,
+                initial_message: content,
+            }),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const newConv = await res.json();
+        closeComposeModal();
+        showToast('Message sent successfully!', 'success');
+        await loadConversations();
+        if (newConv && newConv.id) {
+            const conv = allConversations.find(c => c.id === newConv.id) || newConv;
+            selectConversation(conv);
+        }
+    } catch (err) {
+        showToast('Failed to send message. Please try again.', 'error');
+        console.warn('[Messaging] submitCompose error:', err);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+    }
+}
+
+/* ── Event Listeners ────────────────────────────────────────── */
+$('btnNewMsg').addEventListener('click', openComposeModal);
+$('btnModalClose').addEventListener('click', closeComposeModal);
+$('btnComposeCancl').addEventListener('click', closeComposeModal);
+$('btnComposeSend').addEventListener('click', submitCompose);
+
+composeModal.addEventListener('click', function(e) {
+    if (e.target === composeModal) closeComposeModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !composeModal.classList.contains('hidden')) closeComposeModal();
+});
+
+btnSend.addEventListener('click', sendMessage);
+
+msgInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+msgInput.addEventListener('input', function() { autoResize(this); });
+
+convSearch.addEventListener('input', function() {
+    renderConvList(allConversations);
+});
+
+// Attach stub (hook point for file upload)
+$('btnAttach').addEventListener('click', function() {
+    showToast('File attachments coming soon.', 'success');
+});
+
+/* ── Init & Polling ─────────────────────────────────────────── */
+(async function init() {
+    await loadConversations();
+    // Refresh conversation list every 30s
+    pollConvTimer = setInterval(() => loadConversations(true), 30000);
+})();
+
+})();
 </script>
 {% endblock %}

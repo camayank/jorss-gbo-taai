@@ -36,6 +36,29 @@ import {
   showShimmerLoading, hideShimmerLoading, triggerConfetti, updateJourneyStepperForHybrid, addManyOptionsClass
 } from './advisor-display.js';
 
+// ======================== ICON UTILITY ========================
+/**
+ * Generate inline SVG icon (Heroicons style)
+ * @param {string} name - Icon name ('chart-bar' or 'light-bulb')
+ * @param {object} options - {size: 'sm|md|lg', class: '', title: '', ariaLabel: ''}
+ */
+function createIcon(name, options = {}) {
+  const { size = 'md', className = '', title = '', ariaLabel = '' } = options;
+  const sizes = { sm: 16, md: 20, lg: 24 };
+  const px = sizes[size] || 20;
+
+  const icons = {
+    'chart-bar': 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
+    'light-bulb': 'M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18'
+  };
+
+  const path = icons[name];
+  if (!path) return '';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="${px}" height="${px}" class="icon-svg ${className}" ${title ? `title="${title}"` : ''} ${ariaLabel ? `aria-label="${ariaLabel}"` : ''} style="display:inline;vertical-align:middle;margin-right:6px;"><path d="${path}"/></svg>`;
+  return svg;
+}
+
 // ======================== FALLBACK RESPONSES ========================
 
 export const FallbackResponses = {
@@ -69,6 +92,74 @@ export const FallbackResponses = {
 export function getFallbackResponse(type = 'unknown') {
   const responses = FallbackResponses[type] || FallbackResponses.unknown;
   return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// ======================== PHASE STRIP ========================
+
+function _updatePhaseStrip(completeness) {
+  const strip = document.getElementById('phaseStrip');
+  if (!strip) return;
+  const phase = completeness >= 0.8 ? 4 : completeness >= 0.6 ? 3 : completeness >= 0.4 ? 2 : completeness >= 0.2 ? 1 : 0;
+  strip.querySelectorAll('.phase-step').forEach(el => {
+    const step = parseInt(el.dataset.step, 10);
+    el.classList.toggle('active', step === phase);
+    el.classList.toggle('complete', step < phase);
+  });
+  strip.querySelectorAll('.phase-connector').forEach((el, i) => {
+    el.classList.toggle('active', i < phase);
+  });
+}
+
+// ======================== SAVINGS REVEAL ========================
+
+let _savingsRevealed = false;
+
+function _triggerSavingsRevealIfReady(completeness, data) {
+  if (_savingsRevealed || completeness < 0.60) return;
+  const targetAmount = (data.detected_savings || data.total_potential_savings || data.estimated_savings_preview || 12500);
+  if (!targetAmount || targetAmount <= 0) return;
+  _savingsRevealed = true;
+
+  const banner = document.createElement('div');
+  banner.className = 'savings-reveal-banner';
+  banner.innerHTML = `<div class="savings-reveal-label">Estimated Tax Savings Identified</div><div class="savings-reveal-amount" id="_savingsCounter">$0</div><div class="savings-reveal-sub">Based on your profile — full breakdown in your report</div>`;
+  const msgs = document.getElementById('messages');
+  if (msgs) msgs.appendChild(banner);
+
+  const steps = 60, duration = 1800;
+  const increment = targetAmount / steps;
+  let current = 0;
+  const counter = document.getElementById('_savingsCounter');
+  const timer = setInterval(() => {
+    current = Math.min(current + increment, targetAmount);
+    if (counter) counter.textContent = '$' + Math.round(current).toLocaleString();
+    if (current >= targetAmount) clearInterval(timer);
+  }, duration / steps);
+}
+
+// ======================== INACTIVITY NUDGE ========================
+
+let _inactivityTimer = null;
+let _nudgeSent = false;
+
+const _nudgeMessages = [
+  "Still working through your taxes? The section you're on usually takes 2 more questions.",
+  "Take your time. When you're ready, your next answer could unlock additional strategies for your profile.",
+  "Almost there — your next few answers are the ones that drive the biggest savings differences.",
+];
+
+function _resetInactivityNudge() {
+  clearTimeout(_inactivityTimer);
+  if (_nudgeSent) return;
+  _inactivityTimer = setTimeout(() => {
+    if (!_nudgeSent) {
+      _nudgeSent = true;
+      const msg = _nudgeMessages[Math.floor(Math.random() * _nudgeMessages.length)];
+      if (typeof addMessage === 'function') {
+        addMessage('ai', msg, [], {});
+      }
+    }
+  }, 45000);
 }
 
 // ======================== GRACEFUL DEGRADATION ========================
@@ -367,6 +458,44 @@ export function addMessage(type, text, quickActions = [], options = {}) {
     bubble.innerHTML = sanitized;
   } else {
     bubble.textContent = text;
+
+    // Edit button for user messages — shown on hover
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-msg-btn';
+    editBtn.setAttribute('aria-label', 'Edit this message');
+    editBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      const originalText = bubble.childNodes[0]?.textContent || bubble.textContent.replace(timeStr, '').trim();
+      const inputEl = document.createElement('input');
+      inputEl.type = 'text';
+      inputEl.value = originalText;
+      inputEl.style.cssText = 'width:100%;border:1px solid #C9A84C;border-radius:6px;padding:4px 8px;font-size:inherit;font-family:inherit;background:white;color:#0B1D3A;outline:none;';
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = '✓';
+      confirmBtn.style.cssText = 'margin-left:6px;background:#C9A84C;color:#0B1D3A;border:none;border-radius:4px;padding:4px 8px;font-weight:700;cursor:pointer;';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:4px;';
+      row.appendChild(inputEl);
+      row.appendChild(confirmBtn);
+      // replace bubble contents with edit row
+      while (bubble.firstChild) bubble.removeChild(bubble.firstChild);
+      bubble.appendChild(row);
+      inputEl.focus();
+      inputEl.select();
+      const confirm = async () => {
+        const newText = inputEl.value.trim();
+        if (!newText) return;
+        while (bubble.firstChild) bubble.removeChild(bubble.firstChild);
+        bubble.textContent = newText;
+        bubble.appendChild(editBtn);
+        bubble.appendChild(timestamp);
+        await processAIResponse('Correction to my previous answer: ' + newText + '. Please update your analysis and recalculate accordingly.');
+      };
+      confirmBtn.onclick = confirm;
+      inputEl.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') confirm(); if (ev.key === 'Escape') { while (bubble.firstChild) bubble.removeChild(bubble.firstChild); bubble.textContent = originalText; bubble.appendChild(editBtn); bubble.appendChild(timestamp); } });
+    };
+    bubble.appendChild(editBtn);
   }
 
   // Add copy button for AI messages (hidden until hover)
@@ -554,9 +683,11 @@ export function addMessage(type, text, quickActions = [], options = {}) {
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'dropdown-search';
-      input.placeholder = options.placeholder || 'Type to search...';
+      input.placeholder = options.placeholder || 'Search or scroll to select...';
       input.setAttribute('aria-label', 'Search options');
       input.setAttribute('autocomplete', 'off');
+      input.setAttribute('aria-expanded', 'true');
+      input.setAttribute('role', 'combobox');
 
       const listContainer = document.createElement('div');
       listContainer.className = 'dropdown-list';
@@ -615,17 +746,26 @@ export function addMessage(type, text, quickActions = [], options = {}) {
         listContainer.classList.add('open');
       });
 
-      document.addEventListener('click', (e) => {
+      // Use mousedown (not click) + named handler so it can be removed
+      // mousedown fires before blur, preventing iOS/scroll-triggered false closes
+      const outsideHandler = (e) => {
         if (!wrapper.contains(e.target)) {
           listContainer.classList.remove('open');
         }
-      });
+      };
+      document.addEventListener('mousedown', outsideHandler);
+      // Clean up listener when dropdown is submitted or removed from DOM
+      const cleanupDropdownListener = () => {
+        document.removeEventListener('mousedown', outsideHandler);
+      };
 
       wrapper.appendChild(input);
       wrapper.appendChild(listContainer);
       actionsDiv.appendChild(wrapper);
 
+      // Show list open immediately — no need to click to reveal options
       renderList('');
+      listContainer.classList.add('open');
 
       const submitDiv = document.createElement('div');
       submitDiv.className = 'dropdown-submit';
@@ -637,7 +777,8 @@ export function addMessage(type, text, quickActions = [], options = {}) {
       ddSubmitBtn.addEventListener('click', () => {
         if (selectedValue) {
           const selectedOption = allOptions.find(a => a.value === selectedValue);
-          // Remove the dropdown UI before proceeding
+          // Clean up document listener before removing actionsDiv
+          cleanupDropdownListener();
           actionsDiv.remove();
           handleQuickAction(selectedValue, selectedOption?.label);
         }
@@ -741,9 +882,11 @@ export function addMessage(type, text, quickActions = [], options = {}) {
 
   DevLogger.log('Message added successfully. Total messages now:', messages.children.length);
 
-  // Smooth scroll to new message + focus
-  messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  messages.scrollTop = messages.scrollHeight;
+  // Smooth scroll to new message — use requestAnimationFrame so dropdown
+  // list opens before scroll fires (prevents iOS synthetic-click closing the list)
+  requestAnimationFrame(() => {
+    messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
   return messageDiv;
 }
 
@@ -808,6 +951,7 @@ export async function sendMessage() {
 // ======================== PROCESS AI RESPONSE ========================
 
 export async function processAIResponse(userMessage) {
+  clearTimeout(_inactivityTimer); // cancel nudge when user is actively typing
   setIsProcessing(true);
   setLastUserMessage(userMessage);
   showTyping();
@@ -888,26 +1032,114 @@ export async function processAIResponse(userMessage) {
       if (typingEl) typingEl.textContent = 'Taking a bit longer than usual, still working...';
     }, 12000);
 
-    const response = await fetchWithRetry('/api/advisor/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        message: userMessage,
-        profile: profile.filing_status || profile.total_income ? profile : null,
-        conversation_history: conversationHistory.slice(-10)
-      })
-    }, 3);
+    // ── Streaming-first fetch (falls back to blocking /chat on failure) ────────
+    const _chatBody = JSON.stringify({
+      session_id: sessionId,
+      message: userMessage,
+      profile: profile.filing_status || profile.total_income ? profile : null,
+      conversation_history: conversationHistory.slice(-10)
+    });
 
-    clearTimeout(thinkingTimer);
-    clearTimeout(extendedTimer);
+    let data;
+    let _streamingBubble = null;
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    try {
+      const _streamResp = await fetch('/api/advisor/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: _chatBody,
+        signal: AbortSignal.timeout(25000),
+      });
+
+      if (_streamResp.ok && _streamResp.headers.get('content-type')?.includes('text/event-stream')) {
+        // Create a live streaming bubble
+        clearTimeout(thinkingTimer);
+        clearTimeout(extendedTimer);
+        hideTyping();
+
+        const _msgs = document.getElementById('messages');
+        if (_msgs) {
+          _streamingBubble = document.createElement('div');
+          _streamingBubble.className = 'message ai';
+          _streamingBubble.innerHTML = '<div class="avatar ai" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg></div><div class="bubble streaming-bubble" id="stream-text-bubble"></div>';
+          _msgs.appendChild(_streamingBubble);
+          requestAnimationFrame(() => _streamingBubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+        }
+
+        const _reader = _streamResp.body.getReader();
+        const _decoder = new TextDecoder();
+        let _buf = '';
+        let _streamedText = '';
+        let _finalData = null;
+        const _bubbleEl = _streamingBubble?.querySelector('#stream-text-bubble');
+
+        while (true) {
+          const { done, value } = await _reader.read();
+          if (done) break;
+          _buf += _decoder.decode(value, { stream: true });
+          const _lines = _buf.split('\n');
+          _buf = _lines.pop();
+          for (const _line of _lines) {
+            if (_line.startsWith('data: ')) {
+              try {
+                const _evt = JSON.parse(_line.slice(6));
+                if (_evt.type === 'fallback') {
+                  await _reader.cancel();
+                  throw new Error('Server requested streaming fallback');
+                }
+                if (_evt.type === 'text') {
+                  _streamedText += _evt.text;
+                  if (_bubbleEl) _bubbleEl.textContent = _streamedText;
+                }
+                if (_evt.type === 'done') { _finalData = _evt; }
+              } catch (_parseErr) {
+                if (_parseErr.message === 'Server requested streaming fallback') throw _parseErr;
+                // Ignore individual malformed SSE lines
+              }
+            }
+          }
+        }
+
+        if (_finalData && !_finalData.error) {
+          if (_streamingBubble) { _streamingBubble.remove(); _streamingBubble = null; }
+          data = {
+            response: _finalData.response || _streamedText,
+            profile_completeness: _finalData.profile_completeness ?? 0,
+            quick_actions: _finalData.quick_actions || [],
+            question_hint: _finalData.question_hint || null,
+            response_type: 'ai_response',
+          };
+        } else {
+          await _reader.cancel().catch(() => {});
+          throw new Error('Stream done event missing: ' + JSON.stringify(_finalData));
+        }
+      } else {
+        throw new Error('Non-streaming response from /chat/stream');
+      }
+    } catch (_streamErr) {
+      // Streaming failed — remove partial bubble and fall back to blocking
+      if (_streamingBubble) { _streamingBubble.remove(); _streamingBubble = null; }
+      DevLogger.log('Streaming unavailable, using blocking /chat:', _streamErr.message);
+      showTyping();
+
+      const response = await fetchWithRetry('/api/advisor/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: _chatBody,
+      }, 3);
+
+      clearTimeout(thinkingTimer);
+      clearTimeout(extendedTimer);
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      data = await response.json();
+      hideTyping();
     }
+    // ── end streaming section ──────────────────────────────────────────────────
 
-    const data = await response.json();
-    hideTyping();
     setRetryCount(0);
 
     if (!data || typeof data !== 'object') {
@@ -926,16 +1158,18 @@ export async function processAIResponse(userMessage) {
       DevLogger.warn('Received empty response from API');
     }
 
+    // Minimum 60% profile completeness required before unlocking results
+    const RESULTS_UNLOCK_THRESHOLD = 0.60;
     if (data.profile_completeness > 0) {
-      if (data.tax_calculation) {
+      if (data.tax_calculation && data.profile_completeness >= RESULTS_UNLOCK_THRESHOLD) {
         setTaxCalculations(data.tax_calculation);
-        // Show "View Full Results" link when calculation is ready
+        // Show "View Full Results" link when analysis is sufficiently complete
         var resultsLink = document.getElementById('results-link');
         if (!resultsLink) {
           resultsLink = document.createElement('a');
           resultsLink.id = 'results-link';
-          resultsLink.style.cssText = 'display:block;text-align:center;padding:12px 24px;margin:12px auto;background:#2563eb;color:white;border-radius:8px;font-weight:700;text-decoration:none;max-width:300px;';
-          resultsLink.textContent = 'View Full Tax Results';
+          resultsLink.style.cssText = 'display:block;text-align:center;padding:12px 24px;margin:12px auto;background:#0B1D3A;color:#C9A84C;border-radius:8px;font-weight:700;text-decoration:none;max-width:300px;border:2px solid #C9A84C;';
+          resultsLink.innerHTML = createIcon('chart-bar', { size: 'md', className: 'results-icon', ariaLabel: 'View tax analysis' }) + 'View Your Tax Analysis →';
           var msgs = document.getElementById('messages');
           if (msgs) msgs.parentNode.insertBefore(resultsLink, msgs.nextSibling);
         }
@@ -945,6 +1179,10 @@ export async function processAIResponse(userMessage) {
         } else {
           resultsLink.href = '/results?session_id=' + sessionId;
         }
+      } else if (data.tax_calculation && data.profile_completeness < RESULTS_UNLOCK_THRESHOLD) {
+        const pct = Math.round(data.profile_completeness * 100);
+        const needed = Math.round((RESULTS_UNLOCK_THRESHOLD - data.profile_completeness) * 100);
+        DevLogger.log(`Results locked — completeness ${pct}%, need ${needed}% more`);
       }
       if (data.strategies && data.strategies.length > 0) {
         setTaxStrategies(data.strategies);
@@ -1045,6 +1283,11 @@ export async function processAIResponse(userMessage) {
       aiResponse += renderConfidenceBadge(data.response_confidence, data.confidence_reason);
     }
 
+    // Append "why we're asking" hint for user education
+    if (data.question_hint) {
+      aiResponse += `<div class="question-hint" style="margin-top:8px;padding:8px 12px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;border-radius:0 4px 4px 0;font-size:0.8rem;color:#6b5a30;line-height:1.5;">${createIcon('light-bulb', { size: 'sm', className: 'question-hint-icon', ariaLabel: 'Tip' })} ${escapeHtml(data.question_hint)}</div>`;
+    }
+
     if (data.response_type === 'ai_response') {
       aiResponse = '<span class="ai-badge" style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-bottom:6px;">AI-Powered</span>\n' + aiResponse;
     }
@@ -1131,9 +1374,12 @@ export async function processAIResponse(userMessage) {
         data.missing_fields || [],
         data.completion_hint || null
       );
+      _updatePhaseStrip(data.profile_completeness);
+      _triggerSavingsRevealIfReady(data.profile_completeness, data);
     }
 
     updatePhaseFromData();
+    _resetInactivityNudge();
 
     if (data.key_insights && data.key_insights.length > 0) {
       updateInsights(data.key_insights);

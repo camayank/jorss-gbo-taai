@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/realtime/event_publisher.py
+# hypothesis_version: 6.141.1
+
+['cancelled_by', 'client_name', 'converted_by', 'days_overdue', 'days_remaining', 'document_name', 'document_type', 'estimated_value', 'info', 'locked_by', 'reason', 'reminder_type', 'resource_id', 'resource_type', 'source', 'summary', 'time', 'type', 'uploaded_by', 'user_name', 'user_role']

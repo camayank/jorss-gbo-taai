@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/lead_state_persistence.py
+# hypothesis_version: 6.141.1
+
+[100, '***-**-****', 'ADVISORY_READY', 'BROWSING', 'CURIOUS', 'EVALUATING', 'HIGH_LEVERAGE', '_pii_encrypted', 'data', 'default', 'email', 'email_masked', 'lead', 'phone', 'phone_masked', 'signals', 'ssn', 'ssn_masked', 'tax_returns.db', 'transitions']

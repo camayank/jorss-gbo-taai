@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/admin_impersonation_api.py
+# hypothesis_version: 6.141.1
+
+[120, 200, 400, 403, 404, 500, 86400, '/active', '/end', '/history', '/start', 'Action description', 'Admin Impersonation', 'ImpersonationSession', 'Maximum results', 'Session not found', 'action', 'action_count', 'actions', 'actions_count', 'actions_performed', 'admin_email', 'admin_id', 'count', 'days_back', 'description', 'duration_seconds', 'email', 'ended_at', 'expires_at', 'firm_id', 'is_active', 'logged', 'message', 'reason', 'role', 'session', 'session_id', 'sessions', 'started_at', 'super_admin', 'target_user', 'target_user_email', 'target_user_id', 'timestamp', 'total', 'uid', 'unknown', 'user_id']

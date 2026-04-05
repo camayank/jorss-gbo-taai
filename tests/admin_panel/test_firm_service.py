@@ -5,7 +5,7 @@ subscription lifecycle, usage tracking, and onboarding workflows.
 import os
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -87,8 +87,8 @@ def _make_firm(**overrides):
         max_team_members=10,
         max_clients=500,
         current_client_count=45,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
         onboarded_at=None,
         deleted_at=None,
     )
@@ -112,7 +112,7 @@ def _make_settings(**overrides):
         session_timeout_minutes=480,
         ip_whitelist=None,
         integrations=None,
-        updated_at=datetime.utcnow(),
+        updated_at=datetime.now(timezone.utc),
     )
     defaults.update(overrides)
     obj = Mock()
@@ -682,7 +682,7 @@ class TestFirmToDict:
     def test_onboarded_at_iso(self):
         from admin_panel.services.firm_service import FirmService
         svc = FirmService(AsyncMock())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         firm = _make_firm(onboarded_at=now)
         d = svc._firm_to_dict(firm)
         assert d["onboarded_at"] == now.isoformat()

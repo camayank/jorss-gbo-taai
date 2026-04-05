@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/document_routes.py
+# hypothesis_version: 6.141.1
+
+['Apply failed', 'Document Processing', 'Document not found', 'Upload failed', 'application/pdf', 'document', 'error', 'image/jpeg', 'image/jpg', 'image/png', 'image/tiff', 'not found', 'success']

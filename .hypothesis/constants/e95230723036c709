@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/california.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.01, 0.02, 0.04, 0.06, 0.08, 0.093, 0.103, 0.113, 0.123, 0.45, 120, 144, 446, 2025, 5540, 10412, 11080, 20824, 20839, 24684, 38959, 49368, 49371, 50746, 54081, 63644, 68350, 77918, 78796, 93065, 101492, 108162, 136700, 349137, 418961, 474824, 569790, 698271, 698274, 837922, 949649, 1000000, 1396542, 'CA', 'California', 'TaxReturn', 'caleitc', 'exemption_credits', 'federal_agi', 'head_of_household', 'hsa_contributions', 'itemized', 'married_joint', 'married_separate', 'qualifying_widow', 'renters_credit', 'single', 'standard']

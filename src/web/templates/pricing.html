@@ -1,0 +1,669 @@
+{% from 'macros/icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing — AI Tax Advisor | {{ branding.platform_name }}</title>
+    <meta name="description" content="Transparent pricing for tax advisory. Free estimates, premium advisory, and CPA white-label plans.">
+    {% if branding.favicon_url %}
+    <link rel="icon" href="{{ branding.favicon_url }}">
+    {% endif %}
+    {% include 'partials/head_styles.html' %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+        :root {
+            --font-heading: 'Playfair Display', Georgia, serif;
+            --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+            --color-primary: #0B1D3A;
+            --color-accent: #c4975a;
+            --color-gray-50: #f9fafb;
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-400: #9ca3af;
+            --color-gray-600: #4b5563;
+            --color-gray-800: #1f2937;
+            --color-success: #10b981;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            color: var(--color-gray-800);
+            font-family: var(--font-body);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3 { font-family: var(--font-heading); }
+
+        /* Navigation */
+        .pricing-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--color-gray-100);
+            padding: 0 var(--space-6);
+        }
+
+        .pricing-nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 68px;
+        }
+
+        .pricing-nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            font-family: var(--font-heading);
+            font-size: 1.35rem;
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+
+        .pricing-nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .pricing-nav-link {
+            text-decoration: none;
+            color: var(--color-gray-600);
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .pricing-nav-link:hover {
+            color: var(--color-primary);
+        }
+
+        .pricing-nav-cta {
+            padding: 0.6rem 1.2rem;
+            background: var(--color-primary);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+
+        .pricing-nav-cta:hover {
+            background: #0d2747;
+        }
+
+        /* Hero Section */
+        .pricing-hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .pricing-hero h1 {
+            font-size: 3rem;
+            line-height: 1.2;
+            margin: 0 0 1rem;
+            color: var(--color-primary);
+        }
+
+        .pricing-hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--color-gray-600);
+            margin: 0 0 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Pricing Grid */
+        .pricing-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            border: 1px solid var(--color-gray-200);
+            border-radius: 12px;
+            padding: 2rem;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            border-color: var(--color-accent);
+            box-shadow: 0 12px 32px rgba(12, 29, 58, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .pricing-card.featured {
+            border: 2px solid var(--color-accent);
+            background: linear-gradient(135deg, rgba(196, 151, 90, 0.05) 0%, rgba(196, 151, 90, 0.02) 100%);
+            position: relative;
+            top: -8px;
+        }
+
+        .pricing-badge {
+            display: inline-block;
+            background: var(--color-accent);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-tier-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem;
+            color: var(--color-primary);
+        }
+
+        .pricing-description {
+            font-size: 0.95rem;
+            color: var(--color-gray-600);
+            margin: 0 0 1.5rem;
+            line-height: 1.5;
+        }
+
+        .pricing-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0 0 0.25rem;
+        }
+
+        .pricing-period {
+            font-size: 0.95rem;
+            color: var(--color-gray-600);
+            margin: 0 0 1.5rem;
+        }
+
+        .pricing-cta {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-cta.primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .pricing-cta.primary:hover {
+            background: #0d2747;
+        }
+
+        .pricing-cta.secondary {
+            background: var(--color-gray-100);
+            color: var(--color-primary);
+            border: 1px solid var(--color-gray-200);
+        }
+
+        .pricing-cta.secondary:hover {
+            background: var(--color-gray-200);
+        }
+
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pricing-feature {
+            padding: 0.75rem 0;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--color-gray-100);
+            font-size: 0.95rem;
+        }
+
+        .pricing-feature:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-feature-icon {
+            flex-shrink: 0;
+            color: var(--color-success);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        /* Comparison Table */
+        .pricing-comparison {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 3rem 2rem;
+            background: var(--color-gray-50);
+            border-radius: 12px;
+        }
+
+        .pricing-comparison h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin: 0 0 3rem;
+            color: var(--color-primary);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .comparison-table th {
+            padding: 1rem;
+            text-align: left;
+            background: var(--color-gray-50);
+            border-bottom: 2px solid var(--color-gray-200);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-gray-200);
+        }
+
+        .comparison-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .check-mark {
+            color: var(--color-success);
+            font-weight: bold;
+        }
+
+        /* FAQs */
+        .pricing-faqs {
+            max-width: 1000px;
+            margin: 4rem auto;
+            padding: 3rem 2rem;
+        }
+
+        .pricing-faqs h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin: 0 0 3rem;
+            color: var(--color-primary);
+        }
+
+        .faq-item {
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--color-gray-200);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.25rem;
+            background: var(--color-gray-50);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--color-primary);
+            transition: background 0.2s ease;
+        }
+
+        .faq-question:hover {
+            background: var(--color-gray-100);
+        }
+
+        .faq-answer {
+            padding: 1.25rem;
+            color: var(--color-gray-600);
+            line-height: 1.6;
+            display: none;
+        }
+
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+
+        /* Footer */
+        .pricing-footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--color-gray-100);
+        }
+
+        .pricing-footer h3 {
+            font-size: 1.5rem;
+            margin: 0 0 1rem;
+            color: var(--color-primary);
+        }
+
+        .pricing-footer p {
+            color: var(--color-gray-600);
+            margin: 0 0 1.5rem;
+        }
+
+        .pricing-footer-cta {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            background: var(--color-primary);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .pricing-footer-cta:hover {
+            background: #0d2747;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .pricing-hero h1 {
+                font-size: 2rem;
+            }
+
+            .pricing-nav-links {
+                gap: 1rem;
+            }
+
+            .pricing-amount {
+                font-size: 2rem;
+            }
+
+            .comparison-table {
+                font-size: 0.9rem;
+            }
+
+            .comparison-table th, .comparison-table td {
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="pricing-nav">
+        <div class="pricing-nav-inner">
+            <a href="/" class="pricing-nav-logo">
+                {% if branding.logo_url %}<img src="{{ branding.logo_url }}" alt="Logo">{% endif %}
+                {{ branding.platform_name or 'Tax Advisor' }}
+            </a>
+            <div class="pricing-nav-links">
+                <a href="/" class="pricing-nav-link">Home</a>
+                <a href="/intelligent-advisor" class="pricing-nav-link">Start Analysis</a>
+                <a href="/intelligent-advisor" class="pricing-nav-cta">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pricing-hero">
+        <h1>Simple, Transparent Pricing</h1>
+        <p class="pricing-hero-subtitle">
+            Choose the plan that fits your tax advisory needs. No hidden fees. Cancel anytime.
+        </p>
+    </section>
+
+    <!-- Pricing Cards -->
+    <section class="pricing-grid">
+        <!-- Free Estimate -->
+        <div class="pricing-card">
+            <h3 class="pricing-tier-name">Free Estimate</h3>
+            <p class="pricing-description">Get a quick estimate of your potential tax savings.</p>
+            <div class="pricing-amount">Free</div>
+            <p class="pricing-period">Always free</p>
+            <button class="pricing-cta secondary" onclick="location.href='/intelligent-advisor'">Start Free Analysis</button>
+            <ul class="pricing-features">
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>AI tax analysis</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Savings estimate</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Strategy recommendations</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>No credit card required</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Premium Advisory -->
+        <div class="pricing-card featured">
+            <div class="pricing-badge">Most Popular</div>
+            <h3 class="pricing-tier-name">Premium Advisory</h3>
+            <p class="pricing-description">Expert tax advisor guidance for complex returns.</p>
+            <div class="pricing-amount">$199</div>
+            <p class="pricing-period">one-time consultation</p>
+            <button class="pricing-cta primary" onclick="location.href='/intelligent-advisor'">Get Premium Advice</button>
+            <ul class="pricing-features">
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Everything in Free</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>1:1 CPA consultation</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Personalized strategy</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>30-day follow-up</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Implementation support</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- CPA White-Label -->
+        <div class="pricing-card">
+            <h3 class="pricing-tier-name">CPA White-Label</h3>
+            <p class="pricing-description">White-label AI advisory for your tax practice.</p>
+            <div class="pricing-amount">$499–$999</div>
+            <p class="pricing-period">per month (custom)</p>
+            <button class="pricing-cta secondary" onclick="location.href='/contact'">Contact Sales</button>
+            <ul class="pricing-features">
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Custom branding</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Unlimited client analysis</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>API access</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Priority support</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Team training</span>
+                </li>
+                <li class="pricing-feature">
+                    <span class="pricing-feature-icon">✓</span>
+                    <span>Custom integrations</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Feature Comparison -->
+    <section class="pricing-comparison">
+        <h2>Feature Comparison</h2>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Free Estimate</th>
+                    <th>Premium Advisory</th>
+                    <th>CPA White-Label</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>AI Tax Analysis</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+                <tr>
+                    <td>Savings Estimate</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+                <tr>
+                    <td>CPA Consultation</td>
+                    <td>—</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+                <tr>
+                    <td>Custom Branding</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+                <tr>
+                    <td>API Access</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+                <tr>
+                    <td>Unlimited Analysis</td>
+                    <td>Limited</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+                <tr>
+                    <td>Priority Support</td>
+                    <td>—</td>
+                    <td class="check-mark">✓</td>
+                    <td class="check-mark">✓</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- FAQs -->
+    <section class="pricing-faqs">
+        <h2>Frequently Asked Questions</h2>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                <span>How is my tax data handled?</span>
+                <span>▼</span>
+            </div>
+            <div class="faq-answer">
+                <p>Your tax information is protected with bank-level encryption (AES-256). We comply with all federal tax privacy regulations and never sell your data. Our servers are hosted in secure, HIPAA-compliant infrastructure. For CPA white-label users, you retain full control over client data.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                <span>Can I upgrade or downgrade plans?</span>
+                <span>▼</span>
+            </div>
+            <div class="faq-answer">
+                <p>Yes. You can upgrade to Premium Advisory at any time. Downgrading is also available. Changes take effect immediately, and you'll be prorated for any differences in your current billing period.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                <span>Is this CPA-licensed tax advice?</span>
+                <span>▼</span>
+            </div>
+            <div class="faq-answer">
+                <p>The Free Estimate provides AI-generated planning ideas, not formal tax advice. Premium Advisory consultations are conducted by licensed CPAs. See IRS Circular 230 for details. All advice is for planning purposes only; consult your tax professional for your specific situation.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                <span>What about white-label customization?</span>
+                <span>▼</span>
+            </div>
+            <div class="faq-answer">
+                <p>CPA white-label plans include full branding, custom domain setup, API access for integration with your existing systems, and dedicated onboarding support. Contact our sales team for a custom quote based on your practice size and feature needs.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                <span>Do you offer refunds?</span>
+                <span>▼</span>
+            </div>
+            <div class="faq-answer">
+                <p>The Free Estimate requires no payment. Premium Advisory consultations are non-refundable after the consultation is completed. CPA white-label plans operate on monthly subscriptions with a 30-day cancellation notice.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Footer -->
+    <section class="pricing-footer">
+        <h3>Ready to optimize your taxes?</h3>
+        <p>Start with a free estimate. No credit card required.</p>
+        <a href="/intelligent-advisor" class="pricing-footer-cta">Get Started Now</a>
+    </section>
+
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+        // FAQ toggle functionality
+        document.querySelectorAll('.faq-question').forEach(q => {
+            q.addEventListener('click', function() {
+                this.parentElement.classList.toggle('open');
+            });
+        });
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', function(e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

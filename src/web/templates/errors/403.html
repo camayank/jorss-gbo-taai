@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Denied - Jorss-Gbo</title>
+    <title>Access Denied - {{ platform_name | default("Tax Platform") }}</title>
     <link rel="stylesheet" href="/static/css/core/variables.css">
-    <style>
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
@@ -63,7 +63,7 @@
             <a href="/login" class="btn btn-secondary">Log In</a>
         </div>
         <p class="brand">
-            <a href="/">Jorss-Gbo Tax Platform</a>
+            <a href="/">{{ platform_name | default("Tax Platform") }}</a>
         </p>
     </div>
 </body>

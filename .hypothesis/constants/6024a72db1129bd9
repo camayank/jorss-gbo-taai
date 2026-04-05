@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/pipeline_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 500, '/leads/pipeline', 'Advance failed', 'Lead Pipeline', 'conversion', 'error', 'metrics', 'success', 'target_state', 'timestamp', 'velocity']

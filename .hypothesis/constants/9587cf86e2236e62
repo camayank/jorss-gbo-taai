@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/workflow/__init__.py
+# hypothesis_version: 6.141.1
+
+['ApprovalManager', 'ApprovalRecord', 'CPANote', 'CPAWorkflowManager', 'FeatureAccess', 'NotesManager', 'ReturnStatus', 'StatusRecord']

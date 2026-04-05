@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8615.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37, 450.0, 1300.0, 2600.0, 15000.0, 11925, 17000, 23850, 48475, 64850, 96950, 103350, 197300, 206700, 250500, 250525, 375800, 394600, 501050, 626350, 751600, "Child's SSN", "Child's name", "Parent's SSN", 'Unknown exemption', 'additional_tax', 'child_age', 'child_name', 'child_taxable_income', 'earned_income', 'head_of_household', 'inf', 'is_full_time_student', 'kiddie_tax_increase', 'line_2_adjustments', 'line_4_deduction', 'married_joint', 'married_separate', 'net_unearned_income', 'parent_tax', 'qualifying_widow', 'reason_not_subject', 'single', 'tax_at_parent_rate', 'tax_on_combined', 'this_child_share', 'this_child_unearned', 'total_child_tax', 'unearned_income']

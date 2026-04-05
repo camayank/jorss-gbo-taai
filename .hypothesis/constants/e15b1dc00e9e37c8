@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/georgia.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0549, 1.0, 2025, 2700, 3000, 5400, 10000, 12000, 18000, 20000, 24000, 65000, 'GA', 'Georgia', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'low_income_credit', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'standard']

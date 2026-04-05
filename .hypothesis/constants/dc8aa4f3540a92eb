@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/decimal_math.py
+# hypothesis_version: 6.141.1
+
+[100, '0', '0.0000', '0.0001', '0.009', '0.01', '0.029', '0.038', '0.124', '0.9235', '1', '100', '176100', 'Division by zero', 'medicare_tax', 'net_self_employment', 'se_deduction', 'se_earnings', 'ss_tax', 'ss_taxable', 'total_se_tax']

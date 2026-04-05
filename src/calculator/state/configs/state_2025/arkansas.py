@@ -26,7 +26,7 @@ def get_arkansas_config() -> StateTaxConfig:
             "single": [
                 (0, 0.02),          # 2% on first $4,400
                 (4400, 0.04),       # 4% on $4,400 - $8,800
-                (8800, 0.044),      # 4.4% on over $8,800 (reduced from 4.7% in 2024)
+                (8800, 0.039),      # 3.9% on over $8,800 (per Act 1 of 2024 Special Session, effective Jan 1 2025)
             ],
             "married_joint": [
                 (0, 0.02),

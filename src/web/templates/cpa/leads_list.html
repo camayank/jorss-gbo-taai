@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     /* Filters Bar */
     .filters-bar {
         background: var(--white);
@@ -425,10 +425,88 @@
             width: 100%;
         }
     }
+
+    /* Status tabs */
+    .status-tabs {
+        display: flex;
+        gap: var(--space-1);
+        background: var(--bg-light);
+        padding: var(--space-1);
+        border-radius: var(--radius-xl);
+        margin-bottom: var(--space-4);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .status-tabs::-webkit-scrollbar { display: none; }
+
+    .status-tab {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1-5);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-lg);
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: var(--font-medium);
+        color: var(--text-muted);
+        white-space: nowrap;
+        transition: all 0.15s;
+    }
+
+    .status-tab:hover {
+        background: var(--white);
+        color: var(--text-dark);
+    }
+
+    .status-tab.active {
+        background: var(--white);
+        color: var(--color-navy, #0B1D3A);
+        font-weight: var(--font-semibold);
+        box-shadow: 0 1px 4px rgba(11,29,58,0.10);
+    }
+
+    .status-tab-count {
+        background: var(--color-navy, #0B1D3A);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 999px;
+        min-width: 18px;
+        text-align: center;
+    }
+
+    .status-tab:not(.active) .status-tab-count {
+        background: var(--color-gray-200, #E5E7EB);
+        color: var(--text-muted);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Status Tabs -->
+<div class="status-tabs" role="tablist" aria-label="Filter leads by status">
+    <button class="status-tab active" role="tab" aria-selected="true" data-status="all" onclick="filterByStatus('all', this)">
+        All Leads <span class="status-tab-count" id="tab-count-all">{{ leads|length if leads else 0 }}</span>
+    </button>
+    <button class="status-tab" role="tab" aria-selected="false" data-status="new" onclick="filterByStatus('new', this)">
+        New <span class="status-tab-count" id="tab-count-new">{{ leads|selectattr('status', 'equalto', 'new')|list|length if leads else 0 }}</span>
+    </button>
+    <button class="status-tab" role="tab" aria-selected="false" data-status="contacted" onclick="filterByStatus('contacted', this)">
+        Contacted <span class="status-tab-count" id="tab-count-contacted">{{ leads|selectattr('status', 'equalto', 'contacted')|list|length if leads else 0 }}</span>
+    </button>
+    <button class="status-tab" role="tab" aria-selected="false" data-status="engaged" onclick="filterByStatus('engaged', this)">
+        Engaged <span class="status-tab-count" id="tab-count-engaged">{{ leads|selectattr('status', 'equalto', 'engaged')|list|length if leads else 0 }}</span>
+    </button>
+    <button class="status-tab" role="tab" aria-selected="false" data-status="converted" onclick="filterByStatus('converted', this)">
+        Converted <span class="status-tab-count" id="tab-count-converted">{{ leads|selectattr('status', 'equalto', 'converted')|list|length if leads else 0 }}</span>
+    </button>
+</div>
+
 <!-- Filters Bar -->
 <div class="filters-bar">
     <div class="filter-group">
@@ -476,28 +554,29 @@
     </div>
 
     {% if leads and leads|length > 0 %}
-    <table class="leads-table">
+    <table class="leads-table" role="grid" aria-label="Leads list">
         <thead>
-            <tr>
-                <th style="width: 40px;">
-                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+            <tr role="row">
+                <th role="columnheader" style="width: 40px;">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" aria-label="Select all leads">
                 </th>
-                <th>Lead</th>
-                <th>State</th>
-                <th>Temperature</th>
-                <th>Est. Savings</th>
-                <th>Complexity</th>
-                <th>Age</th>
-                <th style="width: 100px;">Actions</th>
+                <th role="columnheader">Lead</th>
+                <th role="columnheader">State</th>
+                <th role="columnheader">Temperature</th>
+                <th role="columnheader">Est. Savings</th>
+                <th role="columnheader">Last Contact</th>
+                <th role="columnheader">Follow-up Due</th>
+                <th role="columnheader">Complexity</th>
+                <th role="columnheader" style="width: 100px;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for lead in leads %}
-            <tr onclick="viewLead('{{ lead.id }}')" data-lead-id="{{ lead.id }}">
-                <td onclick="event.stopPropagation();">
-                    <input type="checkbox" class="lead-checkbox" value="{{ lead.id }}" onchange="updateBulkActions()">
+            <tr role="row" class="lead-row" onclick="viewLead('{{ lead.id }}')" data-lead-id="{{ lead.id }}" data-status="{{ lead.status or 'new' }}">
+                <td role="gridcell" onclick="event.stopPropagation();">
+                    <input type="checkbox" class="lead-checkbox" value="{{ lead.id }}" onchange="updateBulkActions()" aria-label="Select {{ lead.name or lead.email }}">
                 </td>
-                <td>
+                <td role="gridcell">
                     <div class="lead-info">
                         <div class="lead-avatar">
                             {{ (lead.name or lead.email)[0]|upper }}
@@ -508,34 +587,45 @@
                         </div>
                     </div>
                 </td>
-                <td>
+                <td role="gridcell">
                     <span class="state-badge {{ lead.state|lower|replace(' ', '_') }}">
                         {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}{{ icon('star') }}{% endif %}
                         {{ lead.state_display or lead.state|replace('_', ' ')|title }}
                     </span>
                 </td>
-                <td>
+                <td role="gridcell">
                     <span class="temp-badge {{ lead.temperature|lower }}">
                         {% if lead.temperature == 'hot' %}🔥{% elif lead.temperature == 'warm' %}☀️{% else %}❄️{% endif %}
                         {{ lead.temperature|title }}
                     </span>
                 </td>
-                <td>
-                    <div class="savings-value">${{ '{:,.0f}'.format(lead.estimated_savings or 0) }}</div>
+                <td role="gridcell">
+                    {% if lead.estimated_savings %}
+                    <div class="savings-value">${{ '{:,.0f}'.format(lead.estimated_savings) }}</div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
                 </td>
-                <td>
-                    <span class="complexity-badge {{ lead.complexity|lower }}">
-                        {{ lead.complexity|title }}
+                <td role="gridcell" style="color: var(--text-muted); font-size: 0.85rem;">
+                    {{ lead.last_contact_at[:10] if lead.last_contact_at else '—' }}
+                </td>
+                <td role="gridcell" style="font-size: 0.85rem;">
+                    {% if lead.follow_up_due %}
+                    <span style="color: var(--color-warning, #d97706); font-weight: var(--font-medium);">{{ lead.follow_up_due[:10] }}</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td role="gridcell">
+                    <span class="complexity-badge {{ lead.complexity|lower if lead.complexity else '' }}">
+                        {{ lead.complexity|title if lead.complexity else '—' }}
                     </span>
                 </td>
-                <td style="color: var(--text-muted); font-size: 0.9rem;">
-                    {{ lead.age or 'Today' }}
-                </td>
-                <td onclick="event.stopPropagation();">
+                <td role="gridcell" onclick="event.stopPropagation();">
                     <div class="actions-cell">
-                        <button class="action-btn" title="View Details" onclick="viewLead('{{ lead.id }}')">{{ icon('eye') }}</button>
-                        <button class="action-btn" title="Engage Lead" onclick="engageLead('{{ lead.id }}')">{{ icon('envelope') }}</button>
-                        <button class="action-btn" title="More Options" onclick="showLeadMenu('{{ lead.id }}')">⋮</button>
+                        <button class="action-btn" title="View Details" aria-label="View details for {{ lead.name or lead.email }}" onclick="viewLead('{{ lead.id }}')">{{ icon('eye') }}</button>
+                        <button class="action-btn" title="Engage Lead" aria-label="Engage {{ lead.name or lead.email }}" onclick="engageLead('{{ lead.id }}')">{{ icon('envelope') }}</button>
+                        <button class="action-btn" title="More Options" aria-label="More options for {{ lead.name or lead.email }}" onclick="showLeadMenu('{{ lead.id }}')">⋮</button>
                     </div>
                 </td>
             </tr>
@@ -605,6 +695,25 @@
         if (csrf) headers['X-CSRFToken'] = csrf.content;
         if (json) headers['Content-Type'] = 'application/json';
         return headers;
+    }
+
+    // Status tab filtering (client-side)
+    function filterByStatus(status, tabEl) {
+        document.querySelectorAll('.status-tab').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+        });
+        if (tabEl) {
+            tabEl.classList.add('active');
+            tabEl.setAttribute('aria-selected', 'true');
+        }
+        document.querySelectorAll('.lead-row').forEach(row => {
+            if (status === 'all') {
+                row.style.display = '';
+            } else {
+                row.style.display = (row.dataset.status === status) ? '' : 'none';
+            }
+        });
     }
 
     // Filter handling
@@ -864,9 +973,9 @@
         const leads = data.leads || data.items || data || [];
         if (!leads.length) return;
         tbody.innerHTML = leads.map(lead => `
-          <tr onclick="viewLead('${lead.id}')" data-lead-id="${lead.id}">
+          <tr role="row" class="lead-row" onclick="viewLead('${lead.id}')" data-lead-id="${lead.id}" data-status="${lead.status||'new'}">
             <td onclick="event.stopPropagation()">
-              <input type="checkbox" class="lead-checkbox" value="${lead.id}" onchange="updateBulkActions()">
+              <input type="checkbox" class="lead-checkbox" value="${lead.id}" onchange="updateBulkActions()" aria-label="Select ${lead.name||lead.email}">
             </td>
             <td>
               <div class="lead-info">
@@ -879,13 +988,14 @@
             </td>
             <td><span class="state-badge ${(lead.state||'').toLowerCase().replace(/ /g,'_')}">${lead.state_display || (lead.state||'').replace(/_/g,' ')}</span></td>
             <td><span class="temp-badge ${(lead.temperature||'cold').toLowerCase()}">${lead.temperature ? lead.temperature.charAt(0).toUpperCase()+lead.temperature.slice(1) : 'Cold'}</span></td>
-            <td><div class="savings-value">$${(lead.estimated_savings||0).toLocaleString()}</div></td>
+            <td>${lead.estimated_savings ? '<div class="savings-value">$'+Number(lead.estimated_savings).toLocaleString()+'</div>' : '<span class="text-muted">—</span>'}</td>
+            <td style="color:var(--text-muted);font-size:0.85rem">${lead.last_contact_at ? lead.last_contact_at.slice(0,10) : '—'}</td>
+            <td style="font-size:0.85rem">${lead.follow_up_due ? '<span style="color:var(--color-warning,#d97706);font-weight:600">'+lead.follow_up_due.slice(0,10)+'</span>' : '<span class="text-muted">—</span>'}</td>
             <td><span class="complexity-badge ${(lead.complexity||'').toLowerCase()}">${lead.complexity || '—'}</span></td>
-            <td style="color:var(--text-muted);font-size:0.9rem">${lead.age || 'Today'}</td>
             <td onclick="event.stopPropagation()">
               <div class="actions-cell">
-                <button class="action-btn" title="View" onclick="viewLead('${lead.id}')">👁</button>
-                <button class="action-btn" title="Engage" onclick="engageLead('${lead.id}')">✉</button>
+                <button class="action-btn" title="View" aria-label="View details" onclick="viewLead('${lead.id}')">👁</button>
+                <button class="action-btn" title="Engage" aria-label="Engage lead" onclick="engageLead('${lead.id}')">✉</button>
               </div>
             </td>
           </tr>`).join('');

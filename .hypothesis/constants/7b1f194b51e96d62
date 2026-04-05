@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/staff/assignment_service.py
+# hypothesis_version: 6.141.1
+
+['assigned', 'assigned_at', 'assigned_by', 'assigned_to', 'email', 'is_active', 'name', 'preparer', 'previous_assignee', 'reassigned', 'role', 'session_id', 'staff_id', 'tenant_id']

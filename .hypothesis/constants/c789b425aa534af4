@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/tenant_isolation_middleware.py
+# hypothesis_version: 6.141.1
+
+[300, 403, 3600, '/api/core/auth/', '/api/v1/auth/login', '/docs', '/health', '/healthz', '/metrics', '/openapi.json', '/ready', '/redoc', '/static', 'Authorization', 'Bearer ', 'T', 'TenantQueryFilter', 'auth_context', 'code', 'error', 'firm_id', 'is_cross_tenant', 'is_platform', 'is_platform_admin', 'message', 'organization_id', 'platform_admin', 'resource', 'resource_type', 'role', 'session_id', 'status_code', 'sub', 'tenant_context', 'tenant_id', 'timestamp', 'user_id', 'user_role', 'user_type']

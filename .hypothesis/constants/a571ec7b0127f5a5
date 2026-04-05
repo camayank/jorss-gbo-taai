@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/exposure_routes.py
+# hypothesis_version: 6.141.1
+
+[0.15, 0.22, 0.25, 70.0, 404, 500, 6500, 50000, 66000, 200000, '/exposure/contracts', 'Maximum 3 drivers', 'Maximum 3 visible', 'No dollar amounts', 'No dollar deltas', 'Prospect Exposure', 'Session not found', 'amount', 'amount_band', 'category', 'child_tax_credit', 'complexity', 'confidence_band', 'constraints', 'contracts', 'description', 'direction', 'discovery', 'drivers', 'fields', 'has_capital_gains', 'has_foreign_income', 'has_k1', 'has_schedule_c', 'has_schedule_e', 'has_virtual_currency', 'impact', 'ira', 'is_high_income', 'is_itemizing', 'is_multi_state', 'itemized_deductions', 'level', 'opportunities', 'outcome', 'outcome_shift', 'outcome_type', 'potential_savings', 'reasons', 'red_lines', 'scenarios', 'self_employment', 'session_id', 'standard_deduction', 'success', 'type', 'wages', 'withholding']

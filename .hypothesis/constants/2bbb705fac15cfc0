@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/services/team_service.py
+# hypothesis_version: 6.141.1
+
+['allowed', 'by_role', 'created_at', 'custom_permissions', 'department', 'email', 'email_verified', 'error', 'expires_at', 'firm_admin', 'firm_id', 'invitation_id', 'invited_at', 'is_active', 'last_login_at', 'mfa_enabled', 'name', 'pending_invitations', 'permissions', 'phone', 'reason', 'role', 'status', 'team_members', 'title', 'token', 'total_active', 'user_id', 'value']

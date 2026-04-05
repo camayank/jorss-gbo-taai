@@ -4,7 +4,7 @@
 {% block theme %}default{% endblock %}
 
 {% block head_extra %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   /* ── K-1 Basis Tracker Styles ─────────────────────────────── */
   .k1-page {
     max-width: 1320px;

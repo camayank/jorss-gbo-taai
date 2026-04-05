@@ -3,7 +3,7 @@
 {% block title %}Support Tickets - {{ config.APP_NAME }}{% endblock %}
 
 {% block extra_css %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .support-page {
         padding: var(--space-6);
         max-width: 1200px;

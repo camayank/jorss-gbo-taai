@@ -288,10 +288,19 @@ def build_tax_health_score(
         band = "needs_attention"
         message = "Significant tax savings opportunities identified."
 
+    # State tax efficiency score
+    state_code = getattr(profile, "state_code", None) or ""
+    state_tax_efficiency = 40 if state_code in HIGH_TAX_STATES else 65
+
+    avg_taxpayer = SCORE_BENCHMARKS.get("average_taxpayer", SCORE_BENCHMARKS.get("average_score", 52))
+    cpa_optimized = SCORE_BENCHMARKS.get("cpa_optimized_target", SCORE_BENCHMARKS.get("cpa_planned_average", 78))
+    cpa_planned = SCORE_BENCHMARKS.get("cpa_planned_average", cpa_optimized)
+
     return {
         "overall": overall,
         "band": band,
         "message": message,
+        "missed_savings_range": f"${int(savings_low):,} - ${int(savings_high):,}",
         "breakdown": {
             "retirement_readiness": retirement_score,
             "deduction_optimization": min(100, deduction_score),
@@ -300,5 +309,18 @@ def build_tax_health_score(
         "savings_range": {
             "low": int(savings_low),
             "high": int(savings_high),
+        },
+        "benchmark": {
+            "average_taxpayer": avg_taxpayer,
+            "average_score": avg_taxpayer,
+            "cpa_planned_average": cpa_planned,
+            "cpa_optimized_target": cpa_optimized,
+        },
+        "subscores": {
+            "retirement_readiness": retirement_score,
+            "deduction_optimization": min(100, deduction_score),
+            "credit_utilization": min(100, credit_score),
+            "complexity_handling": max(0, 100 - penalty),
+            "state_tax_efficiency": state_tax_efficiency,
         },
     }

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8863.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.2, 0.25, 0.4, 1.0, 2000.0, 2500.0, 10000.0, 20000.0, 90000.0, 180000.0, 2000, 2025, 4000, 'Filing status', "Institution's EIN", 'Level of education', "Student's SSN", "Student's address", "Student's legal name", 'Tax year', 'calculation_note', 'capped_expenses', 'fall', 'filing_status', 'full_time', 'graduate', 'half_time', 'institution_ein', 'institution_name', 'is_eligible', 'less_than_half_time', 'magi', 'married_joint', 'married_separate', 'max_credit', 'mfj', 'mfs', 'nonrefundable_aotc', 'part_1', 'part_2', 'per_student', 'professional', 'qualified_expenses', 'refundable_aotc', 'self', 'single', 'spring', 'student_count', 'student_name', 'summary', 'summer', 'tax_year', 'tentative_credit', 'total_aotc', 'total_llc', 'total_nonrefundable', 'total_refundable', 'undergraduate', 'vocational', 'winter']

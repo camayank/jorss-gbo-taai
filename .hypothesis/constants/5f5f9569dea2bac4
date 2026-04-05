@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/engagement_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 401, 404, 500, 501, '#1e3a5f', '..', '/engagement', '/letters/generate', '/letters/{letter_id}', '; ', 'Content-Disposition', 'Content-Length', 'Invalid JSON payload', 'Letter not found', 'X-PandaDoc-Signature', 'X-Primary-Color', 'application/pdf', 'client_address', 'client_email', 'client_name', 'complexity_tier', 'content', 'count', 'cpa_credentials', 'cpa_firm_name', 'cpa_name', 'data', 'docusign', 'engagement', 'envelope_id', 'esign_status', 'event_type', 'fee_amount', 'fee_description', 'firm_address', 'generated_at', 'hellosign', 'ignored', 'letter', 'letter_content', 'letter_id', 'letter_type', 'letters', 'pandadoc', 'primary_color', 'received', 'sent', 'services', 'session_id', 'status', 'tax_preparation', 'tax_year', 'tenant_id', 'to_dict']

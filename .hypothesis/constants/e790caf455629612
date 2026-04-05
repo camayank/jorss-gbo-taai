@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/webhooks/models.py
+# hypothesis_version: 6.141.1
+
+[100, 500, 2000, '*', 'CASCADE', 'HMAC signing secret', 'WebhookDelivery', 'WebhookEndpoint', 'active', 'all, delete-orphan', 'created_at', 'data', 'delivered', 'deliveries', 'disabled', 'endpoint', 'event_type', 'failed', 'firm_id', 'firms.firm_id', 'id', 'metadata', 'next_retry_at', 'paused', 'pending', 'retrying', 'status', 'timestamp', 'type', 'url', 'webhook_deliveries', 'webhook_endpoints']

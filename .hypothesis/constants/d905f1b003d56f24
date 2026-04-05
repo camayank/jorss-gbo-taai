@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/tasks_api.py
+# hypothesis_version: 6.141.1
+
+[201, 204, 255, 404, 2000, '/api/tasks', '/{task_id}', '/{task_id}/checklist', '/{task_id}/comments', '/{task_id}/complete', '/{task_id}/status', 'DATABASE_PATH', 'Task not found', 'author_id', 'checklist', 'comment_id', 'comments', 'completed_at', 'content', 'created_at', 'created_by', 'data', 'done', 'is_internal', 'item_id', 'medium', 'platform.db', 'priority', 'status', 'task_id', 'tasks', 'text', 'todo', 'total', 'updated_at']

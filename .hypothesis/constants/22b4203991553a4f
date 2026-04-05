@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/validation/invariant_checker.py
+# hypothesis_version: 6.141.1
+
+[0.038, 0.153, 0.37, 1.0, 1.1, 100, 15000, 22500, 30000, '$', ',', 'AGI', 'AI_INVENTED_NUMBER', 'NEGATIVE_STATE_TAX', 'NON_FINITE_VALUE', 'TAX_EXCEEDS_INCOME', '\\$[\\d,]+(?:\\.\\d{2})?', 'code', 'error', 'head_of_household', 'married_joint', 'married_separate', 'message', 'qualifying_widow', 'severity', 'single', 'tax_liability', 'taxable_income', 'warning']

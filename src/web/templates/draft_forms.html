@@ -329,7 +329,7 @@
 </div>
 
 {# ── Keyframe Animations ── #}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   @keyframes draftSpin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }

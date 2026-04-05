@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/domain/value_objects.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'AGI from prior year', 'Additional details', 'Filing status used', 'Marginal tax rate', 'Order of this step', 'State of residence', 'State tax liability', 'The action to take', 'The prior tax year', 'Total deductions', 'action', 'computed_at', 'deadline', 'description', 'details', 'estimated_time', 'field_path', 'new_value', 'original_value', 'prerequisites', 'python', 'responsible_party', 'single', 'step_number']

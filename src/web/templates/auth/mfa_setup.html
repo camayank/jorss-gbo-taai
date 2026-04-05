@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Set Up Two-Factor Authentication | Jorss-Gbo</title>
+    <title>Set Up Two-Factor Authentication | {{ platform_name | default("Tax Platform") }}</title>
     <meta name="description" content="Secure your account with two-factor authentication using an authenticator app.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <link rel="stylesheet" href="/static/css/components/auth.css">
-    <style>
+    <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 
         * {
             margin: 0;
@@ -786,7 +786,7 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <a href="/" class="logo">Jorss-Gbo</a>
+        <a href="/" class="logo">{{ platform_name | default("Tax Platform") }}</a>
         <a href="/settings" class="back-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="19" y1="12" x2="5" y2="12"/>
@@ -1320,7 +1320,7 @@
                 },
 
                 copyBackupCodes() {
-                    const text = 'Jorss-Gbo Backup Codes\n'
+                    const text = 'Backup Codes\n'
                         + 'Generated: ' + new Date().toLocaleDateString() + '\n'
                         + '─'.repeat(30) + '\n\n'
                         + this.backupCodes.map((code, i) => (i + 1) + '. ' + code).join('\n')
@@ -1330,7 +1330,7 @@
 
                 /* ── Download ── */
                 downloadBackupCodes() {
-                    const text = 'Jorss-Gbo - Two-Factor Authentication Backup Codes\n'
+                    const text = 'Two-Factor Authentication Backup Codes\n'
                         + 'Generated: ' + new Date().toISOString() + '\n'
                         + '================================================\n\n'
                         + this.backupCodes.map((code, i) => (i + 1) + '.  ' + code).join('\n')
@@ -1344,7 +1344,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'jorss-gbo-backup-codes.txt';
+                    a.download = 'backup-codes.txt';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);

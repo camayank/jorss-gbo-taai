@@ -62,6 +62,7 @@ BASICS = [
         id="filing_status",
         pool="basics", phase=1,
         text="What's your filing status for this tax year?",
+        hint="Your filing status determines your standard deduction amount and tax bracket — it's the single biggest factor in your tax calculation.",
         actions=[
             {"label": "Single", "value": "single"},
             {"label": "Married Filing Jointly", "value": "married_joint"},
@@ -79,6 +80,7 @@ BASICS = [
         id="total_income",
         pool="basics", phase=1,
         text="What's your approximate total annual income? Include all sources — wages, business, investments.",
+        hint="This determines your tax bracket and which deduction strategies apply. A rough estimate is fine — we'll refine it as we go.",
         actions=[
             {"label": "Under $25K", "value": "income_under_25k"},
             {"label": "$25K – $50K", "value": "income_25_50k"},
@@ -97,6 +99,7 @@ BASICS = [
         id="state",
         pool="basics", phase=1,
         text="Which state do you live in?",
+        hint="State tax rules vary significantly — California, New York, and New Jersey have some of the highest rates, while Florida and Texas have none. This affects 20–30% of your total tax picture.",
         actions=[{"label": "Select your state", "value": "state_dropdown"}],
         eligibility=lambda p: p.get("total_income") and not p.get("state"),
         base_score=98,
@@ -108,6 +111,7 @@ BASICS = [
         id="dependents",
         pool="basics", phase=1,
         text="Do you have any dependents (children, qualifying relatives)?",
+        hint="Dependents unlock the Child Tax Credit ($2,000/child), Head of Household status, childcare credits, and education deductions — each worth hundreds to thousands per year.",
         actions=[
             {"label": "No dependents", "value": "0_dependents"},
             {"label": "1 dependent", "value": "1_dependent"},
@@ -125,6 +129,7 @@ BASICS = [
         id="income_type",
         pool="basics", phase=1,
         text="What best describes your income situation?",
+        hint="Your income type determines which deductions and strategies are available — self-employed filers have access to home office, §179 equipment expensing, and SE health insurance deductions that W-2 employees don't.",
         actions=[
             {"label": "W-2 Employee (single job)", "value": "w2_employee"},
             {"label": "Multiple W-2 Jobs", "value": "multiple_w2"},
@@ -160,6 +165,7 @@ INCOME_DETAILS = [
             "paychecks this year? Check your last pay stub for the YTD "
             "Federal Tax amount."
         ),
+        hint="Knowing your withholding lets us calculate whether you'll owe at filing or get a refund — and flag if you're over-withholding (giving the IRS an interest-free loan) or under-withholding (risking a penalty).",
         actions=[
             {"label": "Under $5,000", "value": "withholding_under_5k"},
             {"label": "$5,000 – $10,000", "value": "withholding_5_10k"},
@@ -181,6 +187,7 @@ INCOME_DETAILS = [
         id="inc_multiple_w2_count",
         pool="income_details", phase=2,
         text="How many W-2 jobs did you have this year?",
+        hint="With two or more employers, Social Security tax is often over-withheld — you may be owed a refund of up to $1,089 (the 2025 SS wage base excess).",
         actions=[
             {"label": "2 jobs", "value": "2_jobs"},
             {"label": "3 or more jobs", "value": "3plus_jobs"},
@@ -195,6 +202,7 @@ INCOME_DETAILS = [
         id="inc_side_hustle_type",
         pool="income_details", phase=2,
         text="What type of side income do you have?",
+        hint="The type of side income determines which Schedule you file (C, E, or F), what expenses are deductible, and whether self-employment tax (15.3%) applies.",
         actions=[
             {"label": "Freelance / Consulting (1099-NEC)", "value": "freelance"},
             {"label": "Gig Work (Uber, DoorDash, etc.)", "value": "gig_work"},
@@ -212,6 +220,7 @@ INCOME_DETAILS = [
         id="inc_side_income_amount",
         pool="income_details", phase=2,
         text="What's your approximate net side income (after expenses)?",
+        hint="Side income above roughly $400 triggers self-employment tax on top of income tax — knowing the amount helps us size the deduction strategies (home office, vehicle, QBI) that can offset it.",
         actions=[
             {"label": "Under $5,000", "value": "side_under_5k"},
             {"label": "$5,000 – $20,000", "value": "side_5_20k"},
@@ -234,6 +243,7 @@ INCOME_DETAILS = [
         id="inc_spouse_income_type",
         pool="income_details", phase=2,
         text="Does your spouse also earn income? If so, what type?",
+        hint="Spouse income type affects your combined marginal rate, whether a spousal IRA is deductible, and whether you're subject to marriage penalty or bonus — this can shift your strategy significantly.",
         actions=[
             {"label": "W-2 Employee", "value": "spouse_w2"},
             {"label": "Self-Employed", "value": "spouse_se"},
@@ -251,6 +261,7 @@ INCOME_DETAILS = [
         id="inc_spouse_income_amount",
         pool="income_details", phase=2,
         text="What's your spouse's approximate annual income?",
+        hint="Combined household income determines your tax bracket, phase-outs for credits (Child Tax Credit, IRA deductibility), and whether the 3.8% Net Investment Income Tax applies.",
         actions=[
             {"label": "Under $25K", "value": "spouse_under_25k"},
             {"label": "$25K – $50K", "value": "spouse_25_50k"},
@@ -275,6 +286,7 @@ INCOME_DETAILS = [
             "What is your age? This helps determine your standard deduction "
             "and eligibility for certain credits."
         ),
+        hint="Age 50+ unlocks $7,500 in catch-up 401(k) contributions and $1,000 extra in IRA contributions. Age 65+ adds a higher standard deduction. Age 73 triggers Required Minimum Distributions.",
         actions=[
             {"label": "Under 26", "value": "age_under_26"},
             {"label": "26 – 49", "value": "age_26_49"},
@@ -300,6 +312,7 @@ SELF_EMPLOYMENT = [
         id="se_entity_type",
         pool="self_employment", phase=2,
         text="What type of business entity do you have?",
+        hint="Your entity structure is the single largest lever for self-employed tax savings — an S-Corp election can reduce self-employment tax by $5,000–$20,000/year by splitting income between salary and distributions.",
         actions=[
             {"label": "Sole Proprietorship (no entity)", "value": "sole_prop"},
             {"label": "Single-Member LLC", "value": "single_llc"},
@@ -1003,7 +1016,7 @@ DEPENDENTS = [
             {"label": "Yes — special needs child", "value": "adoption_special_needs"},
             {"label": "No", "value": "no_adoption"},
         ],
-        eligibility=lambda p: has_dependents(p) and not p.get("adoption_status"),
+        eligibility=lambda p: has_dependents(p) and not p.get("adoption_status") and not is_business_or_se(p),
         base_score=12,
         context_boost_keywords=["adopt", "adoption"],
         context_boost_amount=50,
@@ -1505,6 +1518,7 @@ HEALTHCARE = [
             not is_retired(p)
             and not p.get("aca_marketplace")
             and not p.get("se_health_insurance")
+            and not p.get("_asked_se_health")
         ),
         base_score=28,
         context_boost_keywords=[
@@ -1788,7 +1802,7 @@ MISSING_COVERAGE = [
             {"label": "No farm income", "value": "no_farm"},
             {"label": "Skip", "value": "skip_farm"},
         ],
-        eligibility=lambda p: not p.get("farm_income"),
+        eligibility=lambda p: not p.get("farm_income") and not is_business_or_se(p),
         base_score=6,
         context_boost_keywords=[
             "farm", "agriculture", "crop", "livestock", "ranch",
@@ -1905,7 +1919,199 @@ STATE_SPECIFIC = [
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# COMBINED REGISTRY  (all 76 questions)
+# PHASE 2 — ADVANCED STRATEGIES  (6 high-value questions)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ADVANCED_STRATEGIES: list[FlowQuestion] = [
+    # Augusta Rule (IRC §280A(g))
+    FlowQuestion(
+        id="adv_augusta_rule",
+        pool="advanced_strategies",
+        phase=2,
+        text=(
+            "Do you own your home and occasionally use it for business "
+            "meetings or events?"
+        ),
+        hint=(
+            "If you rent your home to your own business for up to 14 days/year, "
+            "the rental income is tax-free to you and the business gets a full "
+            "deduction — the Augusta Rule (IRC §280A(g)) can save $3,500–$7,000+."
+        ),
+        actions=[
+            {"label": "Yes — I use my home for business meetings/events", "value": "augusta_eligible"},
+            {"label": "No — I don't own my home or use it for business", "value": "no_augusta"},
+            {"label": "Skip", "value": "skip_augusta"},
+        ],
+        eligibility=lambda p: (
+            (is_business_or_se(p) or is_self_employed_only(p))
+            and not p.get("augusta_rule_status")
+        ),
+        base_score=58,
+        context_boost_keywords=["home", "rent", "meetings", "events", "14 days", "augusta"],
+        context_boost_amount=30,
+        sets_fields=["augusta_rule_status"],
+        asked_field="_asked_augusta",
+    ),
+    # Defined Benefit / Cash Balance Plan
+    FlowQuestion(
+        id="adv_defined_benefit",
+        pool="advanced_strategies",
+        phase=2,
+        text=(
+            "Are you interested in contributing more than $23,000/year to "
+            "retirement accounts? (A defined benefit or cash balance plan can "
+            "allow $100K–$300K+ in annual deductible contributions)"
+        ),
+        hint=(
+            "Self-employed individuals aged 45+ earning over $150K can shelter "
+            "$100K–$300K/year in a defined benefit plan — the single most "
+            "powerful retirement/tax tool available for high earners."
+        ),
+        actions=[
+            {"label": "Yes — maximize retirement contributions beyond $23K/year", "value": "db_plan_interested"},
+            {"label": "No — current retirement plan is sufficient", "value": "db_plan_not_needed"},
+            {"label": "Skip", "value": "skip_db_plan"},
+        ],
+        eligibility=lambda p: (
+            is_self_employed_only(p)
+            and _income(p) > 150000
+            and p.get("age") in ("age_50_64", "age_65_plus")
+            and not p.get("db_plan_status")
+        ),
+        base_score=72,
+        context_boost_keywords=["retirement", "pension", "defined benefit", "cash balance", "contribute"],
+        context_boost_amount=25,
+        sets_fields=["db_plan_status"],
+        asked_field="_asked_db_plan",
+    ),
+    # IRC §179 + Bonus Depreciation
+    FlowQuestion(
+        id="adv_equipment_depreciation",
+        pool="advanced_strategies",
+        phase=2,
+        text=(
+            "Did you purchase any equipment, vehicles, or software for your "
+            "business this year? (Even if only partially used for business)"
+        ),
+        hint=(
+            "IRC §179 lets you immediately expense up to $1.16M of equipment "
+            "in the year of purchase instead of depreciating over years. "
+            "60% bonus depreciation applies to the remainder — saving $5,000–$30,000+."
+        ),
+        actions=[
+            {"label": "Yes — purchased equipment, vehicle, or software", "value": "has_equipment_purchases"},
+            {"label": "Yes — over $10,000 in total purchases", "value": "equipment_over_10k"},
+            {"label": "No major equipment purchases", "value": "no_equipment_purchases"},
+            {"label": "Skip", "value": "skip_equipment_depreciation"},
+        ],
+        eligibility=lambda p: (
+            is_business_or_se(p)
+            and not p.get("equipment_depreciation_status")
+            and not p.get("equipment_cost")
+        ),
+        base_score=54,
+        context_boost_keywords=["equipment", "vehicle", "computer", "software", "179", "depreciation", "bonus"],
+        context_boost_amount=30,
+        sets_fields=["equipment_depreciation_status"],
+        asked_field="_asked_equipment_depreciation",
+    ),
+    # Cost Segregation Study
+    FlowQuestion(
+        id="adv_cost_segregation",
+        pool="advanced_strategies",
+        phase=2,
+        text=(
+            "Do you own commercial or rental real estate worth over $500,000?"
+        ),
+        hint=(
+            "A cost segregation study reclassifies 20–40% of building cost to "
+            "5/7/15-year property, accelerating depreciation by 10–15 years and "
+            "generating $15,000–$50,000+ in first-year tax savings."
+        ),
+        actions=[
+            {"label": "Yes — commercial or rental property over $500K", "value": "cost_seg_eligible"},
+            {"label": "Yes — but under $500K or residential only", "value": "cost_seg_small"},
+            {"label": "No — I don't own qualifying real estate", "value": "no_cost_seg"},
+            {"label": "Skip", "value": "skip_cost_seg"},
+        ],
+        eligibility=lambda p: (
+            has_rental(p)
+            and _income(p) > 100000
+            and not p.get("cost_segregation_status")
+        ),
+        base_score=62,
+        context_boost_keywords=["cost segregation", "commercial", "real estate", "depreciation", "building", "property"],
+        context_boost_amount=35,
+        sets_fields=["cost_segregation_status"],
+        asked_field="_asked_cost_seg",
+    ),
+    # Work Opportunity Tax Credit (WOTC)
+    FlowQuestion(
+        id="adv_wotc",
+        pool="advanced_strategies",
+        phase=2,
+        text=(
+            "Did you hire any new employees in the past year?"
+        ),
+        hint=(
+            "The Work Opportunity Tax Credit (WOTC) provides $2,400–$9,600 "
+            "per qualifying new hire (veterans, SNAP recipients, ex-felons, etc.) "
+            "as a dollar-for-dollar tax credit — with no limit on qualifying hires."
+        ),
+        actions=[
+            {"label": "Yes — hired 1–5 new employees", "value": "wotc_hired_few"},
+            {"label": "Yes — hired more than 5 new employees", "value": "wotc_hired_many"},
+            {"label": "No new hires this year", "value": "no_new_hires"},
+            {"label": "Skip", "value": "skip_wotc"},
+        ],
+        eligibility=lambda p: (
+            is_business_or_se(p)
+            and p.get("has_employees_status") in ("has_employees", "has_both_workers")
+            and not p.get("wotc_status")
+        ),
+        base_score=48,
+        context_boost_keywords=["hire", "employee", "wotc", "veteran", "credit", "new hire"],
+        context_boost_amount=30,
+        sets_fields=["wotc_status"],
+        asked_field="_asked_wotc",
+    ),
+    # R&D Tax Credits (IRC §41)
+    FlowQuestion(
+        id="adv_rd_credits",
+        pool="advanced_strategies",
+        phase=2,
+        text=(
+            "Does your business involve developing software, products, "
+            "processes, or conducting any form of research or experimentation?"
+        ),
+        hint=(
+            "IRC §41 R&D credits give you 20% of qualified research expenses — "
+            "and small businesses under $5M revenue can offset up to $500K/year "
+            "in payroll taxes instead of income tax. Potential savings: $10,000–$50,000+."
+        ),
+        actions=[
+            {"label": "Yes — software development or tech", "value": "rd_software"},
+            {"label": "Yes — product or process development / manufacturing", "value": "rd_product"},
+            {"label": "Yes — biotech, pharma, or formal R&D", "value": "rd_formal"},
+            {"label": "No — standard service or retail business", "value": "no_rd"},
+            {"label": "Skip", "value": "skip_rd"},
+        ],
+        eligibility=lambda p: (
+            is_business_or_se(p)
+            and _income(p) > 75000
+            and not p.get("rd_credit_status")
+        ),
+        base_score=44,
+        context_boost_keywords=["software", "research", "r&d", "develop", "product", "tech", "biotech", "manufacturing"],
+        context_boost_amount=35,
+        sets_fields=["rd_credit_status"],
+        asked_field="_asked_rd",
+    ),
+]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMBINED REGISTRY  (all 82 questions)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 ALL_QUESTIONS: list[FlowQuestion] = (
@@ -1923,4 +2129,5 @@ ALL_QUESTIONS: list[FlowQuestion] = (
     + SPECIAL_SITUATIONS
     + MISSING_COVERAGE
     + STATE_SPECIFIC
+    + ADVANCED_STRATEGIES
 )

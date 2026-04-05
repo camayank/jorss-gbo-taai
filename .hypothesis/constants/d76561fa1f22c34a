@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_1040_es.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.08, 0.225, 0.25, 0.45, 0.675, 0.9, 1.0, 1.1, 1.5, 2.4, 4.0, 100, 365, 1000, 2025, 150000, 'Actual payment date', 'Amount due', 'Amount paid', 'Filing status', 'Line 8: Other taxes', 'Payment confirmation', 'Payment due date', 'Payment method', 'Payment quarter', 'Q1', 'Q2', 'Q3', 'Q4', 'Tax year', 'Taxpayer SSN', 'Taxpayer name', 'amount_due', 'amount_paid', 'annual_rate', 'balance_due', 'cash', 'check', 'credit_card', 'days_late', 'direct_pay', 'due_date', 'eftps', 'expected_agi', 'expected_tax', 'filing_status', 'is_on_time', 'is_paid', 'is_required', 'payments', 'payments_on_time', 'penalty', 'quarter', 'quarterly_payment', 'remaining_balance', 'required_annual', 'safe_harbor_amount', 'safe_harbor_pct', 'single', 'summary', 'tax_year', 'taxable_income', 'total_paid', 'total_required', 'total_tax', 'underpayment', 'withholding', 'worksheet']

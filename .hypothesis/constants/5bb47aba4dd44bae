@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/vermont.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.0335, 0.066, 0.076, 0.0875, 0.38, 1000, 2025, 4850, 7100, 9700, 10600, 14200, 37925, 45400, 60600, 75850, 91700, 110050, 125000, 139725, 156550, 183400, 229550, 254400, 279450, 'TaxReturn', 'VT', 'Vermont', 'federal', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'vt_child_credit', 'vt_eitc']

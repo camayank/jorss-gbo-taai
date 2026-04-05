@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/ml/document_classifier.py
+# hypothesis_version: 6.141.1
+
+['ensemble', 'fallback_enabled', 'primary_classifier', 'unknown']

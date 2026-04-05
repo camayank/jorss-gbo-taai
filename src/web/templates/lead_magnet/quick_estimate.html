@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         * {
             margin: 0;
             padding: 0;
@@ -453,10 +453,90 @@
                 width: 100%;
             }
         }
+
+        /* Session countdown timer */
+        .session-timer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: var(--space-2);
+        }
+        .session-timer.urgent { color: #fca5a5; }
+        .session-timer-icon { width: 14px; height: 14px; }
+
+        /* Mobile progress dots */
+        .progress-dots {
+            display: none;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: var(--space-3);
+        }
+        .progress-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: all 0.25s;
+        }
+        .progress-dot.active { background: #fff; transform: scale(1.2); }
+        .progress-dot.done   { background: rgba(255,255,255,0.75); }
+
+        @media (max-width: 640px) {
+            .progress-dots { display: flex; }
+            .progress-bar  { display: none; }
+            .progress-text { font-size: 0.78rem; }
+        }
+
+        /* Draft restore banner */
+        .draft-banner {
+            display: none;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: var(--radius-lg-plus, 12px);
+            padding: var(--space-2-5, 10px) var(--space-4, 16px);
+            margin-bottom: var(--space-3, 12px);
+            color: #fff;
+            font-size: 0.82rem;
+            align-items: center;
+            gap: var(--space-3, 12px);
+        }
+        .draft-banner.show { display: flex; }
+        .draft-restore-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: var(--radius-lg, 8px);
+            color: #fff; font-size: 0.78rem; font-weight: 600;
+            padding: 4px 12px; cursor: pointer; white-space: nowrap;
+        }
+        .draft-restore-btn:hover { background: rgba(255,255,255,0.3); }
+        .draft-dismiss-btn {
+            margin-left: auto;
+            background: none; border: none;
+            color: rgba(255,255,255,0.6); cursor: pointer;
+            font-size: 1rem; line-height: 1; padding: 0 4px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Session countdown timer -->
+        <div class="session-timer" id="sessionTimer">
+            <svg class="session-timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            <span id="sessionTimerText">Session active</span>
+        </div>
+
+        <!-- Mobile progress dots -->
+        <div class="progress-dots" id="progressDots">
+            <div class="progress-dot active" data-dot="1"></div>
+            <div class="progress-dot" data-dot="2"></div>
+            <div class="progress-dot" data-dot="3"></div>
+            <div class="progress-dot" data-dot="4"></div>
+        </div>
+
         <!-- Progress -->
         <div class="progress-text">
             <span>Step <span id="currentStep">1</span> of 4</span>
@@ -464,6 +544,13 @@
         </div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill" style="width: 25%"></div>
+        </div>
+
+        <!-- Draft restore banner -->
+        <div class="draft-banner" id="draftBanner">
+            <span>You have a saved draft from earlier.</span>
+            <button class="draft-restore-btn" onclick="restoreDraft()">Restore</button>
+            <button class="draft-dismiss-btn" onclick="dismissDraft()" aria-label="Dismiss">&times;</button>
         </div>
 
         <!-- Form Card -->
@@ -975,6 +1062,8 @@
                 target.classList.add('active');
                 currentStep = step;
                 updateProgress();
+                saveDraft();
+                updateProgressDots(step);
             }
         }
 
@@ -1085,6 +1174,83 @@
             return sources;
         }
 
+        // ---- SESSION COUNTDOWN (15 min) ----
+        (function() {
+            var SESSION_MINUTES = 15;
+            var key = 'lm_estimate_session_start';
+            var stored = sessionStorage.getItem(key);
+            var startMs = stored ? parseInt(stored, 10) : Date.now();
+            if (!stored) sessionStorage.setItem(key, startMs);
+            var endMs = startMs + SESSION_MINUTES * 60 * 1000;
+            var timerEl = document.getElementById('sessionTimer');
+            var textEl = document.getElementById('sessionTimerText');
+            function tickTimer() {
+                var remaining = Math.max(0, endMs - Date.now());
+                var m = Math.floor(remaining / 60000);
+                var s = Math.floor((remaining % 60000) / 1000);
+                textEl.textContent = m + ':' + String(s).padStart(2, '0') + ' left to complete your estimate';
+                if (remaining < 120000) timerEl.classList.add('urgent');
+                else timerEl.classList.remove('urgent');
+            }
+            tickTimer();
+            setInterval(tickTimer, 1000);
+        })();
+
+        // ---- AUTO-SAVE & DRAFT RESTORE ----
+        var DRAFT_KEY = 'lm_estimate_draft';
+
+        function saveDraft() {
+            try {
+                sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+                    formData: formData,
+                    currentStep: currentStep,
+                    savedAt: Date.now()
+                }));
+            } catch (_) {}
+        }
+
+        function restoreDraft() {
+            try {
+                var raw = sessionStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                var draft = JSON.parse(raw);
+                formData = Object.assign({}, formData, draft.formData);
+                if (formData.state_code) {
+                    var sel = document.getElementById('stateCode');
+                    if (sel) { sel.value = formData.state_code; setStateCode(formData.state_code); }
+                }
+                showStep(Math.min(draft.currentStep || 1, 4));
+                document.getElementById('draftBanner').classList.remove('show');
+            } catch (_) {}
+        }
+
+        function dismissDraft() {
+            sessionStorage.removeItem(DRAFT_KEY);
+            document.getElementById('draftBanner').classList.remove('show');
+        }
+
+        function checkForDraft() {
+            try {
+                var raw = sessionStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                var draft = JSON.parse(raw);
+                var age = Date.now() - (draft.savedAt || 0);
+                if (age < 3600000 && draft.formData && (draft.formData.filing_status || draft.formData.income_range)) {
+                    document.getElementById('draftBanner').classList.add('show');
+                }
+            } catch (_) {}
+        }
+
+        // ---- MOBILE PROGRESS DOTS ----
+        function updateProgressDots(step) {
+            document.querySelectorAll('.progress-dot').forEach(function(dot) {
+                var n = parseInt(dot.dataset.dot, 10);
+                dot.classList.remove('active', 'done');
+                if (n === step) dot.classList.add('active');
+                else if (n < step) dot.classList.add('done');
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             if (!sessionId) {
                 window.location.href = '/lead-magnet/';
@@ -1101,6 +1267,8 @@
             if (submitBtn) submitBtn.disabled = !formData.state_code;
 
             updatePersonaHint();
+            checkForDraft();
+            updateProgressDots(1);
             trackLeadMagnetEvent('step_complete', 'estimate_view', {
                 hero_variant: heroVariant,
                 phone_capture_variant: experimentConfig.phone_capture_variant,
@@ -1109,8 +1277,13 @@
             });
         });
 
-        window.addEventListener('beforeunload', function() {
+        window.addEventListener('beforeunload', function(e) {
             if (sessionId && !profileSubmitted) {
+                if (currentStep > 1 || formData.filing_status) {
+                    saveDraft();
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
                 if (window.LeadMagnetAnalytics) {
                     window.LeadMagnetAnalytics.sendBeaconEvent(
                         sessionId,

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/tenant_persistence.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100, ' AND status = ?', ', ', 'accent_color', 'admin_email', 'admin_user_id', 'bio', 'branding', 'cpa_id', 'created_at', 'credentials', 'custom_domain', 'direct_email', 'direct_phone', 'display_name', 'features', 'metadata', 'office_address', 'profile_photo_url', 'signature_image_url', 'specializations', 'status', 'storage_used_gb', 'stripe_customer_id', 'subscription_tier', 'tagline', 'tenant_id', 'tenant_id = ?', 'tenant_name', 'tenants', 'total_clients', 'total_cpas', 'total_returns', 'updated_at', 'welcome_message', 'years_experience']

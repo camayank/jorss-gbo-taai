@@ -5,7 +5,7 @@
 {% block page_title %}Launch Setup Wizard{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .wizard-summary {
         background: linear-gradient(135deg, var(--color-accent-700), var(--color-accent-900));
         color: var(--white);
@@ -273,6 +273,18 @@
                        value="{{ cpa.email or '' }}"
                        style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; box-sizing:border-box">
             </div>
+            <div style="margin-bottom:1.25rem">
+                <label style="display:block; font-weight:600; margin-bottom:0.4rem; color:#0B1D3A">What types of clients do you specialize in?</label>
+                <p style="font-size:0.82rem; color:#64748b; margin:0 0 0.75rem 0">Check all that apply — used to highlight relevant strategies in client sessions.</p>
+                <div id="ob-specialties" style="display:flex; flex-wrap:wrap; gap:0.5rem">
+                    {% set _specs = cpa.specializations or [] %}
+                    {% for val, label in [('real_estate','Real Estate Investors'),('small_business','Small Business Owners'),('high_income','High-Income W-2 ($300K+)'),('self_employed','Self-Employed / Freelancers'),('startups','Startups & Founders'),('retirement_planning','Retirement Planning'),('crypto','Crypto & Digital Assets')] %}
+                    <label style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.45rem 0.9rem; border:1px solid {% if val in _specs %}#C9A84C{% else %}#cbd5e1{% endif %}; border-radius:9999px; font-size:0.88rem; font-weight:500; cursor:pointer; color:#0B1D3A; background:{% if val in _specs %}#fdf8ee{% else %}#fff{% endif %}; transition:border-color 0.15s, background 0.15s">
+                        <input type="checkbox" name="ob-specialty" value="{{ val }}" {% if val in _specs %}checked{% endif %} style="accent-color:#C9A84C"> {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
             <button type="submit" onclick="saveStep1()"
                     style="background:#C9A84C; color:#0B1D3A; border:none; padding:0.75rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.95rem">
                 Save &amp; Continue →
@@ -363,6 +375,7 @@
                 body: JSON.stringify({
                     firm_name: document.getElementById('ob-firm-name').value,
                     contact_email: document.getElementById('ob-email').value,
+                    specializations: Array.from(document.querySelectorAll('#ob-specialties input[name="ob-specialty"]:checked')).map(c => c.value),
                 })
             });
             if (r.ok) {
@@ -401,7 +414,12 @@
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')
           },
-          body: JSON.stringify({ firm_name: firmName, email: email, display_name: firmName })
+          body: JSON.stringify({
+            firm_name: firmName,
+            email: email,
+            display_name: firmName,
+            specializations: Array.from(document.querySelectorAll('#ob-specialties input[name="ob-specialty"]:checked')).map(c => c.value),
+          })
         });
         if (!resp.ok) throw new Error('Save failed');
         if (msg) { msg.style.display='block'; msg.style.color='#16a34a'; msg.textContent='✓ Saved! Refreshing...'; }

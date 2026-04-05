@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/routers/appointments_api.py
+# hypothesis_version: 6.141.1
+
+[201, 204, 255, 404, '/api/appointments', '/{appointment_id}', 'DATABASE_PATH', 'appointment_id', 'appointments', 'created_at', 'created_by', 'data', 'platform.db', 'scheduled', 'status', 'total', 'updated_at', 'video']

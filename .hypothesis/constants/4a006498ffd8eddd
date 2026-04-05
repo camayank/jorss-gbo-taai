@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/south_carolina.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.01, 0.03, 0.04, 0.05, 0.06, 210, 2025, 3460, 4720, 6920, 10000, 10380, 13840, 15750, 17310, 23850, 31500, 'SC', 'South Carolina', 'TaxReturn', 'federal', 'head_of_household', 'married_joint', 'married_separate', 'qualifying_widow', 'single', 'two_wage_credit']

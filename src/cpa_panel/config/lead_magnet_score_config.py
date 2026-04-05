@@ -19,6 +19,9 @@ DEFAULT_SCORE_WEIGHTS: Dict[str, float] = {
 SCORE_BENCHMARKS: Dict[str, int] = {
     "average_taxpayer": 52,
     "cpa_optimized_target": 78,
+    # Aliases used by API responses and tests
+    "average_score": 52,
+    "cpa_planned_average": 78,
 }
 
 

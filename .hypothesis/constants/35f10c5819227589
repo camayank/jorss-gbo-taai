@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/redis_session_persistence.py
+# hypothesis_version: 6.141.1
+
+[100, 86400, 'APP_ENVIRONMENT', 'Counter', 'Decimal', 'NoneType', 'OrderedDict', 'RedisSessionRecord', 'UUID', 'agent_state_base64', 'ascii', 'bool', 'builtins', 'bytearray', 'bytes', 'collections', 'complex', 'cpa_reviewer_id', 'created_at', 'data', 'date', 'datetime', 'decimal', 'defaultdict', 'deque', 'dict', 'float', 'frozenset', 'generic', 'int', 'is_anonymous', 'last_activity', 'list', 'metadata', 'notes', 'prod', 'production', 'range', 'session_id', 'session_type', 'set', 'slice', 'status', 'str', 'tenant_id', 'time', 'timedelta', 'timezone', 'tuple', 'unified_filing', 'updated_at', 'user_id', 'uuid', 'v']

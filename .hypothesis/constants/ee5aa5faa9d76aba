@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/michigan.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.032, 0.0425, 0.3, 0.6, 1600, 2025, 5600, 30000, 63000, 'MI', 'Michigan', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'mi_eitc', 'none', 'qualifying_widow', 'single']

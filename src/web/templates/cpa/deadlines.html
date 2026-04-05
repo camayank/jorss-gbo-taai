@@ -5,674 +5,878 @@
 {% block page_title %}{{ page_title|default('Deadline Tracker') }}{% endblock %}
 
 {% block extra_styles %}
-<style>
-    .deadline-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-6); }
-    .stat-card { background: var(--white); border-radius: var(--radius-xl); padding: var(--space-5); border: 1px solid var(--border-color); }
-    .stat-value { font-size: 2rem; font-weight: var(--font-bold); }
-    .stat-value.urgent { color: var(--color-error-600); }
-    .stat-value.warning { color: var(--color-warning-600); }
-    .stat-value.success { color: var(--color-success-600); }
-    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: var(--space-1); }
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+/* ── Summary Cards ── */
+.summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4); margin-bottom: var(--space-6);
+}
+.summary-card {
+    background: var(--white); border-radius: var(--radius-xl);
+    border: 1px solid var(--border-color); padding: var(--space-5);
+    display: flex; align-items: flex-start; gap: var(--space-4);
+    transition: box-shadow .15s;
+}
+.summary-card:hover { box-shadow: 0 4px 16px rgba(11,29,58,.08); }
+.summary-icon {
+    width: 44px; height: 44px; border-radius: var(--radius-lg);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 1.2rem;
+}
+.icon-red    { background: #fee2e2; }
+.icon-orange { background: #fed7aa; }
+.icon-navy   { background: #dbeafe; }
+.icon-green  { background: #dcfce7; }
+.summary-body { flex: 1; }
+.summary-value { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.val-red    { color: #dc2626; }
+.val-orange { color: #c2410c; }
+.val-navy   { color: #0B1D3A; }
+.val-green  { color: #15803d; }
+.summary-label { font-size: 0.82rem; color: var(--text-muted); }
 
-    .progress-section { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); padding: var(--space-5); margin-bottom: var(--space-6); }
-    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2-5); }
-    .progress-title { font-weight: 600; font-size: 0.95rem; }
-    .progress-pct { font-weight: 700; color: var(--primary-color); }
-    .progress-track { width: 100%; height: 10px; background: var(--bg-light); border-radius: 5px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--success-color, #059669)); border-radius: 5px; transition: width 0.4s ease; }
+/* ── Two-column layout ── */
+.dl-layout {
+    display: grid; grid-template-columns: 340px 1fr; gap: var(--space-5); align-items: start;
+}
 
-    .tax-deadlines { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); padding: var(--space-5); margin-bottom: var(--space-6); }
-    .tax-deadlines-title { font-weight: 600; margin-bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
-    .tax-deadline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
-    .tax-deadline-card { padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-light); }
-    .tax-deadline-date { font-weight: 600; color: var(--primary-color); font-size: 0.95rem; }
-    .tax-deadline-name { font-size: 0.85rem; margin-top: var(--space-1); color: var(--text-muted); }
+/* ── Calendar ── */
+.calendar-panel {
+    background: var(--white); border-radius: var(--radius-xl);
+    border: 1px solid var(--border-color); overflow: hidden;
+    position: sticky; top: 80px;
+}
+.cal-header {
+    background: #0B1D3A; color: #fff;
+    padding: var(--space-4) var(--space-5);
+    display: flex; align-items: center; justify-content: space-between;
+}
+.cal-nav {
+    background: none; border: none; color: #fff; cursor: pointer;
+    padding: var(--space-1-5); border-radius: var(--radius-md);
+    display: flex; align-items: center; transition: background .15s;
+}
+.cal-nav:hover { background: rgba(255,255,255,.15); }
+.cal-month-title { font-weight: 700; font-size: 1rem; }
+.cal-dow-row {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    padding: var(--space-2) var(--space-3) 0;
+}
+.cal-dow { text-align: center; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding: 4px 0; }
+.cal-days {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 2px; padding: var(--space-2) var(--space-3) var(--space-3);
+}
+.cal-day {
+    aspect-ratio: 1; border-radius: var(--radius-md);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding-top: 4px; cursor: pointer; transition: background .12s; position: relative;
+    font-size: 0.82rem; font-weight: 500; color: var(--text-dark);
+    border: 1px solid transparent;
+}
+.cal-day:hover { background: #f4f6fb; border-color: var(--border-color); }
+.cal-day.empty { cursor: default; }
+.cal-day.empty:hover { background: none; border-color: transparent; }
+.cal-day.today { background: #eff6ff; border-color: #0B1D3A; font-weight: 800; }
+.cal-day.selected { background: #0B1D3A; color: #fff; border-color: #0B1D3A; }
+.cal-day.selected:hover { background: #152d56; }
+.cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; margin-top: 2px; max-width: 24px; }
+.cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+.dot-overdue  { background: #dc2626; }
+.dot-due_soon { background: #d97706; }
+.dot-upcoming { background: #0B1D3A; }
+.dot-completed { background: #15803d; }
 
-    .deadlines-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); flex-wrap: wrap; gap: var(--space-3); }
-    .deadline-filters { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-    .filter-btn { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--white); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
-    .filter-btn:hover, .filter-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-    .add-deadline-btn { background: var(--primary-color); color: white; border: none; padding: var(--space-2-5) var(--space-5); border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-medium); display: flex; align-items: center; gap: var(--space-2); font-size: 0.9rem; }
-    .add-deadline-btn:hover { background: var(--color-primary-600); }
+/* ── Selected day deadline list ── */
+.day-deadlines-panel {
+    background: #f8f9fc; border-top: 1px solid var(--border-color);
+    padding: var(--space-4) var(--space-5);
+}
+.day-panel-title { font-size: 0.78rem; font-weight: 700; color: #0B1D3A; margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: .4px; }
+.day-dl-item {
+    display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2-5) 0;
+    border-bottom: 1px solid var(--border-color); font-size: 0.82rem;
+}
+.day-dl-item:last-child { border-bottom: none; }
+.day-dl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.day-dl-title { flex: 1; font-weight: 500; }
+.day-dl-type { color: var(--text-muted); font-size: 0.75rem; }
 
-    .deadline-section { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); overflow: hidden; }
-    .section-header { padding: 16px 20px; background: var(--bg-light); border-bottom: 1px solid var(--border-color); font-weight: var(--font-semibold); display: flex; justify-content: space-between; align-items: center; }
-    .section-count { background: var(--primary-color); color: white; padding: 2px var(--space-2-5); border-radius: var(--radius-xl); font-size: 0.85rem; }
+/* ── Deadline list ── */
+.dl-panel { display: flex; flex-direction: column; gap: var(--space-4); }
 
-    .deadline-item { display: flex; align-items: center; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-color); gap: var(--space-4); transition: background 0.15s; }
-    .deadline-item:last-child { border-bottom: none; }
-    .deadline-item:hover { background: var(--bg-light); }
-    .deadline-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-    .dot-overdue { background: var(--color-error-600); }
-    .dot-thisweek { background: var(--color-warning-600); }
-    .dot-upcoming { background: var(--color-success-500); }
-    .dot-completed { background: var(--color-gray-400); }
-    .deadline-content { flex: 1; min-width: 0; }
-    .deadline-title { font-weight: 500; margin-bottom: 2px; }
-    .deadline-client { font-size: 0.85rem; color: var(--text-muted); }
-    .deadline-meta { text-align: right; flex-shrink: 0; }
-    .deadline-date-value { font-weight: 600; font-size: 0.9rem; }
-    .deadline-date-value.overdue { color: var(--color-error-600); }
-    .deadline-days { font-size: 0.8rem; color: var(--text-muted); }
-    .deadline-days.overdue { color: var(--color-error-600); font-weight: var(--font-medium); }
+.dl-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-2);
+}
+.dl-actions { display: flex; gap: var(--space-2); }
+.btn-gold {
+    background: #C9A84C; color: #fff; border: none;
+    padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-lg);
+    font-weight: 600; font-size: 0.88rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: var(--space-1-5); transition: all .15s;
+}
+.btn-gold:hover { background: #b8952e; transform: translateY(-1px); }
+.btn-generate {
+    background: #0B1D3A; color: #fff; border: none;
+    padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-lg);
+    font-weight: 600; font-size: 0.88rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: var(--space-1-5); transition: all .15s;
+}
+.btn-generate:hover { background: #152d56; }
+.filter-select {
+    padding: var(--space-2) var(--space-3); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); background: var(--white); font-size: 0.85rem;
+    color: var(--text-dark); cursor: pointer;
+}
 
-    .status-badge { display: inline-block; padding: 3px var(--space-2-5); border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: var(--font-semibold); }
-    .badge-pending { background: var(--color-warning-100); color: var(--color-warning-800); }
-    .badge-in-progress { background: var(--color-info-100); color: var(--color-info-800); }
-    .badge-filed { background: var(--color-success-100); color: var(--color-success-800); }
-    .badge-extended { background: var(--badge-purple-bg); color: var(--badge-purple-text); }
+/* Deadline group */
+.dl-group { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); overflow: hidden; }
+.dl-group-header {
+    padding: var(--space-3) var(--space-5); background: #f4f6fb;
+    border-bottom: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+    cursor: pointer; user-select: none;
+}
+.dl-group-title { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: .4px; color: #0B1D3A; display: flex; align-items: center; gap: var(--space-2); }
+.group-dot { width: 8px; height: 8px; border-radius: 50%; }
+.group-count {
+    background: var(--white); border: 1px solid var(--border-color);
+    border-radius: 99px; padding: 1px 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+}
+.dl-group-body { }
+.dl-group-body.collapsed { display: none; }
 
-    .deadline-actions { display: flex; gap: var(--space-1-5); flex-shrink: 0; }
-    .action-btn { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--white); cursor: pointer; font-size: 0.78rem; transition: all 0.15s; white-space: nowrap; }
-    .action-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
-    .action-btn.complete:hover { border-color: var(--color-success-600); color: var(--color-success-600); }
+/* Deadline row */
+.dl-row {
+    display: flex; align-items: center; padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-color); gap: var(--space-4);
+    transition: background .15s;
+}
+.dl-row:last-child { border-bottom: none; }
+.dl-row:hover { background: #f8f9fc; }
+.dl-type-icon {
+    width: 36px; height: 36px; border-radius: var(--radius-lg);
+    background: #f4f6fb; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 1rem;
+}
+.dl-content { flex: 1; min-width: 0; }
+.dl-title { font-weight: 600; font-size: 0.9rem; color: #0B1D3A; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-sub { font-size: 0.78rem; color: var(--text-muted); }
+.dl-date-block { text-align: right; flex-shrink: 0; min-width: 90px; }
+.dl-date { font-weight: 700; font-size: 0.88rem; }
+.dl-date.overdue { color: #dc2626; }
+.dl-days { font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
+.dl-days.overdue { color: #dc2626; font-weight: 600; }
 
-    .empty-state { text-align: center; padding: var(--space-10) var(--space-5); color: var(--text-muted); }
+.status-badge {
+    padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .3px; display: inline-block; flex-shrink: 0;
+}
+.badge-overdue   { background: #fee2e2; color: #dc2626; }
+.badge-due_soon  { background: #fed7aa; color: #c2410c; }
+.badge-upcoming  { background: #dbeafe; color: #1d4ed8; }
+.badge-completed { background: #dcfce7; color: #15803d; }
+.badge-extended  { background: #f3e8ff; color: #7c3aed; }
+.badge-waived    { background: #f3f4f6; color: #9ca3af; }
 
-    /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(11,29,58,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: var(--space-5); }
-    .modal-content { background: var(--white); border-radius: var(--radius-xl); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
-    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h3 { font-weight: 600; font-size: 1.1rem; margin: 0; }
-    .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: var(--space-1); }
-    .modal-body { padding: 24px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark); }
-    .form-control { width: 100%; padding: var(--space-2-5) var(--space-3); border: 1px solid var(--border-color); border-radius: var(--radius-lg); font-size: 0.9rem; box-sizing: border-box; }
-    .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1); }
-    textarea.form-control { resize: vertical; min-height: 70px; }
-    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: var(--space-2-5); }
-    .btn-cancel { padding: 10px 20px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--white); cursor: pointer; font-size: 0.9rem; }
-    .btn-save { padding: 10px 20px; border: none; border-radius: var(--radius-lg); background: var(--primary-color); color: white; cursor: pointer; font-size: 0.9rem; font-weight: var(--font-medium); }
-    .btn-save:hover { background: var(--color-primary-600); }
+.dl-row-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+.action-btn {
+    padding: 5px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md);
+    background: var(--white); cursor: pointer; font-size: 0.75rem; font-weight: 500;
+    transition: all .15s; white-space: nowrap; color: var(--text-dark);
+    display: flex; align-items: center; gap: 4px;
+}
+.action-btn:hover           { border-color: #0B1D3A; color: #0B1D3A; }
+.action-btn.complete:hover  { border-color: #15803d; color: #15803d; }
+.action-btn.extend:hover    { border-color: #7c3aed; color: #7c3aed; }
+.action-btn.delete:hover    { border-color: #dc2626; color: #dc2626; }
 
-    /* Toast */
-    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: var(--space-2); }
-    .toast { padding: 12px 20px; border-radius: var(--radius-lg); color: white; font-size: 0.9rem; font-weight: var(--font-medium); box-shadow: 0 4px 12px rgba(11,29,58,0.12); transform: translateX(120%); transition: transform 0.3s ease; }
-    .toast.show { transform: translateX(0); }
-    .toast-success { background: var(--color-success-600); }
-    .toast-info { background: var(--primary-color); }
-    .toast-warning { background: var(--color-warning-600); }
+/* Empty state */
+.empty-state {
+    text-align: center; padding: 60px var(--space-5); color: var(--text-muted);
+}
+.empty-state-icon { font-size: 3rem; margin-bottom: var(--space-3); opacity: .4; }
+.empty-state h3 { font-size: 1.05rem; color: #0B1D3A; margin-bottom: var(--space-2); }
 
-    @media (max-width: 768px) {
-        .deadline-stats { grid-template-columns: repeat(2, 1fr); }
-        .deadline-item { flex-wrap: wrap; }
-        .deadline-actions { width: 100%; justify-content: flex-end; }
-        .deadlines-header { flex-direction: column; align-items: stretch; }
-    }
+/* Skeleton */
+.skeleton { background: #e5e7eb; border-radius: var(--radius-md); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Modal ── */
+.modal-overlay {
+    position: fixed; inset: 0; background: rgba(11,29,58,.4);
+    z-index: 200; display: flex; align-items: center; justify-content: center; padding: var(--space-4);
+}
+.modal {
+    background: var(--white); border-radius: var(--radius-xl); width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(11,29,58,.15);
+}
+.modal-header {
+    padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--white);
+}
+.modal-header h2 { font-size: 1.05rem; font-weight: 700; color: #0B1D3A; }
+.modal-close {
+    background: none; border: none; cursor: pointer; padding: var(--space-1);
+    border-radius: var(--radius-md); color: var(--text-muted); display: flex;
+}
+.modal-close:hover { background: #f4f6fb; }
+.modal-body { padding: var(--space-5) var(--space-6); }
+.form-group { margin-bottom: var(--space-4); }
+.form-group label {
+    display: block; font-size: 0.82rem; font-weight: 600;
+    color: #0B1D3A; margin-bottom: var(--space-1-5);
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: var(--space-2-5) var(--space-3); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); font-size: 0.88rem; font-family: inherit;
+    background: var(--white); box-sizing: border-box;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: #0B1D3A;
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.modal-footer {
+    padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-color);
+    display: flex; justify-content: flex-end; gap: var(--space-2);
+}
+.btn-cancel {
+    padding: var(--space-2-5) var(--space-5); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); background: var(--white); cursor: pointer; font-size: 0.88rem;
+}
+.btn-save {
+    padding: var(--space-2-5) var(--space-5); border: none;
+    border-radius: var(--radius-lg); background: #0B1D3A; color: #fff;
+    cursor: pointer; font-size: 0.88rem; font-weight: 600;
+}
+.btn-save:hover { background: #152d56; }
+
+/* Extension modal */
+.ext-info { font-size: 0.85rem; color: var(--text-muted); background: #f8f9fc; padding: var(--space-3); border-radius: var(--radius-lg); margin-bottom: var(--space-4); }
+
+/* ── Responsive ── */
+@media (max-width: 1050px) { .dl-layout { grid-template-columns: 1fr; } .calendar-panel { position: static; } }
+@media (max-width: 640px)  { .summary-grid { grid-template-columns: repeat(2, 1fr); } .form-row { grid-template-columns: 1fr; } }
+@media (max-width: 480px)  { .dl-row-actions { flex-direction: column; } }
 </style>
 {% endblock %}
 
 {% block breadcrumbs %}
-<div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-6); font-size: 0.9rem;">
-    <a href="/cpa/dashboard" style="color: var(--text-muted, #6b7280); text-decoration: none;">Dashboard</a>
-    <span style="color: var(--text-light, #9ca3af);">&rsaquo;</span>
-    <span style="color: var(--text-dark, #1f2937); font-weight: var(--font-medium);">Deadlines</span>
+<div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-5);font-size:0.88rem;">
+    <a href="/cpa/dashboard" style="color:var(--text-muted);text-decoration:none;">Dashboard</a>
+    <span style="color:var(--text-muted);">&rsaquo;</span>
+    <span style="color:#0B1D3A;font-weight:600;">Deadlines</span>
 </div>
 {% endblock %}
 
 {% block content %}
-<div x-data="deadlineManager()" x-cloak>
-    <!-- Toast notifications -->
-    <div class="toast-container">
-        <template x-for="t in toasts" :key="t.id">
-            <div class="toast" :class="'toast-' + t.type + (t.visible ? ' show' : '')" x-text="t.msg"></div>
-        </template>
-    </div>
-
-    <!-- Stats -->
-    <div class="deadline-stats">
-        <div class="stat-card">
-            <div class="stat-value urgent" x-text="overdueCount"></div>
-            <div class="stat-label">Overdue</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value warning" x-text="thisWeekCount"></div>
-            <div class="stat-label">Due This Week</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" x-text="thisMonthCount"></div>
-            <div class="stat-label">Due This Month</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value success" x-text="completedCount"></div>
-            <div class="stat-label">Completed</div>
+<!-- Summary cards -->
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-icon icon-red">&#9888;</div>
+        <div class="summary-body">
+            <div class="summary-value val-red" id="cnt-overdue">—</div>
+            <div class="summary-label">Overdue</div>
         </div>
     </div>
-
-    <!-- Progress bar -->
-    <div class="progress-section">
-        <div class="progress-header">
-            <span class="progress-title">Monthly Completion Progress</span>
-            <span class="progress-pct" x-text="completionPct + '%'"></span>
+    <div class="summary-card">
+        <div class="summary-icon icon-orange">&#8987;</div>
+        <div class="summary-body">
+            <div class="summary-value val-orange" id="cnt-due_soon">—</div>
+            <div class="summary-label">Due This Week</div>
         </div>
-        <div class="progress-track">
-            <div class="progress-fill" :style="'width:' + completionPct + '%'"></div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon icon-navy">&#128197;</div>
+        <div class="summary-body">
+            <div class="summary-value val-navy" id="cnt-upcoming">—</div>
+            <div class="summary-label">Due This Month</div>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon icon-green">&#10003;</div>
+        <div class="summary-body">
+            <div class="summary-value val-green" id="cnt-completed">—</div>
+            <div class="summary-label">Completed</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main layout -->
+<div class="dl-layout">
+    <!-- Calendar -->
+    <div class="calendar-panel">
+        <div class="cal-header">
+            <button class="cal-nav" id="cal-prev" onclick="calNav(-1)" aria-label="Previous month">&#8249;</button>
+            <span class="cal-month-title" id="cal-title"></span>
+            <button class="cal-nav" id="cal-next" onclick="calNav(1)" aria-label="Next month">&#8250;</button>
+        </div>
+        <div class="cal-dow-row">
+            <div class="cal-dow">Su</div><div class="cal-dow">Mo</div><div class="cal-dow">Tu</div>
+            <div class="cal-dow">We</div><div class="cal-dow">Th</div><div class="cal-dow">Fr</div>
+            <div class="cal-dow">Sa</div>
+        </div>
+        <div class="cal-days" id="cal-days">
+            <!-- Skeleton -->
+            <div class="skeleton" style="aspect-ratio:1;border-radius:6px;"></div>
+            <div class="skeleton" style="aspect-ratio:1;border-radius:6px;grid-column:span 6;"></div>
+        </div>
+        <div class="day-deadlines-panel" id="day-panel" style="display:none;">
+            <div class="day-panel-title" id="day-panel-title"></div>
+            <div id="day-panel-list"></div>
         </div>
     </div>
 
-    <!-- Tax reference calendar -->
-    <div class="tax-deadlines">
-        <div class="tax-deadlines-title">
-            {{ icon('calendar') }} Important Tax Deadlines (2026)
+    <!-- Deadline list panel -->
+    <div class="dl-panel">
+        <div class="dl-toolbar">
+            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                <select class="filter-select" id="dl-filter-type" onchange="applyDlFilter()">
+                    <option value="">All Types</option>
+                    <option value="filing">Filing</option>
+                    <option value="extension">Extension</option>
+                    <option value="estimated_q1">Est. Q1</option>
+                    <option value="estimated_q2">Est. Q2</option>
+                    <option value="estimated_q3">Est. Q3</option>
+                    <option value="estimated_q4">Est. Q4</option>
+                    <option value="document_request">Document Request</option>
+                    <option value="review">Review</option>
+                    <option value="signature">Signature</option>
+                    <option value="payment">Payment</option>
+                </select>
+                <select class="filter-select" id="dl-filter-year" onchange="applyDlFilter()">
+                    <option value="">All Years</option>
+                    <option value="2025" selected>2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </div>
+            <div class="dl-actions">
+                <button class="btn-generate" id="btn-generate" onclick="generateStandard()">
+                    &#9889; Generate 2025 Deadlines
+                </button>
+                <button class="btn-gold" onclick="openAddModal()">
+                    &#43; Add Deadline
+                </button>
+            </div>
         </div>
-        <div class="tax-deadline-grid">
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Jan 15</div><div class="tax-deadline-name">Q4 2025 Estimated Tax</div></div>
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Jan 31</div><div class="tax-deadline-name">W-2 / 1099 Filing</div></div>
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Mar 15</div><div class="tax-deadline-name">S-Corp / Partnership (1065, 1120-S)</div></div>
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Apr 15</div><div class="tax-deadline-name">Individual Returns (1040) / Q1 Est.</div></div>
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Jun 15</div><div class="tax-deadline-name">Q2 Estimated Tax</div></div>
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Sep 15</div><div class="tax-deadline-name">Extended S-Corp/Partnership / Q3 Est.</div></div>
-            <div class="tax-deadline-card"><div class="tax-deadline-date">Oct 15</div><div class="tax-deadline-name">Extended Individual Returns</div></div>
+
+        <!-- Overdue group -->
+        <div class="dl-group" id="group-overdue">
+            <div class="dl-group-header" onclick="toggleGroup('overdue')">
+                <span class="dl-group-title"><span class="group-dot dot-overdue"></span>Overdue</span>
+                <span class="group-count" id="gcnt-overdue">0</span>
+            </div>
+            <div class="dl-group-body" id="gbody-overdue">
+                <div style="padding:24px;text-align:center;">
+                    <div class="skeleton" style="height:14px;width:50%;margin:0 auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Due Soon group -->
+        <div class="dl-group" id="group-due_soon">
+            <div class="dl-group-header" onclick="toggleGroup('due_soon')">
+                <span class="dl-group-title"><span class="group-dot dot-due_soon"></span>Due Soon (within 7 days)</span>
+                <span class="group-count" id="gcnt-due_soon">0</span>
+            </div>
+            <div class="dl-group-body" id="gbody-due_soon"></div>
+        </div>
+
+        <!-- Upcoming group -->
+        <div class="dl-group" id="group-upcoming">
+            <div class="dl-group-header" onclick="toggleGroup('upcoming')">
+                <span class="dl-group-title"><span class="group-dot dot-upcoming"></span>Upcoming</span>
+                <span class="group-count" id="gcnt-upcoming">0</span>
+            </div>
+            <div class="dl-group-body" id="gbody-upcoming"></div>
+        </div>
+
+        <!-- Completed group -->
+        <div class="dl-group" id="group-completed">
+            <div class="dl-group-header" onclick="toggleGroup('completed')">
+                <span class="dl-group-title"><span class="group-dot dot-completed"></span>Completed</span>
+                <span class="group-count" id="gcnt-completed">0</span>
+            </div>
+            <div class="dl-group-body collapsed" id="gbody-completed"></div>
         </div>
     </div>
+</div>
 
-    <!-- Filters + Add -->
-    <div class="deadlines-header">
-        <div class="deadline-filters">
-            <template x-for="f in filters" :key="f.key">
-                <button class="filter-btn" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key" x-text="f.label"></button>
-            </template>
-        </div>
-        <div style="display: flex; gap: var(--space-2);">
-            <button class="add-deadline-btn" style="background: var(--color-success-600);" @click="generateStandardDeadlines()">
-                {{ icon('calendar') }} Generate Standard Deadlines
+<!-- ── Add Deadline Modal ── -->
+<div class="modal-overlay" id="add-modal" style="display:none;" onclick="if(event.target===this)closeAddModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>Add Deadline</h2>
+            <button class="modal-close" onclick="closeAddModal()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <button class="add-deadline-btn" @click="openModal()">
-                {{ icon('plus') }} Add Deadline
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="dl-type">Deadline Type</label>
+                <select id="dl-type" onchange="autofillTitle()">
+                    <option value="filing">Filing</option>
+                    <option value="extension">Extension</option>
+                    <option value="estimated_q1">Estimated Tax Q1</option>
+                    <option value="estimated_q2">Estimated Tax Q2</option>
+                    <option value="estimated_q3">Estimated Tax Q3</option>
+                    <option value="estimated_q4">Estimated Tax Q4</option>
+                    <option value="document_request">Document Request</option>
+                    <option value="review">Review</option>
+                    <option value="signature">Signature</option>
+                    <option value="payment">Payment</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dl-title">Title</label>
+                <input type="text" id="dl-title" placeholder="e.g. Form 1040 Filing Deadline">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dl-due">Due Date <span style="color:#dc2626;">*</span></label>
+                    <input type="date" id="dl-due">
+                </div>
+                <div class="form-group">
+                    <label for="dl-year">Tax Year</label>
+                    <input type="number" id="dl-year" value="2025" min="2020" max="2030">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="dl-client">Client (optional)</label>
+                <input type="text" id="dl-client" placeholder="Client name or ID">
+            </div>
+            <div class="form-group">
+                <label for="dl-desc">Description (optional)</label>
+                <textarea id="dl-desc" placeholder="Additional notes..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+            <button class="btn-save" onclick="saveDeadline()">Add Deadline</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Extension Modal ── -->
+<div class="modal-overlay" id="ext-modal" style="display:none;" onclick="if(event.target===this)closeExtModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:420px;">
+        <div class="modal-header">
+            <h2>File Extension</h2>
+            <button class="modal-close" onclick="closeExtModal()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
         </div>
-    </div>
-
-    <!-- Client Deadlines list -->
-    <div class="deadline-section">
-        <div class="section-header">
-            <span>Client Deadlines</span>
-            <span class="section-count" x-text="filteredDeadlines.length"></span>
-        </div>
-        <template x-if="filteredDeadlines.length === 0">
-            <div class="empty-state">
-                <p>No deadlines match the current filter.</p>
+        <div class="modal-body">
+            <div class="ext-info" id="ext-info"></div>
+            <input type="hidden" id="ext-dl-id">
+            <div class="form-group">
+                <label for="ext-date">New Due Date <span style="color:#dc2626;">*</span></label>
+                <input type="date" id="ext-date">
             </div>
-        </template>
-        <template x-for="d in filteredDeadlines" :key="d.id">
-            <div class="deadline-item">
-                <div class="deadline-dot" :class="dotClass(d)"></div>
-                <div class="deadline-content">
-                    <div class="deadline-title" x-text="d.title"></div>
-                    <div class="deadline-client" x-text="d.client"></div>
-                </div>
-                <div style="flex-shrink:0;">
-                    <span class="status-badge" :class="badgeClass(d.status)" x-text="statusLabel(d.status)"></span>
-                </div>
-                <div class="deadline-meta">
-                    <div class="deadline-date-value" :class="{ overdue: daysUntil(d.due) < 0 && d.status !== 'filed' }" x-text="fmtDate(d.due)"></div>
-                    <div class="deadline-days" :class="{ overdue: daysUntil(d.due) < 0 && d.status !== 'filed' }" x-text="daysLabel(d)"></div>
-                </div>
-                <div class="deadline-actions">
-                    <button class="action-btn complete" @click="markComplete(d)" x-show="d.status !== 'filed'">Complete</button>
-                    <button class="action-btn" @click="extendDeadline(d)" x-show="d.status !== 'filed'">Extend</button>
-                    <button class="action-btn" @click="editDeadline(d)">Edit</button>
-                </div>
-            </div>
-        </template>
-    </div>
-
-    <!-- Add / Edit Modal -->
-    <template x-if="showModal">
-        <div class="modal-overlay" @click.self="showModal = false" @keydown.escape.window="showModal = false">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 x-text="editingId ? 'Edit Deadline' : 'Add Deadline'"></h3>
-                    <button class="modal-close" @click="showModal = false">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Title</label>
-                        <input class="form-control" type="text" x-model="form.title" placeholder="e.g. Individual Return - Form 1040">
-                    </div>
-                    <div class="form-group">
-                        <label>Client</label>
-                        <select class="form-control" x-model="form.client">
-                            <option value="">Select client...</option>
-                            <template x-for="c in clientList" :key="c"><option :value="c" x-text="c"></option></template>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select class="form-control" x-model="form.type">
-                            <option value="Individual">Individual</option>
-                            <option value="Corporate">Corporate</option>
-                            <option value="Partnership">Partnership</option>
-                            <option value="S-Corp">S-Corp</option>
-                            <option value="Trust">Trust</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Due Date</label>
-                        <input class="form-control" type="date" x-model="form.due">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select class="form-control" x-model="form.status">
-                            <option value="pending">Pending</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="filed">Filed</option>
-                            <option value="extended">Extended</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Notes</label>
-                        <textarea class="form-control" x-model="form.notes" placeholder="Optional notes..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-cancel" @click="showModal = false">Cancel</button>
-                    <button class="btn-save" @click="saveDeadline()" x-text="editingId ? 'Update' : 'Add Deadline'"></button>
-                </div>
+            <div class="form-group">
+                <label for="ext-reason">Reason</label>
+                <textarea id="ext-reason" placeholder="Reason for extension..."></textarea>
             </div>
         </div>
-    </template>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeExtModal()">Cancel</button>
+            <button class="btn-save" onclick="submitExtension()">Submit Extension</button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<script defer src="/static/js/vendor/alpine.min.js"></script>
 <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('deadlineManager', () => ({
-        activeFilter: 'all',
-        showModal: false,
-        editingId: null,
-        toasts: [],
-        nextToastId: 1,
-        loading: false,
-        filters: [
-            { key: 'all', label: 'All Deadlines' },
-            { key: 'overdue', label: 'Overdue' },
-            { key: 'week', label: 'This Week' },
-            { key: 'month', label: 'This Month' }
-        ],
-        clientList: [],
-        form: { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' },
-        deadlines: [],
+window.__CPA_CTX = {
+    userId:   '{{ current_user.id | default("") }}',
+    userName: '{{ current_user.name | default(current_user.email | default("")) }}',
+    cpaId:    '{{ cpa.cpa_id | default("default") }}'
+};
 
-        /* Summary stats from backend (fallback to client-side computed) */
-        _summary: null,
+(function () {
+    'use strict';
 
-        /* ================================================================
-         * API HELPER — JWT auth via localStorage('auth_token')
-         * ===============================================================*/
-        async api(endpoint, options = {}) {
-            const token = localStorage.getItem('auth_token');
-            const headers = {
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                ...options.headers,
-            };
-            const url = endpoint.startsWith('http') ? endpoint : endpoint;
-            const resp = await fetch(url, { ...options, headers, credentials: 'same-origin' });
-            if (resp.status === 401) {
-                this.toast('Session expired. Please log in again.', 'warning');
-                throw new Error('Unauthorized');
-            }
-            if (!resp.ok) {
-                const body = await resp.json().catch(() => ({}));
-                throw new Error(body.detail || body.message || `API error ${resp.status}`);
-            }
-            return resp.json();
-        },
+    /* ── State ── */
+    let allDeadlines = [];
+    let calendarData = {}; // date -> [deadlines]
+    let selectedDate = null;
+    let calYear, calMonth;
 
-        /* Build query-string helper */
-        qs(params) {
-            const parts = Object.entries(params).filter(([, v]) => v != null && v !== '');
-            return parts.length ? '?' + new URLSearchParams(parts).toString() : '';
-        },
+    const now = new Date();
+    calYear  = now.getFullYear();
+    calMonth = now.getMonth(); // 0-indexed
 
-        /* Map backend status to UI status labels the template already uses */
-        _mapBackendStatus(s) {
-            const map = { upcoming: 'pending', due_soon: 'in_progress', overdue: 'pending', completed: 'filed', extended: 'extended', waived: 'filed' };
-            return map[s] || s;
-        },
-        /* Map UI status back to backend status for PUT/POST */
-        _mapUiStatus(s) {
-            const map = { pending: 'upcoming', in_progress: 'due_soon', filed: 'completed', extended: 'extended' };
-            return map[s] || s;
-        },
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const TYPE_ICONS = {
+        filing: '&#128196;', extension: '&#127381;', estimated_q1: '&#128176;', estimated_q2: '&#128176;',
+        estimated_q3: '&#128176;', estimated_q4: '&#128176;', document_request: '&#128193;',
+        review: '&#128270;', signature: '&#9997;', payment: '&#128180;', custom: '&#128204;'
+    };
+    const TYPE_LABELS = {
+        filing: 'Filing', extension: 'Extension', estimated_q1: 'Est. Q1', estimated_q2: 'Est. Q2',
+        estimated_q3: 'Est. Q3', estimated_q4: 'Est. Q4', document_request: 'Doc Request',
+        review: 'Review', signature: 'Signature', payment: 'Payment', custom: 'Custom'
+    };
+    const TITLE_DEFAULTS = {
+        filing: 'Tax Return Filing Deadline', extension: 'Extension Request',
+        estimated_q1: 'Q1 Estimated Tax Payment', estimated_q2: 'Q2 Estimated Tax Payment',
+        estimated_q3: 'Q3 Estimated Tax Payment', estimated_q4: 'Q4 Estimated Tax Payment',
+        document_request: 'Document Collection Deadline', review: 'Return Review Deadline',
+        signature: 'Client Signature Required', payment: 'Tax Payment Due', custom: ''
+    };
 
-        /* Normalize a backend deadline object to the shape the UI expects */
-        _normalize(d) {
-            return {
-                id: d.id,
-                title: d.title || '',
-                client: d.client_id || '',
-                type: (d.deadline_type || 'custom').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-                due: (d.effective_due_date || d.due_date || '').slice(0, 10),
-                status: this._mapBackendStatus(d.status),
-                notes: d.notes || d.description || '',
-                /* preserve raw backend fields for API calls */
-                _raw: d,
-            };
-        },
-
-        /* Map the form type label back to a DeadlineType enum value */
-        _typeToEnum(t) {
-            const map = {
-                'Individual': 'filing', 'Corporate': 'filing', 'Partnership': 'filing',
-                'S-Corp': 'filing', 'Trust': 'filing', 'Other': 'custom',
-            };
-            return map[t] || 'custom';
-        },
-
-        /* ================================================================
-         * INIT — fetch deadlines + summary from backend
-         * ===============================================================*/
-        async init() {
-            await this.fetchDeadlines();
-        },
-
-        async fetchDeadlines() {
-            this.loading = true;
-            try {
-                const firmId = this._getFirmId();
-                const [listRes, summaryRes] = await Promise.allSettled([
-                    this.api('/api/cpa/deadlines' + this.qs({ firm_id: firmId, include_completed: true })),
-                    this.api('/api/cpa/deadlines/summary' + this.qs({ firm_id: firmId })),
-                ]);
-
-                if (listRes.status === 'fulfilled' && listRes.value.success) {
-                    this.deadlines = (listRes.value.deadlines || []).map(d => this._normalize(d));
-                } else {
-                    /* Fallback: seed with demo data so the page is never blank */
-                    this._seedDemoData();
-                }
-
-                if (summaryRes.status === 'fulfilled' && summaryRes.value.success) {
-                    this._summary = summaryRes.value;
-                }
-            } catch (e) {
-                console.warn('Deadlines API unavailable, using demo data:', e.message);
-                this._seedDemoData();
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        /* Demo fallback (same data as the original template) */
-        _seedDemoData() {
-            const today = new Date();
-            const d = (offset) => { const dt = new Date(today); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0, 10); };
-            this.deadlines = [];
-        },
-
-        _getFirmId() {
-            try {
-                const token = localStorage.getItem('auth_token');
-                if (token) {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    return payload.firm_id || payload.tenant_id || 'default';
-                }
-            } catch (_) { /* ignore */ }
-            return 'default';
-        },
-
-        /* ================================================================
-         * COMPUTED COUNTS — prefer backend summary, fallback to local
-         * ===============================================================*/
-        get overdueCount() {
-            if (this._summary) return this._summary.overdue || 0;
-            return this.deadlines.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed').length;
-        },
-        get thisWeekCount() {
-            if (this._summary) return this._summary.due_this_week || 0;
-            return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 7 && d.status !== 'filed'; }).length;
-        },
-        get thisMonthCount() {
-            if (this._summary) return this._summary.due_this_month || 0;
-            return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 30 && d.status !== 'filed'; }).length;
-        },
-        get completedCount() {
-            if (this._summary && this._summary.by_status) return this._summary.by_status.completed || 0;
-            return this.deadlines.filter(d => d.status === 'filed').length;
-        },
-        get completionPct() {
-            if (this._summary) return Math.round(this._summary.completion_rate || 0);
-            const total = this.deadlines.length;
-            if (!total) return 0;
-            return Math.round((this.completedCount / total) * 100);
-        },
-
-        /* ================================================================
-         * FILTERING
-         * ===============================================================*/
-        get filteredDeadlines() {
-            let list = [...this.deadlines];
-            if (this.activeFilter === 'overdue') list = list.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed');
-            else if (this.activeFilter === 'week') list = list.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 7 && d.status !== 'filed'; });
-            else if (this.activeFilter === 'month') list = list.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 30 && d.status !== 'filed'; });
-            return list.sort((a, b) => new Date(a.due) - new Date(b.due));
-        },
-
-        /* ================================================================
-         * HELPERS (unchanged UI logic)
-         * ===============================================================*/
-        daysUntil(dateStr) {
-            const due = new Date(dateStr + 'T00:00:00');
-            const now = new Date(); now.setHours(0, 0, 0, 0);
-            return Math.ceil((due - now) / 86400000);
-        },
-        fmtDate(dateStr) {
-            const dt = new Date(dateStr + 'T00:00:00');
-            return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        },
-        daysLabel(d) {
-            if (d.status === 'filed') return 'Filed';
-            const days = this.daysUntil(d.due);
-            if (days < 0) return Math.abs(days) + ' day' + (Math.abs(days) !== 1 ? 's' : '') + ' overdue';
-            if (days === 0) return 'Due today';
-            return days + ' day' + (days !== 1 ? 's' : '') + ' remaining';
-        },
-        dotClass(d) {
-            if (d.status === 'filed') return 'dot-completed';
-            const days = this.daysUntil(d.due);
-            if (days < 0) return 'dot-overdue';
-            if (days <= 7) return 'dot-thisweek';
-            return 'dot-upcoming';
-        },
-        badgeClass(status) {
-            return { pending: 'badge-pending', in_progress: 'badge-in-progress', filed: 'badge-filed', extended: 'badge-extended' }[status] || 'badge-pending';
-        },
-        statusLabel(status) {
-            return { pending: 'Pending', in_progress: 'In Progress', filed: 'Filed', extended: 'Extended' }[status] || status;
-        },
-
-        /* ================================================================
-         * ACTIONS — wired to backend API
-         * ===============================================================*/
-        async markComplete(d) {
-            try {
-                await this.api(`/api/cpa/deadlines/${d.id}/complete`, { method: 'POST' });
-                d.status = 'filed';
-                this._summary = null; /* invalidate cached summary */
-                this.toast('Deadline marked as filed: ' + d.client, 'success');
-            } catch (e) {
-                /* Optimistic fallback for demo IDs */
-                if (String(d.id).startsWith('demo')) {
-                    d.status = 'filed';
-                    this.toast('Deadline marked as filed: ' + d.client, 'success');
-                } else {
-                    this.toast('Failed to complete deadline: ' + e.message, 'warning');
-                }
-            }
-        },
-
-        async extendDeadline(d) {
-            const dt = new Date(d.due + 'T00:00:00');
-            dt.setMonth(dt.getMonth() + 6);
-            const newDate = dt.toISOString().slice(0, 10);
-
-            try {
-                await this.api(`/api/cpa/deadlines/${d.id}/extension`, {
-                    method: 'POST',
-                    body: JSON.stringify({ extended_date: newDate }),
-                });
-                d.due = newDate;
-                d.status = 'extended';
-                this._summary = null;
-                this.toast('Deadline extended for ' + d.client, 'info');
-            } catch (e) {
-                if (String(d.id).startsWith('demo')) {
-                    d.due = newDate;
-                    d.status = 'extended';
-                    this.toast('Deadline extended for ' + d.client, 'info');
-                } else {
-                    this.toast('Failed to file extension: ' + e.message, 'warning');
-                }
-            }
-        },
-
-        editDeadline(d) {
-            this.editingId = d.id;
-            this.form = { title: d.title, client: d.client, type: d.type, due: d.due, status: d.status, notes: d.notes };
-            this.showModal = true;
-        },
-
-        openModal() {
-            this.editingId = null;
-            this.form = { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' };
-            this.showModal = true;
-        },
-
-        async saveDeadline() {
-            if (!this.form.title || !this.form.client || !this.form.due) {
-                this.toast('Please fill in title, client, and due date.', 'warning');
-                return;
-            }
-
-            if (this.editingId) {
-                /* UPDATE existing deadline via PUT */
-                try {
-                    const res = await this.api(`/api/cpa/deadlines/${this.editingId}`, {
-                        method: 'PUT',
-                        body: JSON.stringify({
-                            title: this.form.title,
-                            description: this.form.notes || null,
-                            due_date: this.form.due,
-                            notes: this.form.notes || null,
-                        }),
-                    });
-                    const idx = this.deadlines.findIndex(d => d.id === this.editingId);
-                    if (idx !== -1) {
-                        if (res.deadline) {
-                            this.deadlines[idx] = this._normalize(res.deadline);
-                        } else {
-                            Object.assign(this.deadlines[idx], { ...this.form });
-                        }
-                    }
-                    this._summary = null;
-                    this.toast('Deadline updated successfully.', 'success');
-                } catch (e) {
-                    /* Fallback for demo IDs */
-                    if (String(this.editingId).startsWith('demo')) {
-                        const idx = this.deadlines.findIndex(d => d.id === this.editingId);
-                        if (idx !== -1) Object.assign(this.deadlines[idx], { ...this.form });
-                        this.toast('Deadline updated successfully.', 'success');
-                    } else {
-                        this.toast('Failed to update deadline: ' + e.message, 'warning');
-                    }
-                }
-            } else {
-                /* CREATE new deadline via POST */
-                try {
-                    const firmId = this._getFirmId();
-                    const res = await this.api('/api/cpa/deadlines' + this.qs({ firm_id: firmId }), {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            deadline_type: this._typeToEnum(this.form.type),
-                            due_date: this.form.due,
-                            title: this.form.title,
-                            description: this.form.notes || null,
-                            client_id: null,
-                            tax_year: new Date(this.form.due).getFullYear(),
-                            priority: 'normal',
-                            auto_reminders: true,
-                        }),
-                    });
-                    if (res.deadline) {
-                        this.deadlines.push(this._normalize(res.deadline));
-                    } else {
-                        this.deadlines.push({ id: 'local-' + Date.now(), ...this.form });
-                    }
-                    this._summary = null;
-                    this.toast('Deadline added successfully.', 'success');
-                } catch (e) {
-                    /* Fallback: add locally */
-                    this.deadlines.push({ id: 'local-' + Date.now(), ...this.form });
-                    this.toast('Deadline added successfully.', 'success');
-                }
-            }
-            this.showModal = false;
-        },
-
-        /* ================================================================
-         * GENERATE STANDARD DEADLINES
-         * ===============================================================*/
-        async generateStandardDeadlines() {
-            const year = new Date().getFullYear();
-            try {
-                const firmId = this._getFirmId();
-                const res = await this.api('/api/cpa/deadlines/generate-standard' + this.qs({ firm_id: firmId }), {
-                    method: 'POST',
-                    body: JSON.stringify({ tax_year: year, include_estimated: true }),
-                });
-                const count = res.total || (res.deadlines || []).length;
-                this.toast(`Generated ${count} standard deadlines for ${year}.`, 'success');
-                await this.fetchDeadlines();
-            } catch (e) {
-                this.toast('Failed to generate deadlines: ' + e.message, 'warning');
-            }
-        },
-
-        /* ================================================================
-         * TOAST (unchanged)
-         * ===============================================================*/
-        toast(msg, type = 'info') {
-            const id = this.nextToastId++;
-            const t = { id, msg, type, visible: false };
-            this.toasts.push(t);
-            requestAnimationFrame(() => { t.visible = true; });
-            setTimeout(() => { t.visible = false; setTimeout(() => { this.toasts = this.toasts.filter(x => x.id !== id); }, 350); }, 3000);
-        }
-    }));
-});
-
-document.addEventListener('DOMContentLoaded', async function() {
-  try {
-    const resp = await fetch('/api/cpa/clients', {
-      headers: {'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')}
-    });
-    if (!resp.ok) return;
-    const data = await resp.json();
-    const clients = data.clients || data.items || data || [];
-    // Find the Alpine or Vue component and update clientList
-    const comp = document.querySelector('[x-data], [data-component]');
-    if (comp && comp.__x) {
-      comp.__x.$data.clientList = clients.map(c => c.name || c.client_name || c.email || '');
-    } else if (comp && comp._component) {
-      comp._component.clientList = clients.map(c => c.name || c.client_name || '');
-    } else {
-      // Fallback: populate any client datalist or select
-      const dl = document.querySelector('#clientList, datalist, select[name="client"]');
-      if (dl) {
-        clients.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.name || c.client_name || '';
-          dl.appendChild(opt);
+    /* ── API ── */
+    async function api(path, opts = {}) {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const token = sessionStorage.getItem('access_token') ||
+            document.cookie.split('; ').find(c => c.startsWith('access_token='))?.split('=')[1];
+        const headers = { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, ...opts.headers };
+        if (token) headers['Authorization'] = 'Bearer ' + decodeURIComponent(token);
+        const res = await fetch(path, {
+            method: opts.method || 'GET', headers,
+            body: opts.body ? JSON.stringify(opts.body) : undefined,
+            credentials: 'same-origin'
         });
-      }
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            throw new Error(e.detail || e.message || 'API error ' + res.status);
+        }
+        if (res.status === 204) return {};
+        return res.json();
     }
-  } catch(e) {}
-});
+
+    /* ── Formatters ── */
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    function fmtDate(d) {
+        if (!d) return '—';
+        return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function daysLabel(d) {
+        if (!d) return '';
+        const dt = new Date(d + 'T00:00:00');
+        const diff = Math.round((dt - today) / 86400000);
+        if (diff < 0) return Math.abs(diff) + ' day' + (Math.abs(diff) !== 1 ? 's' : '') + ' overdue';
+        if (diff === 0) return 'Due today';
+        if (diff === 1) return '1 day left';
+        return diff + ' days left';
+    }
+    function escHtml(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function statusBadge(s) {
+        const labels = { overdue:'Overdue', due_soon:'Due Soon', upcoming:'Upcoming', completed:'Completed', extended:'Extended', waived:'Waived' };
+        return `<span class="status-badge badge-${s}">${labels[s] || s}</span>`;
+    }
+    function effectiveStatus(d) {
+        if (d.status === 'completed' || d.status === 'extended' || d.status === 'waived') return d.status;
+        if (d.is_overdue || d.days_until_due < 0) return 'overdue';
+        if (d.days_until_due <= 7) return 'due_soon';
+        return 'upcoming';
+    }
+
+    /* ── Load ── */
+    async function loadAll() {
+        try {
+            const qs = buildQS();
+            const [deadlines, summary] = await Promise.all([
+                api('/api/deadlines' + (qs ? '?' + qs : '')),
+                api('/api/deadlines/summary')
+            ]);
+            allDeadlines = Array.isArray(deadlines) ? deadlines : (deadlines.deadlines || deadlines.items || []);
+            updateSummaryCards(summary);
+            renderGroups();
+            buildCalendarData();
+            renderCalendar();
+        } catch (err) {
+            showToast('Failed to load deadlines: ' + err.message, 'error');
+        }
+    }
+
+    function buildQS() {
+        const type = document.getElementById('dl-filter-type').value;
+        const year = document.getElementById('dl-filter-year').value;
+        const p = new URLSearchParams();
+        if (type) p.set('type', type);
+        if (year) p.set('year', year);
+        return p.toString();
+    }
+
+    window.applyDlFilter = function () { loadAll(); };
+
+    /* ── Summary Cards ── */
+    function updateSummaryCards(summary) {
+        if (!summary) {
+            // Derive from allDeadlines
+            summary = { overdue: 0, due_soon: 0, upcoming: 0, completed: 0 };
+            allDeadlines.forEach(d => {
+                const s = effectiveStatus(d);
+                if (s in summary) summary[s]++;
+            });
+        }
+        const fields = ['overdue', 'due_soon', 'upcoming', 'completed'];
+        fields.forEach(k => {
+            const el = document.getElementById('cnt-' + k);
+            if (el) el.textContent = summary[k] ?? 0;
+        });
+    }
+
+    /* ── Groups ── */
+    function renderGroups() {
+        const groups = { overdue: [], due_soon: [], upcoming: [], completed: [] };
+        allDeadlines.forEach(d => {
+            const s = effectiveStatus(d);
+            const key = s === 'extended' || s === 'waived' ? 'completed' : (s in groups ? s : 'upcoming');
+            groups[key].push(d);
+        });
+        ['overdue', 'due_soon', 'upcoming', 'completed'].forEach(g => {
+            const cnt = document.getElementById('gcnt-' + g);
+            const body = document.getElementById('gbody-' + g);
+            if (cnt) cnt.textContent = groups[g].length;
+            if (!body) return;
+            if (groups[g].length === 0) {
+                body.innerHTML = `<div style="padding:20px 24px;font-size:0.82rem;color:var(--text-muted);">No ${g.replace('_', ' ')} deadlines.</div>`;
+            } else {
+                body.innerHTML = groups[g].map(d => deadlineRowHTML(d)).join('');
+            }
+        });
+        // Show/hide generate button based on total
+        document.getElementById('btn-generate').style.display = allDeadlines.length === 0 ? '' : 'none';
+    }
+
+    function deadlineRowHTML(d) {
+        const overdue = effectiveStatus(d) === 'overdue';
+        const isFilingType = d.deadline_type === 'filing' || d.deadline_type === 'extension';
+        const extBtn = isFilingType && d.status !== 'completed'
+            ? `<button class="action-btn extend" onclick="openExtModal('${d.id}', event)">&#127381; Extend</button>` : '';
+        const completeBtn = d.status !== 'completed'
+            ? `<button class="action-btn complete" onclick="completeDeadline('${d.id}', event)">&#10003; Complete</button>` : '';
+        return `<div class="dl-row">
+            <div class="dl-type-icon">${TYPE_ICONS[d.deadline_type] || '&#128204;'}</div>
+            <div class="dl-content">
+                <div class="dl-title">${escHtml(d.title)}</div>
+                <div class="dl-sub">${d.client_id ? escHtml(d.client_id) + ' &bull; ' : ''}${TYPE_LABELS[d.deadline_type] || d.deadline_type}${d.tax_year ? ' &bull; ' + d.tax_year : ''}</div>
+            </div>
+            <div class="dl-date-block">
+                <div class="dl-date ${overdue ? 'overdue' : ''}">${fmtDate(d.due_date)}</div>
+                <div class="dl-days ${overdue ? 'overdue' : ''}">${daysLabel(d.due_date)}</div>
+            </div>
+            ${statusBadge(effectiveStatus(d))}
+            <div class="dl-row-actions">
+                ${completeBtn}
+                ${extBtn}
+                <button class="action-btn delete" onclick="deleteDeadline('${d.id}', event)">&#128465;</button>
+            </div>
+        </div>`;
+    }
+
+    /* ── Calendar ── */
+    function buildCalendarData() {
+        calendarData = {};
+        allDeadlines.forEach(d => {
+            if (!d.due_date) return;
+            if (!calendarData[d.due_date]) calendarData[d.due_date] = [];
+            calendarData[d.due_date].push(d);
+        });
+    }
+
+    function renderCalendar() {
+        const y = calYear, m = calMonth;
+        document.getElementById('cal-title').textContent = MONTH_NAMES[m] + ' ' + y;
+        const firstDay = new Date(y, m, 1).getDay();
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const todayStr = today.toISOString().split('T')[0];
+        const grid = document.getElementById('cal-days');
+        let html = '';
+        // empty cells before first day
+        for (let i = 0; i < firstDay; i++) html += '<div class="cal-day empty"></div>';
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isToday = dateStr === todayStr;
+            const isSel = dateStr === selectedDate;
+            const dayDeadlines = calendarData[dateStr] || [];
+            const dots = [...new Set(dayDeadlines.map(dl => effectiveStatus(dl)))].slice(0, 3)
+                .map(s => `<span class="cal-dot dot-${s}"></span>`).join('');
+            html += `<div class="cal-day ${isToday ? 'today' : ''} ${isSel ? 'selected' : ''}" onclick="selectDay('${dateStr}')">
+                <span>${d}</span>
+                ${dots ? `<div class="cal-dots">${dots}</div>` : ''}
+            </div>`;
+        }
+        grid.innerHTML = html;
+    }
+
+    window.calNav = function (dir) {
+        calMonth += dir;
+        if (calMonth > 11) { calMonth = 0; calYear++; }
+        if (calMonth < 0)  { calMonth = 11; calYear--; }
+        // Load calendar data for new month
+        api(`/api/deadlines/calendar/${calYear}/${calMonth + 1}`)
+            .then(data => {
+                if (data.days) {
+                    calendarData = {};
+                    data.days.forEach(day => {
+                        if (day.deadlines && day.deadlines.length) calendarData[day.date] = day.deadlines;
+                    });
+                }
+            })
+            .catch(() => {})
+            .finally(() => renderCalendar());
+    };
+
+    window.selectDay = function (dateStr) {
+        selectedDate = selectedDate === dateStr ? null : dateStr;
+        renderCalendar();
+        const panel = document.getElementById('day-panel');
+        if (!selectedDate) { panel.style.display = 'none'; return; }
+        const dls = calendarData[dateStr] || [];
+        document.getElementById('day-panel-title').textContent =
+            new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        if (dls.length === 0) {
+            document.getElementById('day-panel-list').innerHTML = '<div style="font-size:0.82rem;color:var(--text-muted);">No deadlines on this day.</div>';
+        } else {
+            document.getElementById('day-panel-list').innerHTML = dls.map(d => `
+                <div class="day-dl-item">
+                    <span class="day-dl-dot dot-${effectiveStatus(d)}"></span>
+                    <span class="day-dl-title">${escHtml(d.title)}</span>
+                    <span class="day-dl-type">${TYPE_LABELS[d.deadline_type] || ''}</span>
+                </div>`).join('');
+        }
+        panel.style.display = '';
+    };
+
+    /* ── Group collapse ── */
+    window.toggleGroup = function (g) {
+        const body = document.getElementById('gbody-' + g);
+        body.classList.toggle('collapsed');
+    };
+
+    /* ── Actions ── */
+    window.completeDeadline = async function (id, e) {
+        e && e.stopPropagation();
+        try {
+            await api(`/api/deadlines/${id}/complete`, { method: 'POST' });
+            const d = allDeadlines.find(x => x.id === id);
+            if (d) d.status = 'completed';
+            buildCalendarData(); renderCalendar();
+            updateSummaryCards(null);
+            renderGroups();
+            showToast('Deadline marked complete');
+        } catch (err) { showToast('Failed to complete deadline', 'error'); }
+    };
+
+    window.deleteDeadline = async function (id, e) {
+        e && e.stopPropagation();
+        if (!confirm('Delete this deadline?')) return;
+        try {
+            await api(`/api/deadlines/${id}`, { method: 'DELETE' });
+            allDeadlines = allDeadlines.filter(x => x.id !== id);
+            buildCalendarData(); renderCalendar();
+            updateSummaryCards(null);
+            renderGroups();
+            showToast('Deadline deleted');
+        } catch (err) { showToast('Failed to delete', 'error'); }
+    };
+
+    window.generateStandard = async function () {
+        const year = parseInt(document.getElementById('dl-filter-year').value) || 2025;
+        if (!confirm(`Generate standard IRS deadlines for ${year}? This will add filing and estimated tax dates.`)) return;
+        try {
+            const res = await api('/api/deadlines/generate-standard', { method: 'POST', body: { tax_year: year, client_ids: [] } });
+            showToast('Standard deadlines generated');
+            loadAll();
+        } catch (err) { showToast('Generation failed: ' + err.message, 'error'); }
+    };
+
+    /* ── Add Deadline Modal ── */
+    window.openAddModal = function () {
+        document.getElementById('add-modal').style.display = 'flex';
+        autofillTitle();
+    };
+    window.closeAddModal = function () {
+        document.getElementById('add-modal').style.display = 'none';
+    };
+    window.autofillTitle = function () {
+        const type = document.getElementById('dl-type').value;
+        const titleInput = document.getElementById('dl-title');
+        if (!titleInput.value || Object.values(TITLE_DEFAULTS).includes(titleInput.value)) {
+            titleInput.value = TITLE_DEFAULTS[type] || '';
+        }
+    };
+    window.saveDeadline = async function () {
+        const due = document.getElementById('dl-due').value;
+        if (!due) { document.getElementById('dl-due').focus(); return; }
+        const payload = {
+            deadline_type: document.getElementById('dl-type').value,
+            title: document.getElementById('dl-title').value.trim() || TITLE_DEFAULTS[document.getElementById('dl-type').value] || 'Deadline',
+            due_date: due,
+            tax_year: parseInt(document.getElementById('dl-year').value) || 2025,
+            client_id: document.getElementById('dl-client').value.trim() || null,
+            description: document.getElementById('dl-desc').value.trim() || null
+        };
+        try {
+            const res = await api('/api/deadlines', { method: 'POST', body: payload });
+            allDeadlines.unshift(res);
+            buildCalendarData(); renderCalendar();
+            updateSummaryCards(null);
+            renderGroups();
+            closeAddModal();
+            showToast('Deadline added');
+        } catch (err) { showToast('Failed to add deadline: ' + err.message, 'error'); }
+    };
+
+    /* ── Extension Modal ── */
+    window.openExtModal = function (id, e) {
+        e && e.stopPropagation();
+        const d = allDeadlines.find(x => x.id === id);
+        document.getElementById('ext-dl-id').value = id;
+        document.getElementById('ext-info').textContent = d ? `Extending: "${d.title}" (currently due ${fmtDate(d.due_date)})` : '';
+        document.getElementById('ext-date').value = '';
+        document.getElementById('ext-reason').value = '';
+        document.getElementById('ext-modal').style.display = 'flex';
+    };
+    window.closeExtModal = function () {
+        document.getElementById('ext-modal').style.display = 'none';
+    };
+    window.submitExtension = async function () {
+        const id = document.getElementById('ext-dl-id').value;
+        const newDate = document.getElementById('ext-date').value;
+        if (!newDate) { document.getElementById('ext-date').focus(); return; }
+        const payload = { new_due_date: newDate, reason: document.getElementById('ext-reason').value.trim() || null };
+        try {
+            const res = await api(`/api/deadlines/${id}/extension`, { method: 'POST', body: payload });
+            const idx = allDeadlines.findIndex(x => x.id === id);
+            if (idx !== -1) allDeadlines[idx] = { ...allDeadlines[idx], ...res, status: 'extended', due_date: newDate };
+            buildCalendarData(); renderCalendar();
+            updateSummaryCards(null);
+            renderGroups();
+            closeExtModal();
+            showToast('Extension filed');
+        } catch (err) { showToast('Failed to file extension: ' + err.message, 'error'); }
+    };
+
+    /* ── Toast ── */
+    function showToast(msg, type) {
+        if (typeof window.showToast === 'function') { window.showToast(msg, type || 'success'); return; }
+        const div = document.createElement('div');
+        div.textContent = msg;
+        div.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${type==='error'?'#dc2626':'#0B1D3A'};color:#fff;padding:12px 20px;border-radius:10px;font-size:0.88rem;box-shadow:0 4px 16px rgba(11,29,58,.2);`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 2800);
+    }
+
+    /* ── Keyboard ── */
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeAddModal(); closeExtModal();
+        }
+    });
+
+    /* ── Boot ── */
+    loadAll();
+})();
 </script>
 {% endblock %}

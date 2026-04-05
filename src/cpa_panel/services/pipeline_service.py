@@ -13,6 +13,8 @@ from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import logging
 
+from .audit_analytics_helper import get_audit_analytics_helper
+
 logger = logging.getLogger(__name__)
 
 
@@ -478,6 +480,39 @@ class LeadPipelineService:
             LeadState.HIGH_LEVERAGE: "Schedule advisory session",
         }
         return actions.get(lead.current_state, "Review lead status")
+
+    # =========================================================================
+    # AUDIT-BASED ANALYTICS METHODS
+    # =========================================================================
+
+    def get_tax_savings_metrics(self, tenant_id: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
+        """Get tax savings delivered per client from audit logs."""
+        helper = get_audit_analytics_helper()
+        return helper.get_tax_savings_by_client(tenant_id=tenant_id, days=days)
+
+    def get_return_processing_metrics(self, tenant_id: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
+        """Get return processing time and acceptance metrics."""
+        helper = get_audit_analytics_helper()
+        result = helper.get_return_processing_metrics(tenant_id=tenant_id, days=days)
+        # Convert dataclass to dict
+        return {
+            "total_returns": result.total_returns,
+            "avg_processing_days": result.avg_processing_days,
+            "submitted_count": result.submitted_count,
+            "accepted_count": result.accepted_count,
+            "acceptance_rate": result.acceptance_rate,
+            "latest_acceptance_date": result.latest_acceptance_date.isoformat() if result.latest_acceptance_date else None,
+        }
+
+    def get_lead_conversion_funnel_audit(self, tenant_id: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
+        """Get lead conversion funnel from audit logs."""
+        helper = get_audit_analytics_helper()
+        return helper.get_lead_conversion_funnel(tenant_id=tenant_id, days=days)
+
+    def get_recommendation_acceptance_metrics(self, tenant_id: Optional[str] = None, days: int = 30) -> Dict[str, Any]:
+        """Get recommendation acceptance rate from audit logs."""
+        helper = get_audit_analytics_helper()
+        return helper.get_recommendation_acceptance_rate(tenant_id=tenant_id, days=days)
 
 
 # Singleton instance

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_1116.py
+# hypothesis_version: 6.141.1
+
+[0.0, 1.0, 300.0, 600.0, 2025, 'Foreign source AMTI', 'TMT before AMT FTC', 'Type of foreign tax', 'Various', 'XX', 'accrued', 'amt_ftc', 'amt_ftc_breakdown', 'amt_ftc_limitation', 'can_use_simplified', 'carryover_used', 'categories', 'category', 'category_results', 'credit_allowed', 'excess_limitation', 'excess_profits_tax', 'excess_taxes', 'filing_status', 'foreign_branch', 'foreign_taxes_paid', 'general', 'gross_foreign_income', 'in_lieu_tax', 'income_tax', 'limitation', 'lump_sum', 'married_joint', 'net_foreign_income', 'new_carryforward', 'paid', 'passive', 'section_901j', 'section_951a', 'single', 'tax_year', 'total_amti', 'total_carryover_used', 'total_credit_allowed', 'total_ftc_allowed', 'total_ftc_limitation', 'total_limitation', 'total_taxable_income', 'treaty_resourced', 'using_simplified', 'war_profits_tax', 'withholding_tax']

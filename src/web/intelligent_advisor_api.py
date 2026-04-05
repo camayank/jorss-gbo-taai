@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID
 import asyncio
+import functools
 import logging
 import os
 import re
@@ -182,8 +183,63 @@ except ImportError:
     get_ai_metrics_service = None
     logger.warning("metrics_service not available")
 
+# --- FlowEngine (adaptive question flow with hint support) ---
 try:
-    from services.tax_opportunity_detector import TaxOpportunityDetector, TaxpayerProfile
+    from web.advisor.flow_engine import FlowEngine as _FlowEngineClass
+    _flow_engine = _FlowEngineClass()
+    _FLOW_ENGINE_AVAILABLE = True
+except Exception as _fe_err:
+    _flow_engine = None
+    _FLOW_ENGINE_AVAILABLE = False
+    logger.warning(f"FlowEngine not available - falling back to _get_dynamic_next_question: {_fe_err}")
+
+
+# ── Semantic Memory: key facts that survive conversation pruning ──────────────
+_USER_KEY_FACTS = {
+    "filing_status", "total_income", "income_type", "state",
+    "dependents", "business_entity", "self_employed",
+    "retirement_contributions", "real_estate_owned", "has_employees",
+    "age", "business_income", "spouse_income",
+}
+
+
+def _build_memory_context(profile: dict) -> str:
+    """Build structured key-facts string to inject into every LLM call."""
+    facts = {k: v for k, v in profile.items() if k in _USER_KEY_FACTS and v not in (None, "", 0)}
+    if not facts:
+        return ""
+    parts = [f"{k.replace('_', ' ')}={v}" for k, v in facts.items()]
+    return "Known facts about this taxpayer: " + ", ".join(parts)
+
+
+def _get_next_question(profile: dict, session: dict = None) -> tuple:
+    """Return (question_text, quick_actions, hint) — FlowEngine first, legacy fallback.
+
+    Always returns a 3-tuple; hint may be empty string.
+    """
+    if _FLOW_ENGINE_AVAILABLE and _flow_engine is not None:
+        try:
+            conversation = session.get("conversation_history", [])[-5:] if session else []
+            fq = _flow_engine.get_next_question(profile, conversation)
+            if fq:
+                return (fq.text, fq.actions, fq.hint)
+        except Exception as _e:
+            logger.warning(f"FlowEngine error, using legacy flow: {_e}")
+
+    # Legacy fallback — no hint support
+    result = _get_dynamic_next_question(profile, session=session)
+    if result and len(result) == 2:
+        return (result[0], result[1], "")
+    return (None, None, "")
+
+# Age bucket → integer mapping (profile dict stores string buckets)
+_AGE_BUCKET_MAP: dict = {
+    "age_under_26": 25, "age_26_49": 40,
+    "age_50_64": 57, "age_65_plus": 67,
+}
+
+try:
+    from services.tax_opportunity_detector import TaxOpportunityDetector, TaxpayerProfile, get_tax_opportunity_detector
 except ImportError:
     TaxOpportunityDetector = None
     TaxpayerProfile = None
@@ -232,9 +288,34 @@ def _session_profile_to_taxpayer_profile(profile: dict) -> TaxpayerProfile:
         except Exception:
             return Decimal(str(default))
 
+    # ── Age: profile stores string buckets, TaxpayerProfile needs int ───────────
+    _age_raw = profile.get("age", 40)
+    try:
+        _age = int(_age_raw) if str(_age_raw).isdigit() else _AGE_BUCKET_MAP.get(str(_age_raw), 40)
+    except Exception:
+        _age = 40
+
+    # ── Business flags: cover S-Corp owners, K-1 partners, SE, gig workers ──────
+    _se_income_types = ("self_employed", "business_owner", "gig_worker", "farmer", "clergy")
+    _has_business = (
+        profile.get("is_self_employed", False)
+        or bool(profile.get("business_income"))
+        or bool(profile.get("self_employment_income"))
+        or profile.get("income_type") in _se_income_types
+        or profile.get("entity_type") in ("s_corp", "llc", "partnership", "c_corp")
+    )
+
+    # ── Owns home: check mortgage OR property taxes OR user explicitly answered ──
+    _owns_home = (
+        bool(profile.get("mortgage_interest"))
+        or bool(profile.get("property_taxes"))
+        or profile.get("augusta_rule_status") == "augusta_eligible"
+        or profile.get("owns_home") is True
+    )
+
     return TaxpayerProfile(
         filing_status=profile.get("filing_status", "single"),
-        age=int(profile.get("age", 30) or 30),
+        age=_age,
         w2_wages=dec("w2_income") + dec("total_income"),
         self_employment_income=dec("self_employment_income"),
         business_income=dec("business_income"),
@@ -252,11 +333,10 @@ def _session_profile_to_taxpayer_profile(profile: dict) -> TaxpayerProfile:
         num_dependents=int(profile.get("dependents", 0) or 0),
         has_children_under_17=int(profile.get("dependents", 0) or 0) > 0,
         had_baby="dependents" in profile and int(profile.get("dependents", 0) or 0) > 0,
-        started_business=profile.get("income_type") in ("self_employed", "business_owner", "gig_worker", "farmer", "clergy")
-        or profile.get("is_self_employed", False),
-        has_business=profile.get("is_self_employed", False) or bool(profile.get("business_income")),
+        started_business=profile.get("income_type") in _se_income_types or profile.get("is_self_employed", False),
+        has_business=_has_business,
         business_net_income=dec("business_income"),
-        owns_home=bool(profile.get("mortgage_interest")),
+        owns_home=_owns_home,
         capital_gains=dec("capital_gains_long") + dec("capital_gains_short"),
         dividend_income=dec("dividend_income") + dec("qualified_dividends"),
         interest_income=dec("interest_income"),
@@ -281,7 +361,7 @@ def _session_profile_to_rec_dict(profile: dict) -> dict:
         "mortgage_interest": float(profile.get("mortgage_interest", 0) or 0),
         "charitable_contributions": float(profile.get("charitable_donations", 0) or 0),
         "state": profile.get("state", ""),
-        "age": int(profile.get("age", 30) or 30),
+        "age": _AGE_BUCKET_MAP.get(str(profile.get("age", 40)), 40) if not str(profile.get("age", 40)).isdigit() else int(profile.get("age", 40) or 40),
         "dependents": int(profile.get("dependents", 0) or 0),
     }
 
@@ -2546,16 +2626,63 @@ class IntelligentChatEngine:
             profile = session.get("profile", {})
             profile_summary = _summarize_profile(profile)
 
+            filing_status = profile.get("filing_status", "unknown").replace("_", " ")
+            income_type = (profile.get("income_type") or "mixed income").replace("_", " ")
+            state = profile.get("state", "unknown")
+            memory_ctx = _build_memory_context(profile)
+            strategies_list = session.get("strategies", [])
+            top_3_text = "\n".join(
+                f"  • {s.get('title', str(s)) if isinstance(s, dict) else s}"
+                for s in strategies_list[:3]
+            ) if strategies_list else "  (none detected yet)"
+
+            expert_system_prompt = f"""ROLE: You are a senior tax strategist with 20+ years of experience advising {filing_status} taxpayers with {income_type} income in {state}. You speak directly and concisely — like a trusted expert in a private meeting, not a disclaimer machine.
+
+TAXPAYER CONTEXT:
+{memory_ctx}
+
+TOP STRATEGIES IDENTIFIED:
+{top_3_text}
+
+RULES:
+1. Keep your response under 180 words — every word must earn its place.
+2. End with EXACTLY ONE question — never zero, never two. The question must deepen your understanding of this specific taxpayer's situation.
+3. Only cite IRS code sections you are certain apply: §199A, §179, §1031, §280A, §48, §41, §45R, §168, §408, §415. Do not invent section numbers or cite sections you are not certain are relevant.
+4. No disclaimers — never say "consult a tax professional." The CPA reviewing this session IS the tax professional. Give them substantive analysis they can act on.
+
+FORMAT: Plain prose only. No bullet points in your reply. Surface the single highest-value opportunity for this taxpayer, explain WHY it applies to them specifically, and use dollar ranges when estimating savings (e.g., "roughly $3,000–$7,000/year")."""
+
             response = await ai.reason(
                 problem=question,
-                context=f"""You are a tax advisor assistant. The taxpayer's profile:
-{profile_summary}
-
-Answer their question with specific, actionable advice based on their situation.
-Include IRS references where applicable. Keep response under 200 words.
-Always note this is not official tax advice and they should consult a CPA.""",
+                context=expert_system_prompt,
             )
-            return response.content
+            raw_content = response.content
+
+            # Post-processor 1: word-count guard — truncate gracefully at sentence boundary if >200 words
+            words = raw_content.split()
+            if len(words) > 200:
+                logger.warning(
+                    "AI response exceeded 200 words — truncating",
+                    extra={"word_count": len(words), "session": session.get("session_id", "unknown")},
+                )
+                candidate = " ".join(words[:200])
+                last_boundary = max(candidate.rfind(". "), candidate.rfind("! "), candidate.rfind("? "))
+                raw_content = candidate[:last_boundary + 1].strip() if last_boundary > 0 else candidate.strip()
+
+            # Post-processor 2: single-question enforcer — keep only the last question
+            if raw_content.count("?") > 1:
+                import re as _re_q
+                logger.warning(
+                    "AI response contained multiple questions — enforcing single-question rule",
+                    extra={"question_count": raw_content.count("?"), "session": session.get("session_id", "unknown")},
+                )
+                # Split into sentences at each sentence-ending punctuation + space
+                _sents = _re_q.split(r'(?<=[.!?]) +', raw_content.rstrip())
+                _final_q = _sents[-1] if _sents else raw_content
+                _kept = [s for s in _sents[:-1] if not s.rstrip().endswith("?")]
+                raw_content = " ".join(_kept + [_final_q]).strip()
+
+            return raw_content
         except Exception as e:
             logger.warning(
                 "AI fallback activated",
@@ -2577,8 +2704,11 @@ Always note this is not official tax advice and they should consult a CPA.""",
         if AI_OPPORTUNITIES_ENABLED:
             try:
                 taxpayer_profile = _session_profile_to_taxpayer_profile(profile)
-                detector = TaxOpportunityDetector()
-                opportunities = detector.detect_opportunities(taxpayer_profile)
+                detector = get_tax_opportunity_detector()
+                loop = asyncio.get_event_loop()
+                opportunities = await loop.run_in_executor(
+                    None, functools.partial(detector.detect_opportunities, taxpayer_profile)
+                )
 
                 for i, opp in enumerate(opportunities):
                     confidence_val = opp.confidence if isinstance(opp.confidence, float) else 0.8
@@ -5177,7 +5307,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
             )
 
         # D4. Education credits
-        if not profile.get("education_status") and not profile.get("_asked_education") and total_income < 180000:
+        if not profile.get("education_status") and not profile.get("no_education") and not profile.get("skip_education") and total_income < 180000:
             return (
                 "Did you or a dependent attend college or vocational school? Tuition may qualify for education credits (up to $2,500).",
                 [
@@ -5332,7 +5462,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
         )
 
     # D7. Education credits (no dependents — self might be a student)
-    if dependents == 0 and not profile.get("education_status") and not profile.get("_asked_education") and total_income < 180000:
+    if dependents == 0 and not profile.get("education_status") and not profile.get("no_education") and not profile.get("skip_education") and total_income < 180000:
         return (
             "Did you attend college or vocational school? Tuition may qualify for education credits (up to $2,500).",
             [
@@ -5344,7 +5474,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
 
     # ── BLOCK E: Life events ─────────────────────────────────────────────
 
-    if not profile.get("life_events") and not profile.get("_asked_life_events"):
+    if not profile.get("life_events") and not profile.get("no_life_events") and not profile.get("skip_life_events"):
         return (
             "Did any major life changes happen this year? These can significantly affect your taxes.",
             [
@@ -5539,7 +5669,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
 
     # ── BLOCK F: Investments ─────────────────────────────────────────────
 
-    if not profile.get("_has_investments") and not profile.get("investment_income") and not profile.get("capital_gains_long") and not profile.get("_asked_investments"):
+    if not profile.get("_has_investments") and not profile.get("investment_income") and not profile.get("capital_gains_long") and not profile.get("no_investments") and not profile.get("skip_investments"):
         return (
             "Do you have any investment income? This includes stock sales, dividends, interest, or cryptocurrency.",
             [
@@ -5765,7 +5895,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     # ── BLOCK G: Retirement & savings (non-retired) ──────────────────────
 
     if not is_retired:
-        if not profile.get("retirement_401k") and not profile.get("retirement_ira") and not profile.get("_asked_retirement"):
+        if not profile.get("retirement_401k") and not profile.get("retirement_ira") and not profile.get("no_retirement") and not profile.get("skip_retirement"):
             retirement_options = [
                 {"label": "401(k) / 403(b) / TSP", "value": "has_401k"},
                 {"label": "Traditional IRA", "value": "has_trad_ira"},
@@ -5787,7 +5917,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
             )
 
     # G2. HSA (everyone)
-    if not profile.get("hsa_contributions") and not profile.get("_asked_hsa"):
+    if not profile.get("hsa_contributions") and not profile.get("no_hsa") and not profile.get("skip_hsa"):
         return (
             "Do you have a Health Savings Account (HSA)? Contributions are triple tax-advantaged — deductible, grow tax-free, and withdraw tax-free for medical expenses.",
             [
@@ -5799,7 +5929,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
         )
 
     # G3. Retirement distributions (anyone can have these)
-    if not profile.get("retirement_distributions") and not profile.get("_asked_distributions"):
+    if not profile.get("retirement_distributions") and not profile.get("no_distributions") and not profile.get("skip_distributions"):
         return (
             "Did you take any distributions (withdrawals) from retirement accounts this year?",
             [
@@ -6409,7 +6539,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     # ── BLOCK K: Healthcare ──────────────────────────────────────────────
 
     # K1. ACA Marketplace (non-retired, non-SE who already answered)
-    if not is_retired and not profile.get("aca_marketplace") and not profile.get("se_health_insurance") and not profile.get("_asked_aca"):
+    if not is_retired and not profile.get("aca_marketplace") and not profile.get("se_health_insurance") and not profile.get("no_aca") and not profile.get("skip_aca"):
         return (
             "Do you get health insurance through the ACA Marketplace (Healthcare.gov)? You may qualify for the Premium Tax Credit.",
             [
@@ -6459,7 +6589,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     # ── BLOCK M: Special situations ──────────────────────────────────────
 
     # M1. Energy credits (popular — solar, EV)
-    if not profile.get("energy_credits") and not profile.get("_asked_energy"):
+    if not profile.get("energy_credits") and not profile.get("no_energy") and not profile.get("skip_energy"):
         return (
             "Did you make any energy-efficient home improvements or purchase an electric vehicle?",
             [
@@ -6473,7 +6603,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
         )
 
     # M2. Foreign income (if income > $50k)
-    if total_income > 50000 and not profile.get("foreign_income") and not profile.get("_asked_foreign"):
+    if total_income > 50000 and not profile.get("foreign_income") and not profile.get("no_foreign") and not profile.get("skip_foreign"):
         return (
             "Did you earn any income from outside the United States or pay foreign taxes?",
             [
@@ -6521,7 +6651,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
         )
 
     # M6. Gambling
-    if not profile.get("gambling_income") and not profile.get("_asked_gambling"):
+    if not profile.get("gambling_income") and not profile.get("no_gambling") and not profile.get("skip_gambling"):
         return (
             "Did you have any gambling winnings or losses? (Casino, lottery, sports betting — all taxable)",
             [
@@ -6603,7 +6733,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     # ── BLOCK N: State-specific ──────────────────────────────────────────
 
     if profile.get("state") not in _NO_INCOME_TAX_STATES:
-        if not profile.get("multi_state_income") and not profile.get("_asked_multi_state"):
+        if not profile.get("multi_state_income") and not profile.get("single_state") and not profile.get("skip_multi_state"):
             return (
                 "Did you earn income in a state other than your home state? (Out-of-state employer, business travel, remote work)",
                 [
@@ -7057,7 +7187,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
 
     # Handle empty or very short messages
     if not msg_original or len(msg_original) < 2:
-        next_q, next_actions = _get_dynamic_next_question(profile)
+        next_q, next_actions, _q_hint = _get_next_question(profile, session)
         return ChatResponse(
             session_id=request.session_id,
             response=next_q or "I'm here to help with your taxes! What would you like to know?",
@@ -7074,7 +7204,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
 
     # Handle "start" / "continue" — frontend sends this to get the next question from backend
     if msg_lower in ("start", "continue", "start_estimate", "no_manual", "continue_assessment"):
-        next_q, next_actions = _get_dynamic_next_question(profile, session=session)
+        next_q, next_actions, _q_hint = _get_next_question(profile, session)
         if next_q:
             return ChatResponse(
                 session_id=request.session_id,
@@ -7094,7 +7224,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
     is_greeting = any(re.match(p, msg_lower) for p in greeting_patterns)
     if is_greeting:
         # Return the first Phase 1 question directly
-        next_q, next_actions = _get_dynamic_next_question(profile, session=session)
+        next_q, next_actions, _q_hint = _get_next_question(profile, session)
         if next_q:
             return ChatResponse(
                 session_id=request.session_id,
@@ -7524,7 +7654,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
 
         if result["success"]:
             profile = result["restored_profile"]
-            next_q, next_actions = _get_dynamic_next_question(profile)
+            next_q, next_actions, _q_hint = _get_next_question(profile, session)
 
             response_text = f"✓ {result['message']}\n\n"
             if next_q:
@@ -7559,7 +7689,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
 
         if result["success"]:
             profile = result["restored_profile"]
-            next_q, next_actions = _get_dynamic_next_question(profile)
+            next_q, next_actions, _q_hint = _get_next_question(profile, session)
 
             response_text = f"✓ {result['message']}\n\n"
             if next_q:
@@ -8748,7 +8878,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
                 )
 
         # Acknowledge and move to next question
-        next_q, next_actions = _get_dynamic_next_question(profile, session=session)
+        next_q, next_actions, _q_hint = _get_next_question(profile, session)
 
         if next_q:
             # Build a brief acknowledgment based on what was just set
@@ -8817,6 +8947,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
                 live_estimate_confidence=_live_confidence,
                 live_estimate_label=_live_label,
                 completion_hint=_progress_msg,
+                question_hint=_q_hint or None,
                 metadata={"_source": "template"},
             )
         else:
@@ -8983,6 +9114,34 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
                 ))
         except Exception:
             pass  # Never block chat on event emission failure
+
+    # Fire CPA notification when profile first reaches 70% (once per session)
+    if completeness >= 0.70 and not session.get("_cpa_notified"):
+        session["_cpa_notified"] = True
+        try:
+            import asyncio as _asyncio
+            from cpa_panel.services.notification_service import NotificationService as _NS
+            _tenant_id = session.get("tenant_id") or session.get("cpa_id") or session.get("firm_id")
+            _cpa_email = session.get("cpa_email") or session.get("firm_email")
+            _cpa_name = session.get("cpa_name") or session.get("firm_name") or "CPA"
+            if _tenant_id or _cpa_email:
+                _lead_data = {
+                    "first_name": profile.get("name") or profile.get("email", "A client"),
+                    "email": profile.get("email", ""),
+                    "lead_score": lead_score,
+                    "lead_temperature": "hot" if lead_score >= 80 else "warm",
+                    "complexity": complexity,
+                    "savings_range": f"${int(profile.get('estimated_savings', 0)):,}" if profile.get("estimated_savings") else "under review",
+                    "dashboard_url": f"/cpa/leads",
+                }
+                async def _notify_cpa_async():
+                    try:
+                        _NS().notify_new_lead(_cpa_email or f"{_tenant_id}@ca4cpa.com", _cpa_name, _lead_data)
+                    except Exception as _ne:
+                        logger.debug(f"CPA notification skipped: {_ne}")
+                _asyncio.create_task(_notify_cpa_async())
+        except Exception:
+            pass  # Never block chat on notification failure
 
     # Get urgency info from CPAIntelligenceService
     urgency_level = "PLANNING"
@@ -9189,7 +9348,7 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
 
     # Check if there are still deep-dive questions to ask before calculating
     has_basics = profile.get("total_income") is not None and profile.get("filing_status") and profile.get("state")
-    next_deep_q, next_deep_actions = _get_dynamic_next_question(profile, session=session)
+    next_deep_q, next_deep_actions, _deep_hint = _get_next_question(profile, session)
 
     # If basics are done but deep-dive questions remain, ask them first
     if has_basics and next_deep_q:
@@ -9496,8 +9655,8 @@ Deduction: **{(tax_calculation.deduction_type or 'standard').title()}** (${tax_c
             key_insights.append(f"Top opportunity: {strategies[0].title}")
 
     else:
-        # Need more information - use dynamic question system
-        next_q, next_actions = _get_dynamic_next_question(profile, session=session)
+        # Need more information - use adaptive FlowEngine (with legacy fallback)
+        next_q, next_actions, _question_hint = _get_next_question(profile, session)
 
         if next_q:
             response_text = correction_prefix + next_q
@@ -9569,6 +9728,27 @@ Deduction: **{(tax_calculation.deduction_type or 'standard').title()}** (${tax_c
     )
     _main_source = "ai" if _has_ai_strategies else "rules"
 
+    # Apply CPA specialty badges to strategies (non-blocking)
+    try:
+        from web.advisor.cpa_context import apply_cpa_specialty_badges
+        _firm_id = session.get("firm_id") or session.get("tenant_id") or session.get("cpa_id")
+        _firm_profile: dict | None = None
+        if _firm_id:
+            try:
+                from web.database.tenant_persistence import get_tenant_persistence
+                _persistence = get_tenant_persistence()
+                _branding = _persistence.get_cpa_branding(_firm_id)
+                if _branding:
+                    _firm_profile = _branding if isinstance(_branding, dict) else (
+                        _branding.dict() if hasattr(_branding, "dict") else vars(_branding)
+                    )
+            except Exception:
+                pass
+        if strategies:
+            apply_cpa_specialty_badges(strategies, _firm_id, firm_profile=_firm_profile)
+    except Exception:
+        pass
+
     try:
         chat_response = ChatResponse(
             session_id=request.session_id,
@@ -9595,6 +9775,7 @@ Deduction: **{(tax_calculation.deduction_type or 'standard').title()}** (${tax_c
             new_opportunities=session.get("opportunity_alerts", []),
             missing_fields=missing_fields,
             completion_hint=completion_hint,
+            question_hint=locals().get('_question_hint'),
             estimated_savings_preview=chat_engine.estimate_partial_savings(profile) if response_type != "calculation" else None,
             safety_summary=_build_safety_summary(safety_data),
             safety_checks=safety_data,
@@ -9642,6 +9823,129 @@ Deduction: **{(tax_calculation.deduction_type or 'standard').title()}** (${tax_c
             ],
             metadata={"_source": "fallback_template"},
         )
+
+
+@router.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """Streaming version of /chat — returns SSE chunks followed by a final metadata event.
+
+    Frontend consumes via fetch + ReadableStream.
+    Falls back to blocking /chat if streaming is unavailable.
+
+    SSE event formats:
+      data: {"type":"text","text":"<chunk>"}\\n\\n
+      data: {"type":"done","session_id":"<id>","completeness":<float>,...}\\n\\n
+      data: {"type":"fallback"}\\n\\n  (on any error — frontend retries blocking /chat)
+    """
+    import json as _json
+    import asyncio as _asyncio
+    from fastapi.responses import StreamingResponse as _StreamingResponse
+
+    async def _generate():
+        ai = None
+        try:
+            if get_ai_service:
+                ai = get_ai_service()
+        except Exception:
+            pass
+
+        if ai is None:
+            yield f"data: {_json.dumps({'type': 'fallback'})}\n\n"
+            return
+
+        stream_ctx = None
+        try:
+            session = await chat_engine.get_or_create_session(request.session_id)
+            profile = session.get("profile", {})
+            memory_ctx = _build_memory_context(profile)
+
+            filing_status = profile.get("filing_status", "unknown").replace("_", " ")
+            income_type = (profile.get("income_type") or "mixed income").replace("_", " ")
+            state = profile.get("state", "unknown")
+            strategies_list = session.get("strategies", [])
+            top_3_text = "\n".join(
+                f"  • {s.get('title', str(s)) if isinstance(s, dict) else s}"
+                for s in strategies_list[:3]
+            ) if strategies_list else "  (none detected yet)"
+
+            system_prompt = f"""ROLE: You are a senior tax strategist with 20+ years of experience advising {filing_status} taxpayers with {income_type} income in {state}. You speak directly and concisely — like a trusted expert in a private meeting, not a disclaimer machine.
+
+TAXPAYER CONTEXT:
+{memory_ctx}
+
+TOP STRATEGIES IDENTIFIED:
+{top_3_text}
+
+RULES:
+1. Keep your response under 180 words — every word must earn its place.
+2. End with EXACTLY ONE question — never zero, never two. The question must deepen your understanding of this specific taxpayer's situation.
+3. Only cite IRS code sections you are certain apply: §199A, §179, §1031, §280A, §48, §41, §45R, §168, §408, §415. Do not invent section numbers.
+4. No disclaimers — never say "consult a tax professional." The CPA reviewing this session IS the tax professional.
+
+FORMAT: Plain prose only. No bullet points in your reply."""
+
+            history = session.get("conversation_history", [])
+            messages = [{"role": m["role"], "content": m["content"]} for m in history[-8:]]
+            messages.append({"role": "user", "content": request.message})
+
+            import anthropic as _anthropic
+            client = _anthropic.AsyncAnthropic()
+            full_text = []
+
+            async with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=400,
+                system=system_prompt,
+                messages=messages,
+            ) as stream_ctx:
+                first_token = True
+                _stream_iter = stream_ctx.text_stream.__aiter__()
+                while True:
+                    try:
+                        timeout = 8.0 if first_token else 30.0
+                        text = await _asyncio.wait_for(_stream_iter.__anext__(), timeout=timeout)
+                        first_token = False
+                        full_text.append(text)
+                        yield f"data: {_json.dumps({'type': 'text', 'text': text})}\n\n"
+                    except StopAsyncIteration:
+                        break
+                    except _asyncio.TimeoutError:
+                        logger.warning(
+                            "Anthropic stream timeout waiting for %s token",
+                            "first" if first_token else "next",
+                        )
+                        yield f"data: {_json.dumps({'type': 'fallback'})}\n\n"
+                        return
+
+            response_text = "".join(full_text)
+            completeness = 0.0
+            try:
+                completeness = chat_engine.calculate_profile_completeness(profile)
+            except Exception:
+                pass
+
+            next_q, next_actions, hint = _get_next_question(profile, session)
+            yield f"data: {_json.dumps({'type': 'done', 'session_id': request.session_id, 'completeness': completeness, 'response': response_text, 'profile_completeness': completeness, 'next_question': next_q, 'quick_actions': next_actions or [], 'question_hint': hint or None})}\n\n"
+
+        except Exception as e:
+            logger.warning(f"Streaming error: {e}")
+            yield f"data: {_json.dumps({'type': 'fallback'})}\n\n"
+        finally:
+            if stream_ctx is not None:
+                try:
+                    await stream_ctx.close()
+                except Exception:
+                    pass
+
+    return _StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Content-Type": "text/event-stream",
+        },
+    )
 
 
 @router.post("/analyze", response_model=FullAnalysisResponse)
@@ -9989,6 +10293,70 @@ async def upload_document(
             "error": "Document processing failed",
             "message": "Unable to process document. Please try again or enter the information manually."
         }
+
+
+# =============================================================================
+# AUTO-SAVE SESSION ENDPOINT — for 30-second debounced frontend saves
+# =============================================================================
+
+@router.post("/auto-save")
+async def auto_save_session(
+    session_id: str = Form(...),
+    profile_updates: str = Form(None),  # JSON string of profile changes
+    http_request: FastAPIRequest = None,
+    _session: str = Depends(verify_session_token),
+):
+    """
+    Auto-save session state from frontend every 30 seconds.
+
+    Accepts partial profile updates, merges with existing session,
+    and persists to database for session resume capability.
+    """
+    # Validate session_id format
+    if not _validate_uuid(session_id):
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": "Invalid session ID format"}
+        )
+
+    try:
+        import json
+
+        # Get existing session (create if missing)
+        session = await chat_engine.get_or_create_session(session_id)
+
+        # Apply profile updates if provided
+        if profile_updates:
+            try:
+                updates = json.loads(profile_updates)
+                if isinstance(updates, dict):
+                    session.setdefault("profile", {}).update(updates)
+                    logger.debug(f"Auto-save: applied profile updates to session {session_id}")
+            except json.JSONDecodeError as je:
+                logger.warning(f"Auto-save: invalid JSON in profile_updates for session {session_id}: {je}")
+                # Continue anyway — don't fail the entire save
+
+        # Persist to database
+        await chat_engine._save_session_to_db(session_id, session)
+
+        return {
+            "success": True,
+            "session_id": session_id,
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+            "message": "Session auto-saved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Auto-save error for session {session_id}: {type(e).__name__}: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": "Auto-save failed",
+                "session_id": session_id,
+                "details": str(e) if os.environ.get("DEBUG") else None
+            }
+        )
 
 
 # =============================================================================

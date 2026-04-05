@@ -85,7 +85,7 @@
 {% macro skeleton(type='text', lines=3, width='100%', class_name='') %}
   {% set base_style = 'background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-100) 50%, var(--color-gray-200) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s infinite; border-radius: var(--radius-md);' %}
 
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     @keyframes skeleton-shimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }

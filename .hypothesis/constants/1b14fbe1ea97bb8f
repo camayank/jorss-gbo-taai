@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/idempotency.py
+# hypothesis_version: 6.141.1
+
+[128, 200, 300, 400, 422, 'PATCH', 'POST', 'PUT', 'X-Idempotency-Key', 'application/json', 'content-length', 'data', 'detail', 'error', 'tax_returns.db', 'transfer-encoding', 'true', 'utf-8']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/engagement/esign_hooks.py
+# hypothesis_version: 6.141.1
+
+['+00:00', ',', ':', 'Z', 'completedDateTime', 'data', 'declined', 'document_id', 'docusign', 'email', 'envelope-completed', 'envelope-declined', 'envelope-delivered', 'envelope-sent', 'envelope-voided', 'envelopeId', 'envelopeSummary', 'envelope_id', 'event', 'event_time', 'event_type', 'expired', 'generic', 'hellosign', 'id', 'letter_id', 'pandadoc', 'pending', 'recipients', 'registered_at', 'sent', 'session_id', 'signature_request', 'signature_request_id', 'signatures', 'signed', 'signed_at', 'signer_email', 'signer_email_address', 'signers', 'status', 'unknown', 'viewed', 'voided']

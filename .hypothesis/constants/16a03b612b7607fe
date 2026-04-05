@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/state_tax_config.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'federal_agi', 'single']

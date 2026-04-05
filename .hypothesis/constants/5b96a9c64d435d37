@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/services/cached_calculation_pipeline.py
+# hypothesis_version: 6.141.1
+
+[3600, 'cache_hit', 'caching disabled', 'carryover_year', 'enabled', 'filing_status', 'from_cache', 'has_carryovers', 'reason', 'state', 'state_of_residence', 'tax_year', 'unavailable']

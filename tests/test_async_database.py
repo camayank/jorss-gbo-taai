@@ -488,17 +488,12 @@ class TestTaxReturnRepository:
 
     @pytest.mark.asyncio
     async def test_repository_save(self, mock_session):
-        """Repository saves tax return data."""
+        """Repository saves tax return data via a single upsert."""
         from database.repositories.tax_return_repository import TaxReturnRepository
 
-        # Mock exists check (not found)
-        mock_exists_result = MagicMock()
-        mock_exists_result.fetchone.return_value = None
-
-        # Mock insert result
-        mock_insert_result = MagicMock()
-
-        mock_session.execute.side_effect = [mock_exists_result, mock_insert_result]
+        # The repo uses INSERT ... ON CONFLICT DO UPDATE (upsert) — one execute call.
+        mock_upsert_result = MagicMock()
+        mock_session.execute.return_value = mock_upsert_result
 
         repo = TaxReturnRepository(mock_session)
 
@@ -517,8 +512,8 @@ class TestTaxReturnRepository:
 
         await repo.save(uuid4(), tax_data)
 
-        # Verify execute was called for exists check and insert
-        assert mock_session.execute.call_count == 2
+        # Upsert is a single execute (no separate exists-check round-trip)
+        assert mock_session.execute.call_count == 1
 
 
 @requires_aiosqlite

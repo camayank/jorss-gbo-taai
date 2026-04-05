@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_8889.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.2, 1000.0, 4300.0, 8550.0, 'Age 65+', 'Contribution amount', 'Deceased account', 'Disabled', 'Distribution amount', 'Enrolled in Medicare', 'HDHP coverage type', 'Month number (1-12)', 'Total distributions', 'additional_tax', 'after', 'contribution_limit', 'excess_contributions', 'exemption_reason', 'family', 'hsa_deduction', 'ineligibility_reason', 'is_eligible', 'is_penalty_exempt', 'limited_contribution', 'line_17a_is_exempt', 'line_1_coverage_type', 'line_8_not_used', 'months_covered', 'part_i', 'part_ii', 'part_iii', 'self_only', 'summary', 'total_additional_tax', 'total_contributions', 'total_distributions', 'used_last_month_rule']

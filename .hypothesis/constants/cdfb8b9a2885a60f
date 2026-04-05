@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/snapshot_persistence.py
+# hypothesis_version: 6.141.1
+
+[2025, 'created_at', 'data', 'effective_rate', 'filing_status', 'input_data', 'input_hash', 'result_data', 'return_id', 'single', 'snapshot_id', 'tax_returns.db', 'tax_year', 'taxable_income', 'total_credits', 'total_tax', 'utf-8', 'version']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/secure_serializer.py
+# hypothesis_version: 6.141.1
+
+[86400, ',', ':', 'APP_ENVIRONMENT', 'NoneType', 'T', '_', '__class__', '__dataclass__', '__dict__', '__enum__', 'data', 'development', 'max_age', 'production', 'timestamp', 'type', 'utf-8', 'value']

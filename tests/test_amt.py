@@ -306,7 +306,7 @@ class TestSALTAddback:
             deductions=Deductions(
                 use_standard_deduction=False,
                 itemized=ItemizedDeductions(
-                    state_local_income_tax=20000.0,  # Over $10k cap
+                    state_local_income_tax=20000.0,  # Within $40k OBBBA cap; over old $10k cap
                     real_estate_tax=8000.0,
                     mortgage_interest=25000.0,
                     charitable_cash=10000.0,
@@ -316,9 +316,9 @@ class TestSALTAddback:
         )
 
         breakdown = engine.calculate(tax_return)
-        # SALT addback should be the capped amount ($10k)
+        # SALT addback = actual SALT claimed ($28k = $20k state + $8k RE, within $40k OBBBA cap)
         if breakdown.deduction_type == "itemized":
-            assert breakdown.amt_breakdown['salt_addback'] == 10000.0
+            assert breakdown.amt_breakdown['salt_addback'] == 28000.0
 
     def test_no_salt_addback_standard_deduction(self, engine):
         """Test no SALT addback when using standard deduction."""

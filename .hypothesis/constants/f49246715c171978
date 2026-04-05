@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/maryland.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.03, 0.04, 0.0475, 0.05, 0.0525, 0.055, 0.0575, 0.15, 0.45, 500, 1000, 2000, 2025, 2550, 3000, 3200, 5100, 6000, 15000, 20000, 39500, 100000, 125000, 150000, 175000, 225000, 250000, 300000, 'MD', 'Maryland', 'TaxReturn', 'federal_agi', 'head_of_household', 'itemized', 'married_joint', 'married_separate', 'md_child_tax_credit', 'md_eitc', 'poverty_level_credit', 'qualifying_widow', 'single', 'standard']

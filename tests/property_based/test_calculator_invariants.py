@@ -162,6 +162,15 @@ class TestTaxMonotonicity:
         result_high = calc.calculate_complete_return(return_high)
 
         if result_low.tax_liability is not None and result_high.tax_liability is not None:
+            # EITC phase-in is intentionally non-monotonic: for low-income earners with
+            # children, earning more income increases the EITC refundable credit faster
+            # than it increases tax (by design — EITC rewards work). Skip those cases.
+            num_children = len([d for d in (taxpayer.dependents or []) if getattr(d, "age", 99) < 19])
+            eitc_phase_in_end = {0: 8490.0, 1: 12150.0, 2: 17880.0, 3: 17880.0}
+            max_phase_in_end = eitc_phase_in_end.get(min(num_children, 3), 17880.0)
+            in_eitc_phase_in = num_children > 0 and base_income < max_phase_in_end
+            assume(not in_eitc_phase_in)
+
             assert result_high.tax_liability >= result_low.tax_liability, (
                 f"Tax decreased from ${result_low.tax_liability} to ${result_high.tax_liability} "
                 f"when income increased from ${base_income} to ${base_income * 3}"

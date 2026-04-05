@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/database/repositories/advisory_repository.py
+# hypothesis_version: 6.141.1
+
+['client_id', 'created_at', 'is_finalized', 'plan_data', 'plan_id', 'rec_id_pattern', 'recommendation_id', 'return_id', 'tax_year', 'updated_at']

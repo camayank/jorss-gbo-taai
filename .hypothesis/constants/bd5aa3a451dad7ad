@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/api/alert_routes.py
+# hypothesis_version: 6.141.1
+
+[168, 200, ',', '/alerts', '/alerts/generate/all', '/alerts/summary', '/alerts/trends', '/alerts/types', '/alerts/{alert_id}', 'Alert not found', 'Days to analyze', 'Filter by alert type', 'Filter by priority', 'Filter by status', 'Hours to snooze', 'Resolution note', 'acknowledged', 'acknowledged_count', 'alert_id', 'alerts', 'alerts_created', 'by_type', 'compliance', 'deadlines', 'description', 'digest_frequency', 'dismissed', 'email_digest', 'email_enabled', 'name', 'notifications', 'opportunities', 'priorities', 'priority', 'push_enabled', 'quiet_hours', 'resolved', 'sms_enabled', 'snooze_until', 'snoozed', 'status', 'statuses', 'success', 'total_alerts_created', 'total_requested', 'type', 'types', 'updated_preferences', 'usage', 'value']

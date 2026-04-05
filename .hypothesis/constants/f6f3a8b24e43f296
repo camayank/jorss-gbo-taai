@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/utils/logo_handler.py
+# hypothesis_version: 6.141.1
+
+[b'GIF87a', b'GIF89a', b'\x89PNG\r\n\x1a\n', b'\xff\xd8', 192, 193, 194, 255, 400, 1024, 2000, '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp', '/api/logos', '/tmp/cpa_logos', 'File is empty', 'LOGO_STORAGE_PATH', '^[a-zA-Z0-9_\\-]+$', 'big', 'image/gif', 'image/jpeg', 'image/png', 'image/svg+xml', 'image/webp', 'little', 'logo_path', 'logo_url', 'success']

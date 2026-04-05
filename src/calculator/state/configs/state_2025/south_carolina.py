@@ -16,11 +16,11 @@ def get_south_carolina_config() -> StateTaxConfig:
     return StateTaxConfig(
         state_code="SC", state_name="South Carolina", tax_year=2025, is_flat_tax=False,
         brackets={
-            "single": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.064)],
-            "married_joint": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.064)],
-            "married_separate": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.064)],
-            "head_of_household": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.064)],
-            "qualifying_widow": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.064)],
+            "single": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.060)],
+            "married_joint": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.060)],
+            "married_separate": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.060)],
+            "head_of_household": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.060)],
+            "qualifying_widow": [(0, 0.0), (3460, 0.03), (6920, 0.04), (10380, 0.05), (13840, 0.06), (17310, 0.060)],
         },
         starts_from="federal_taxable_income",
         standard_deduction={"single": 15750, "married_joint": 31500, "married_separate": 15750,
@@ -35,7 +35,7 @@ def get_south_carolina_config() -> StateTaxConfig:
 
 @register_state("SC", 2025)
 class SouthCarolinaCalculator(BaseStateCalculator):
-    """South Carolina - 6 brackets (0% - 6.4%), uses federal taxable income."""
+    """South Carolina - 6 brackets (0% - 6.0%), uses federal taxable income. Top rate per Act 532 phase-down."""
 
     def __init__(self):
         super().__init__(get_south_carolina_config())

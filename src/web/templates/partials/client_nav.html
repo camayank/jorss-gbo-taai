@@ -85,7 +85,7 @@
     </div>
 </nav>
 
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .client-tools-menu.open { display: block !important; }
     .client-nav-link:hover { background: #f1f5f9; color: #334155; }
     .client-tools-menu a:hover { background: #f8fafc; }
@@ -95,7 +95,7 @@
     }
 </style>
 
-<script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 // Close dropdown when clicking outside
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.client-nav-dropdown')) {

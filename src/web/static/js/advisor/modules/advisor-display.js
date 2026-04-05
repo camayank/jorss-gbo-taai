@@ -639,6 +639,13 @@ export const PhotoCapture = {
 /**
  * Render a single strategy card with tier-aware styling.
  */
+function _getStrategyImpactTier(estimatedSavings) {
+  const amount = parseInt(String(estimatedSavings || 0).replace(/[^0-9]/g, ''), 10) || 0;
+  if (amount >= 10000) return 'high';
+  if (amount >= 3000) return 'medium';
+  return 'low';
+}
+
 export function renderStrategyCard(strategy, index) {
   const tier = strategy.tier || 'free';
   const isLocked = tier === 'premium' && !premiumUnlocked;
@@ -647,8 +654,16 @@ export function renderStrategyCard(strategy, index) {
   const badgeLabel = isLocked ? 'CPA-Recommended' : (isUnlocked ? 'Unlocked' : 'DIY');
   const riskLevel = strategy.risk_level || 'low';
   const safeRiskLevel = ['low', 'medium', 'high'].includes(riskLevel) ? riskLevel : 'low';
+  const impactTier = _getStrategyImpactTier(strategy.estimated_savings);
+  const cpaBadge = strategy.cpa_recommended && strategy.cpa_badge ? strategy.cpa_badge : null;
 
-  let html = '<div class="strategy-card ' + cardClass + '" data-strategy-id="' + escapeHtml(String(strategy.id || index)) + '" data-tier="' + escapeHtml(tier) + '">';
+  let html = '<div class="strategy-card ' + cardClass + ' strategy-tier-' + impactTier + '" data-strategy-id="' + escapeHtml(String(strategy.id || index)) + '" data-tier="' + escapeHtml(tier) + '">';
+  if (impactTier === 'high') {
+    html += '<div style="font-size:9px;font-weight:700;letter-spacing:1px;color:#C9A84C;margin-bottom:6px;font-family:\'DM Sans\',sans-serif;text-transform:uppercase;">HIGH IMPACT</div>';
+  }
+  if (cpaBadge) {
+    html += '<div style="font-size:9px;font-weight:700;letter-spacing:0.8px;background:#fef9ec;color:#92600a;display:inline-block;padding:2px 8px;border-radius:99px;margin-bottom:6px;">' + escapeHtml(cpaBadge) + '</div>';
+  }
 
   html += '<div class="strategy-card__header">';
   html += '<div class="strategy-card__title">' + (index + 1) + '. ' + escapeHtml(strategy.title || 'Strategy') + '</div>';

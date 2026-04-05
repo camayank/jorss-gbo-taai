@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/lead_state/engine.py
+# hypothesis_version: 6.141.1
+
+[1000, 'ADVISORY_READY', 'BROWSING', 'CURIOUS', 'EVALUATING', 'HIGH_LEVERAGE', 'LeadStatePersistence', 'commitment.', 'created_at', 'current_state', 'default', 'discovery.', 'evaluation.', 'forced', 'from_state', 'hidden_count', 'is_monetizable', 'is_priority', 'lead_id', 'manual', 'metadata', 'monetizable_count', 'name', 'priority_count', 'reason', 'score_threshold', 'session_id', 'signal_count', 'state_counts', 'state_display', 'tenant_id', 'timestamp', 'to_state', 'total_leads', 'transitions', 'trigger_signal', 'unique_signals', 'updated_at', 'user_id', 'visibility', 'visible_count']

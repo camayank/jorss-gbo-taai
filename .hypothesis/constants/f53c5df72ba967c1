@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/admin_panel/models/subscription.py
+# hypothesis_version: 6.141.1
+
+[100, 255, 500, 'CASCADE', 'Display name', 'Firm', 'Invoice', 'NULL = unlimited', 'Subscription', 'SubscriptionPlan', 'USD', 'active', 'all, delete-orphan', 'amount_due >= 0', 'amount_paid >= 0', 'annual', 'annual_price >= 0', 'cancelled', 'cancelled_by', 'card, bank_account', 'ck_plan_annual_price', 'code', 'draft', 'due_date', "e.g., 'Most Popular'", 'firm_id', 'firms.firm_id', 'invoices', 'is_active', 'is_public', 'ix_invoice_due_date', 'ix_invoice_stripe', 'ix_plan_code', 'monthly', 'monthly_price >= 0', 'next_billing_date', 'open', 'paid', 'past_due', 'plan', 'plan_id', 'status', 'stripe_invoice_id', 'subscription', 'subscription_id', 'subscription_plans', 'subscriptions', 'suspended', 'trialing', 'uncollectible', 'users.user_id', 'void']

@@ -26,8 +26,10 @@ def get_montana_config() -> StateTaxConfig:
             "qualifying_widow": [(0, 0.047), (41000, 0.059)],
         },
         starts_from="federal_agi",
-        standard_deduction={"single": 15750, "married_joint": 31500, "married_separate": 15750,
-                           "head_of_household": 23850, "qualifying_widow": 31500},
+        # Montana has its own standard deduction (20% of MT-AGI up to max per ARM 42.15.108)
+        # 2025 maximums (inflation-adjusted): single ~$4,920, MFJ ~$9,840
+        standard_deduction={"single": 4920, "married_joint": 9840, "married_separate": 4920,
+                           "head_of_household": 4920, "qualifying_widow": 9840},
         personal_exemption_amount={"single": 3120, "married_joint": 6240, "married_separate": 3120,
                                    "head_of_household": 3120, "qualifying_widow": 3120},
         dependent_exemption_amount=3120,

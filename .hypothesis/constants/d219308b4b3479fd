@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/utils/file_validation.py
+# hypothesis_version: 6.141.1
+
+[b'%PDF-', b'II*\x00', b'MM\x00*', b'RIFF', b'WEBP', b'\x89PNG\r\n\x1a\n', b'\xff\xd8\xff', 255, 1024, '.', '.jpeg', '.jpg', '.pdf', '.png', '.tif', '.tiff', '.webp', '/', 'File is empty', '[<>:"|?*]', '[\\x00-\\x1f]', '\\', '\\.\\.', '^\\.+$', '^\\s+|\\s+$', '_', '__', 'application/pdf', 'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/tiff', 'image/webp', 'jpeg', 'jpg', 'pdf', 'png', 'tif', 'tiff', 'webp']

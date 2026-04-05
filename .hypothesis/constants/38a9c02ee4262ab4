@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_1040x.py
+# hypothesis_version: 6.141.1
+
+[0.0, '1', '10', '11', '12', '13', '2', '3', '4', '5', '6', '7', '8', '9', 'AGI', 'Deductions', 'Line number on form', 'Refundable credits', 'SSN', 'Tax', 'Taxable income', 'Taxpayer name', 'Total tax', 'Withholding', 'add', 'agi_change', 'amendment_reasons', 'amount_owed', 'applied_to_estimated', 'carryback_claim', 'corrected_agi', 'corrected_total_tax', 'deduction_change', 'dependent_change', 'explanation', 'filing_status_change', 'incorrect_credit', 'incorrect_deduction', 'incorrect_income', 'missed_credit', 'missed_deduction', 'missed_income', 'net_tax_change', 'original_agi', 'original_total_tax', 'other', 'payments_change', 'refund_due', 'refund_or_owed', 'tax_already_paid', 'tax_change', 'tax_year', 'taxpayer_name', 'total_tax_change']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/invoice_routes.py
+# hypothesis_version: 6.141.1
+
+[0.0, 200, 365, '/code/{link_code}', '/firm', '/invoices', '/overdue', '/payment-links', '/payments', '/statuses', '/summary', '/{invoice_id}', '/{invoice_id}/send', '/{invoice_id}/void', '/{link_id}', '/{payment_id}/refund', 'Client ID', 'Filter by client', 'Filter by status', 'Invalid request data', 'Invoice not found', 'Invoices', 'Payment Links', 'Payment not found', 'Payments', 'Refund reason', 'USD', 'Unknown Firm', '_', 'amount', 'card', 'currency', 'description', 'firm_id', 'firm_name', 'full_name', 'invoice', 'invoices', 'is_fixed_amount', 'label', 'max_amount', 'message', 'min_amount', 'name', 'payment', 'payment_link', 'payment_links', 'payments', 'quantity', 'receipt_url', 'shareable_url', 'status', 'statuses', 'success', 'tax_rate', 'total', 'total_overdue_amount', 'value']

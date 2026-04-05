@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/calculator/state/configs/state_2025/ohio.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.02, 0.02765, 0.0375, 0.05, 0.3, 100, 200, 500, 1200, 1900, 2025, 2400, 26050, 40000, 80000, 100000, 'OH', 'Ohio', 'TaxReturn', 'child_care_credit', 'federal_agi', 'head_of_household', 'married_joint', 'married_separate', 'none', 'ohio_eitc', 'qualifying_widow', 'single']

@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/api/report_routes.py
+# hypothesis_version: 6.141.1
+
+[404, 500, '\n### ', '\n**', '\n- ', '\n</body>\n</html>\n', '\n<li>', '\n<strong>', '## ', '**\n', '**:', '---\n\n', '</h2>\n<h3>', '</li>\n<li>', '</strong>\n', '</strong>:', '<h2>', 'Advisory Reports', 'Client', 'Tax Advisory Report', 'client_name', 'content', 'error', 'filename', 'format', 'html', 'include_scenarios', 'json', 'markdown', 'not found', 'report', 'sections', 'session_id', 'success', 'title']

@@ -11,7 +11,7 @@
     {% endif %}
     {% set page_css = 'cpa-layout' %}
     {% include 'partials/head_styles.html' %}
-    <style>
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         :root {
             /* CPA Branding Overrides - Dynamic from database */
             --cpa-primary: {{ cpa.primary_color or 'var(--color-primary-500)' }};
@@ -33,15 +33,32 @@
         }
 
         {% block extra_styles %}{% endblock %}
+
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            background: var(--color-error-500, #ef4444);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 16px;
+            text-align: center;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div class="app-layout">
         <!-- Mobile Overlay -->
-        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()" aria-hidden="true"></div>
 
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar" id="mainSidebar" role="navigation" aria-label="Main navigation">
             <div class="sidebar-header">
                 <a href="/cpa/dashboard" class="sidebar-brand">
                     {% if cpa.logo_url %}
@@ -125,6 +142,10 @@
                     <a href="/cpa/analytics" class="nav-item {% if active_page == 'analytics' %}active{% endif %}">
                         <span class="nav-icon">{{ icon('arrow-trending-up') }}</span>
                         <span>Performance</span>
+                    </a>
+                    <a href="/cpa/analytics#advisor-sessions" class="nav-item {% if active_page == 'advisor_sessions' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('chat-bubble-left-right') }}</span>
+                        <span>Advisor Sessions</span>
                     </a>
                 </div>
 
@@ -231,7 +252,7 @@
             <!-- Header -->
             <header class="page-header">
                 <div class="page-title-section">
-                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <button class="mobile-menu-btn" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mainSidebar">☰</button>
                     <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
                 </div>
 
@@ -241,11 +262,9 @@
                         <input type="text" placeholder="Search leads..." id="globalSearch" aria-label="Search leads">
                     </div>
 
-                    <button class="header-btn" title="Notifications" aria-label="Notifications" onclick="location.href='/cpa/notifications'">
+                    <button class="header-btn" title="Notifications" aria-label="Notifications" onclick="location.href='/cpa/notifications'" id="notifBellBtn">
                         {{ icon('bell') }}
-                        {% if stats and stats.new_leads > 0 %}
-                        <span class="notification-dot"></span>
-                        {% endif %}
+                        <span class="notification-badge" id="notifBadge" style="display:none" aria-live="polite" aria-label="unread notifications"></span>
                     </button>
 
                     <button class="header-btn" title="Settings" aria-label="Settings" onclick="location.href='/cpa/profile'">
@@ -264,9 +283,25 @@
 
     <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebarOverlay').classList.toggle('show');
+            const sidebar = document.getElementById('mainSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggle = document.getElementById('sidebarToggle');
+            const isOpen = sidebar.classList.toggle('open');
+            overlay.classList.toggle('show', isOpen);
+            if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            if (isOpen) {
+                const firstFocusable = sidebar.querySelector('a, button');
+                if (firstFocusable) firstFocusable.focus();
+            } else if (toggle) {
+                toggle.focus();
+            }
         }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const sidebar = document.getElementById('mainSidebar');
+                if (sidebar && sidebar.classList.contains('open')) toggleSidebar();
+            }
+        });
 
         // Global search functionality
         document.getElementById('globalSearch').addEventListener('keyup', function(e) {
@@ -284,7 +319,7 @@
         });
     </script>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function(form) {
         if (!form.querySelector('input[name="csrf_token"]')) {
             var input = document.createElement('input');
@@ -296,7 +331,7 @@
     });
     </script>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/service-worker.js').catch(function() {});
     }
@@ -308,7 +343,49 @@
 
     {# Alpine.js — required by pipeline kanban and interactive components #}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>[x-cloak] { display: none !important; }</style>
+    <style{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>[x-cloak] { display: none !important; }</style>
+
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    (function() {
+        'use strict';
+        var badge = document.getElementById('notifBadge');
+        if (!badge) return;
+
+        function updateBadge(n) {
+            if (n > 0) {
+                badge.textContent = n > 99 ? '99+' : String(n);
+                badge.style.display = '';
+                var btn = document.getElementById('notifBellBtn');
+                if (btn) btn.setAttribute('aria-label', n + ' unread notifications');
+            } else {
+                badge.style.display = 'none';
+                var btn2 = document.getElementById('notifBellBtn');
+                if (btn2) btn2.setAttribute('aria-label', 'Notifications');
+            }
+            window.notificationCount = n;
+        }
+
+        function fetchUnreadCount() {
+            fetch('/api/messages/notifications/unread-count', { credentials: 'same-origin' })
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(d) { if (d) updateBadge(d.unread_count || 0); })
+                .catch(function() {});
+        }
+
+        fetchUnreadCount();
+        setInterval(fetchUnreadCount, 60000);
+
+        /* Sync with notifications page if it updates window.notificationCount */
+        Object.defineProperty(window, 'notificationCount', {
+            configurable: true,
+            set: function(v) {
+                this._ncVal = v;
+                updateBadge(v || 0);
+            },
+            get: function() { return this._ncVal || 0; }
+        });
+    })();
+    </script>
 
     {% block extra_scripts %}{% endblock %}
 </body>

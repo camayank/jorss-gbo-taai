@@ -22,7 +22,7 @@
   <!-- Advisor ES modules -->
   <script type="module" src="/static/js/advisor/modules/index.js?v=4"></script>
   {% if cpa_branding %}
-  <style>
+  <style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     :root {
       --cpa-primary: {{ cpa_branding.primary_color | default('#0d9488') }};
       --cpa-secondary: {{ cpa_branding.secondary_color | default('#14b8a6') }};

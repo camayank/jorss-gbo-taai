@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/api/users_routes.py
+# hypothesis_version: 6.141.1
+
+[100, '/firm/{firm_id}', '/me', '/me/avatar', '/me/change-password', '/me/deactivate', '/me/enable-2fa', '/me/preferences', '/me/verify-2fa', '/stats/summary', '/users', '/{user_id}', 'Core Users', 'JorssGbo', 'Profile not found', 'avatar_url', 'clients', 'cpa_id', 'firm_id', 'message', 'qr_url', 'secret', 'success', 'total', 'users']

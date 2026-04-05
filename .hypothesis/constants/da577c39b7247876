@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/audit_api.py
+# hypothesis_version: 6.141.1
+
+[100, 365, 500, 501, 1000, '/api/v1/audit', '/health', '/security/events', 'Audit Trail', 'action', 'actions', 'audit_available', 'calculate', 'calculation', 'calculations', 'days_queried', 'details', 'event_type', 'events', 'field_name', 'fields', 'first_event', 'history', 'last_event', 'operational', 'resource_type', 'session_id', 'severity', 'severity_filter', 'source', 'sources', 'status', 'timestamp', 'total_calculations', 'total_changes', 'total_events', 'unavailable', 'unknown', 'user_id']

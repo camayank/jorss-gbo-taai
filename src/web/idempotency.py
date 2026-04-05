@@ -118,8 +118,10 @@ class IdempotencyStore:
             if not row:
                 return None
 
-            # Check if expired
+            # Check if expired (normalize naive datetime to UTC-aware)
             expires_at = datetime.fromisoformat(row[6])
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
             if datetime.now(timezone.utc) > expires_at:
                 self.delete(idempotency_key)
                 return None

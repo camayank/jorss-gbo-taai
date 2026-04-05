@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/tax_return.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.2, 2025, 'TaxReturn', 'is_dual_status_alien', 'python']

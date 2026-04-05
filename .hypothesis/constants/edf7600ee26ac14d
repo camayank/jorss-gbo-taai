@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/tasks/celery_app.py
+# hypothesis_version: 6.141.1
+
+[3600.0, 86400.0, 604800.0, 600, 3600, 'SUCCESS', 'UTC', 'args', 'cleanup-dead-letters', 'compile-daily-digest', 'error', 'exception', 'failed', 'kwargs', 'max_retries', 'ready', 'redis', 'rediss', 'request', 'result', 'retry_count', 'retry_reason', 'schedule', 'sender', 'state', 'status', 'successful', 'sync-fallback', 'task', 'task_id', 'task_name', 'tasks.backup', 'tasks.data_retention', 'tasks.ocr_tasks', 'tax_platform', 'traceback', 'trim-audit-logs', 'unknown']

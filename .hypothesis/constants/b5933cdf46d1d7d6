@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/models/form_5471.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 1.0, 10.0, 50.0, 100.0, 100, 'Address', 'Country code', 'EIN or reference ID', 'Exchange rate to USD', 'SSN or EIN', 'Shareholder name', 'USD', 'category_1', 'category_2', 'category_3', 'category_4', 'category_5', 'cfc', 'current_ep', 'direct_ownership', 'filer_name', 'filing_categories', 'foreign_corporation', 'foreign_taxes_paid', 'functional_currency', 'gilti_applicable', 'gilti_inclusion', 'gilti_pro_rata', 'gross_income', 'gross_tested_income', 'illegal_bribes', 'inclusion_in_income', 'indirect_ownership', 'insurance_income', 'is_cfc', 'is_pfic', 'net_gilti_inclusion', 'net_income', 'net_subpart_f_income', 'net_tested_income', 'other', 'ownership_percent', 'pfic', 'pro_rata_share', 'qbai', 'sfc', 'subpart_f_applicable', 'subpart_f_inclusion', 'subpart_f_pro_rata', 'total_assets', 'total_equity', 'total_inclusion', 'total_ownership']

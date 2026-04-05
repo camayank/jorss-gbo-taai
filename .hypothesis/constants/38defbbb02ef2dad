@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/security/tenant_isolation.py
+# hypothesis_version: 6.141.1
+
+[300, 'APP_ENVIRONMENT', 'CPA_ACCESS_DENIED', 'LEADS_NOT_FOUND', 'LEAD_NOT_FOUND', 'Lead not found', 'TENANT_ACCESS_DENIED', 'TENANT_STRICT_MODE', 'action', 'admin', 'anonymous', 'auth', 'default', 'development', 'error_code', 'event', 'granted', 'ip', 'message', 'none', 'path', 'prod', 'production', 'read', 'reason', 'staging', 'strict_mode', 'tenant_access', 'tenant_id', 'timestamp', 'true', 'unknown', 'user_id', 'write']

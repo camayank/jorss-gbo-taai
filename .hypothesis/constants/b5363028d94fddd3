@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/stripe_billing.py
+# hypothesis_version: 6.141.1
+
+[400, '%B %d, %Y', ',', '/', '/api/billing', '/cpa/billing', '/create-subscription', '/customers', '/portal', '/status', '/subscriptions', '/webhook', '1', '=', 'GET', 'Invalid JSON', 'Invalid signature', 'POST', 'SQLITE_DB_PATH', 'STRIPE_PRICE_ID', 'STRIPE_SECRET_KEY', 'Stripe Billing', 'Stripe error', 'active', 'admin_email', 'client_secret', 'current_period_end', 'customer', 'data', 'default_incomplete', 'email', 'error', 'expand[]', 'id', 'inactive', 'items[0][price]', 'latest_invoice', 'message', 'metadata[tenant_id]', 'next_billing_date', 'object', 'payment_behavior', 'payment_intent', 'plan', 'price_placeholder', 'received', 'status', 'stripe-signature', 'stripe_configured', 'stripe_customer_id', 'subscription_id', 't', 'trial_active', 'trialing', 'type', 'url', 'v1']

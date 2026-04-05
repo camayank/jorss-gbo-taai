@@ -4,7 +4,7 @@
 {% block page_title %}My Profile{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .profile-grid {
         display: grid;
         grid-template-columns: 300px 1fr;
@@ -456,7 +456,7 @@
         });
     });
 </script>
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .spinner {
         display: inline-block;
         width: var(--space-3-5);

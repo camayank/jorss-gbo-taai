@@ -5,7 +5,7 @@
 {% block page_title %}Billing & Subscription{% endblock %}
 
 {% block extra_styles %}
-<style>
+<style{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     .billing-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -281,29 +281,217 @@
         background: var(--color-warning-100);
         color: var(--color-warning-800);
     }
+
+    /* Pricing toggle */
+    .pricing-toggle-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .pricing-toggle-label {
+        font-size: 0.95rem;
+        font-weight: var(--font-medium);
+        color: var(--text-muted);
+        transition: color 0.15s;
+    }
+
+    .pricing-toggle-label.active {
+        color: var(--color-navy, #0B1D3A);
+        font-weight: var(--font-semibold);
+    }
+
+    .pricing-toggle {
+        position: relative;
+        width: 52px;
+        height: 28px;
+        cursor: pointer;
+    }
+
+    .pricing-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+    }
+
+    .pricing-toggle-track {
+        position: absolute;
+        inset: 0;
+        background: var(--color-gray-200, #E5E7EB);
+        border-radius: 999px;
+        transition: background 0.2s;
+    }
+
+    .pricing-toggle input:checked ~ .pricing-toggle-track {
+        background: var(--color-navy, #0B1D3A);
+    }
+
+    .pricing-toggle-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    }
+
+    .pricing-toggle input:checked ~ .pricing-toggle-thumb {
+        transform: translateX(24px);
+    }
+
+    .annual-badge {
+        background: var(--badge-success-bg, #DCFCE7);
+        color: var(--badge-success-text, #16A34A);
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        letter-spacing: 0.03em;
+    }
+
+    /* Featured plan */
+    .plan-card.plan-featured {
+        border-color: var(--color-gold, #C9A84C);
+        box-shadow: var(--shadow-gold-glow, 0 2px 12px rgba(201,168,76,0.22));
+        position: relative;
+    }
+
+    .plan-featured-badge {
+        position: absolute;
+        top: -14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--color-gold, #C9A84C);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 3px 14px;
+        border-radius: 999px;
+        white-space: nowrap;
+        z-index: 1;
+    }
+
+    /* Feature comparison table */
+    .feature-comparison {
+        background: var(--white);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        margin-bottom: var(--space-6);
+    }
+
+    .feature-comparison-header {
+        padding: var(--space-5) var(--space-6);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .feature-comparison table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .feature-comparison thead th {
+        padding: var(--space-3) var(--space-4);
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: var(--font-semibold);
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .feature-comparison thead th:first-child {
+        text-align: left;
+    }
+
+    .feature-comparison tbody td {
+        padding: var(--space-3) var(--space-4);
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    .feature-comparison tbody td:first-child {
+        text-align: left;
+        color: var(--text-dark);
+        font-weight: var(--font-medium);
+    }
+
+    .feature-comparison tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .feature-comparison tbody tr:hover td {
+        background: var(--bg-light, #F8F9FA);
+    }
+
+    .fc-check { color: var(--color-success, #16a34a); font-size: 1rem; }
+    .fc-dash  { color: var(--text-muted); }
+
+    /* Social proof */
+    .social-proof-bar {
+        text-align: center;
+        padding: var(--space-3) var(--space-4);
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        background: var(--color-gold-bg, rgba(201,168,76,0.06));
+        border: 1px solid var(--color-gold-light, #E8D5A3);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-6);
+    }
+
+    .social-proof-bar strong {
+        color: var(--color-navy, #0B1D3A);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+
+<div class="social-proof-bar">
+    ⭐ <strong>127 CPAs</strong> signed up this month — join the fastest-growing tax practice platform
+</div>
+
+<div class="pricing-toggle-wrap">
+    <span class="pricing-toggle-label active" id="lbl-monthly">Monthly</span>
+    <label class="pricing-toggle" aria-label="Toggle annual pricing">
+        <input type="checkbox" id="annualToggle" onchange="togglePricing(this.checked)" aria-checked="false">
+        <span class="pricing-toggle-track"></span>
+        <span class="pricing-toggle-thumb"></span>
+    </label>
+    <span class="pricing-toggle-label" id="lbl-annual">Annual <span class="annual-badge">Save 25%</span></span>
+</div>
+
 <div class="billing-grid">
-    <div class="plan-card">
-        <div class="plan-header">
+    <div class="plan-card plan-featured" style="position:relative;">
+        <span class="plan-featured-badge">⭐ Most Popular</span>
+        <div class="plan-header" style="background: linear-gradient(135deg, var(--color-navy, #0B1D3A), var(--color-navy-light, #1a3560));">
             <div class="plan-name">{{ billing.plan or 'No Active Plan' }}</div>
             <span class="plan-status">{{ icon('check') }} {{ billing.status|capitalize }}</span>
         </div>
         <div class="plan-body">
             <div class="plan-price">
-                <span class="plan-price-amount">${{ billing.amount }}</span>
-                <span class="plan-price-period">/month</span>
+                <span class="plan-price-amount" id="plan-price-display">${{ billing.amount }}</span>
+                <span class="plan-price-period" id="plan-period-display">/month</span>
             </div>
             <ul class="plan-features">
                 <li><span class="check">{{ icon('check') }}</span> Up to {{ billing.leads_limit }} leads/month</li>
-                <li><span class="check">{{ icon('check') }}</span> Lead scoring & prioritization</li>
+                <li><span class="check">{{ icon('check') }}</span> Lead scoring &amp; prioritization</li>
                 <li><span class="check">{{ icon('check') }}</span> Custom branding</li>
                 <li><span class="check">{{ icon('check') }}</span> Analytics dashboard</li>
                 <li><span class="check">{{ icon('check') }}</span> Email notifications</li>
             </ul>
-            <button class="btn btn-secondary" style="width: 100%;" onclick="document.getElementById('planModal').style.display='flex'">Change Plan</button>
+            <button class="btn btn-navy" style="width: 100%;" onclick="document.getElementById('planModal').style.display='flex'">Change Plan</button>
         </div>
     </div>
 
@@ -332,20 +520,177 @@
     </div>
 </div>
 
-<div class="billing-section">
+<div class="feature-comparison">
+    <div class="feature-comparison-header">
+        <h3 style="margin:0; font-size:1.1rem; font-weight:var(--font-semibold);">Feature Comparison</h3>
+        <span style="font-size:0.85rem; color:var(--text-muted);">All plans include core tax tools</span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Starter</th>
+                <th>Professional</th>
+                <th>Enterprise</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Leads per month</td>
+                <td>50</td>
+                <td>250</td>
+                <td>Unlimited</td>
+            </tr>
+            <tr>
+                <td>Team members</td>
+                <td>1</td>
+                <td>5</td>
+                <td>Unlimited</td>
+            </tr>
+            <tr>
+                <td>Custom branding &amp; white-label</td>
+                <td><span class="fc-dash">—</span></td>
+                <td><span class="fc-check">✓</span></td>
+                <td><span class="fc-check">✓</span></td>
+            </tr>
+            <tr>
+                <td>AI advisory reports</td>
+                <td><span class="fc-dash">—</span></td>
+                <td><span class="fc-check">✓</span></td>
+                <td><span class="fc-check">✓</span></td>
+            </tr>
+            <tr>
+                <td>Priority support &amp; dedicated CSM</td>
+                <td><span class="fc-dash">—</span></td>
+                <td><span class="fc-dash">—</span></td>
+                <td><span class="fc-check">✓</span></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="billing-section" id="stripe-billing-section">
     <div class="billing-section-header">
-        <h3 class="billing-section-title">Payment Method</h3>
+        <h3 class="billing-section-title">Subscription &amp; Payment</h3>
     </div>
     <div class="billing-section-body">
-        <div class="payment-method">
-            <div class="card-icon" style="background: linear-gradient(135deg, var(--color-primary-500), var(--color-purple-600));">M</div>
-            <div class="card-details">
-                <div class="card-number" style="font-weight: var(--font-medium);">Payments via Mercury</div>
-                <div class="card-expiry">Billing is managed through your Mercury wallet. Contact support for payment questions.</div>
+        <!-- Stripe.js loaded only when needed -->
+        <div id="stripe-status-loading" style="color: var(--text-muted); font-size: 0.875rem;">Loading billing status…</div>
+
+        <div id="stripe-subscribe-block" style="display:none;">
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Start your $50/month subscription to unlock all CPA portal features.</p>
+            <div id="stripe-card-element" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 1rem; background: #fff;"></div>
+            <p id="stripe-card-error" style="color: #e53e3e; font-size: 0.875rem; display:none;"></p>
+            <button id="stripe-subscribe-btn" onclick="stripeSubscribe()" class="btn btn-primary" style="width: 100%;">
+                Subscribe — $50/month
+            </button>
+        </div>
+
+        <div id="stripe-active-block" style="display:none;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                <span style="background: #22c55e20; color: #16a34a; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">Active</span>
+                <span id="stripe-next-billing" style="color: var(--text-muted); font-size: 0.875rem;"></span>
             </div>
+            <button onclick="stripePortal()" class="btn btn-secondary" style="width: 100%;">
+                Manage Subscription
+            </button>
+        </div>
+
+        <div id="stripe-unconfigured-block" style="display:none;">
+            <p style="color: var(--text-muted); font-size: 0.875rem;">
+                Stripe is not configured. Set <code>STRIPE_SECRET_KEY</code> and <code>STRIPE_PRICE_ID</code> environment variables to enable billing.
+            </p>
         </div>
     </div>
 </div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script{%- if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+(function() {
+    const MONTHLY_PRICE = {{ billing.amount | default(50) }};
+    window.togglePricing = function(isAnnual) {
+        const annual = Math.round(MONTHLY_PRICE * 0.75);
+        const priceEl = document.getElementById('plan-price-display');
+        const periodEl = document.getElementById('plan-period-display');
+        const lblM = document.getElementById('lbl-monthly');
+        const lblA = document.getElementById('lbl-annual');
+        const toggle = document.getElementById('annualToggle');
+        if (priceEl) priceEl.textContent = '$' + (isAnnual ? annual : MONTHLY_PRICE);
+        if (periodEl) periodEl.textContent = isAnnual ? '/month, billed annually' : '/month';
+        if (lblM) lblM.classList.toggle('active', !isAnnual);
+        if (lblA) lblA.classList.toggle('active', isAnnual);
+        if (toggle) toggle.setAttribute('aria-checked', isAnnual ? 'true' : 'false');
+    };
+})();
+
+(async function initStripeBilling() {
+    let _stripe = null;
+    let _cardElement = null;
+
+    try {
+        const resp = await fetch('/api/billing/status');
+        const data = await resp.json();
+        document.getElementById('stripe-status-loading').style.display = 'none';
+
+        if (!data.stripe_configured) {
+            document.getElementById('stripe-unconfigured-block').style.display = 'block';
+            return;
+        }
+        if (data.active) {
+            document.getElementById('stripe-active-block').style.display = 'block';
+            if (data.next_billing_date) {
+                document.getElementById('stripe-next-billing').textContent = 'Next billing: ' + data.next_billing_date;
+            }
+        } else {
+            document.getElementById('stripe-subscribe-block').style.display = 'block';
+            _stripe = Stripe('{{ stripe_publishable_key | default("") }}');
+            const elements = _stripe.elements();
+            _cardElement = elements.create('card', { style: { base: { fontFamily: 'DM Sans, sans-serif', fontSize: '15px' } } });
+            _cardElement.mount('#stripe-card-element');
+        }
+    } catch (e) {
+        document.getElementById('stripe-status-loading').textContent = 'Could not load billing status.';
+    }
+
+    window.stripeSubscribe = async function() {
+        const btn = document.getElementById('stripe-subscribe-btn');
+        const errEl = document.getElementById('stripe-card-error');
+        btn.disabled = true;
+        btn.textContent = 'Processing…';
+        errEl.style.display = 'none';
+        try {
+            const resp = await fetch('/api/billing/create-subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            const data = await resp.json();
+            if (data.client_secret && _stripe && _cardElement) {
+                const { error } = await _stripe.confirmCardPayment(data.client_secret, { payment_method: { card: _cardElement } });
+                if (error) {
+                    errEl.textContent = error.message;
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Subscribe — $50/month';
+                    return;
+                }
+            }
+            location.reload();
+        } catch (e) {
+            errEl.textContent = 'Something went wrong. Please try again.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Subscribe — $50/month';
+        }
+    };
+
+    window.stripePortal = async function() {
+        try {
+            const resp = await fetch('/api/billing/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            const data = await resp.json();
+            if (data.url) window.location.href = data.url;
+        } catch (e) {
+            alert('Could not open billing portal. Please try again.');
+        }
+    };
+})();
+</script>
 
 <div class="billing-section">
     <div class="billing-section-header">

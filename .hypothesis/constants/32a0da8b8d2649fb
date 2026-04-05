@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/rbac/roles.py
+# hypothesis_version: 6.141.1
+
+['API Partner', 'Billing', 'Client', 'Client (Legacy)', 'Partner', 'Platform Admin', 'Staff', 'Super Admin', 'Support', 'api_partner', 'billing', 'direct_client', 'firm_client', 'partner', 'platform_admin', 'staff', 'super_admin', 'support']

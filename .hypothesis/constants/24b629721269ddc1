@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/tasks/task_service.py
+# hypothesis_version: 6.141.1
+
+[100, 'System', 'Task unblocked', 'Unknown', 'blocked', 'by_category', 'by_priority', 'by_status', 'cancelled', 'completed', 'completion_rate', 'due_this_week', 'estimated_hours', 'id', 'in_progress', 'in_review', 'name', 'overdue', 'todo', 'total', 'total_active', 'unassigned', 'urgent', 'user_id']

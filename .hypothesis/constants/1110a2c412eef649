@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/rbac/middleware.py
+# hypothesis_version: 6.141.1
+
+[401, 'Authorization', 'Bearer ', 'REDIS_URL', 'auth_context', 'detail', 'email', 'enterprise', 'firm_id', 'is_authenticated', 'jti', 'permissions', 'professional', 'rbac', 'revoked_jtis', 'role', 'starter', 'sub', 'subscription_tier', 'user_id', 'value']

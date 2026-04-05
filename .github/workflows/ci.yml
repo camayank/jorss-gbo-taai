@@ -163,3 +163,76 @@ jobs:
             exit 0
           fi
           python scripts/smoke_test.py "$APP_URL" || echo "::warning::Smoke test failed"
+
+  deploy-staging:
+    name: Deploy to AWS ECS Staging
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download current ECS task definition
+        env:
+          ECS_TASK_DEFINITION: ${{ secrets.ECS_TASK_DEFINITION }}
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition $ECS_TASK_DEFINITION \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Render new ECS task definition with updated image
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ secrets.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: ECS staging deploy health check
+        env:
+          ALB_URL: ${{ secrets.STAGING_ALB_URL }}
+        run: |
+          if [ -z "$ALB_URL" ]; then
+            echo "::notice::STAGING_ALB_URL not set — skipping health check"
+            exit 0
+          fi
+          for i in {1..5}; do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$ALB_URL/health/live") || true
+            [ "$STATUS" = "200" ] && echo "Health check passed" && exit 0
+            echo "Attempt $i: got $STATUS, retrying in 15s…"
+            sleep 15
+          done
+          echo "::warning::Staging health check timed out after 5 attempts"

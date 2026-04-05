@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/cpa_panel/services/lead_magnet/payloads.py
+# hypothesis_version: 6.141.1
+
+[2.2, 100, 150, 1200, '%b', '%b %d, %Y', '%d', '-', 'Current Path', 'Current Tax Path', 'Missed Savings', 'Optimized Path', 'USD', 'W-2 households', '_', 'avg_missed_savings', 'band', 'bars', 'base', 'business_owner', 'complexity_label', 'cpa', 'critical', 'cumulative', 'currency', 'date_iso', 'day', 'days_remaining', 'deadline_date', 'deadline_display', 'delta', 'description', 'filing_status', 'filing_status_label', 'high', 'image_url', 'income_range_label', 'investments', 'investor', 'investor households', 'kind', 'label', 'line', 'low', 'message', 'mixed', 'moderate', 'month', 'occupation_type', 'percent', 'planning', 'savings', 'score', 'self_employed', 'state_code', 'state_name', 'text', 'title', 'tokens', 'total', 'total_value', 'urgency', 'url', 'value', 'w2', 'waterfall', 'your state']

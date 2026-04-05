@@ -18,7 +18,7 @@ from typing import Optional, List
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -1518,7 +1518,7 @@ async def update_payment_method(
 
 @router.post("/webhook/stripe")
 async def stripe_webhook(
-    request: "Request",
+    request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
     """
@@ -1531,7 +1531,7 @@ async def stripe_webhook(
     - customer.subscription.updated -> sync plan changes
     - customer.subscription.deleted -> deactivate subscription
     """
-    from fastapi import Request as _Req  # noqa: already imported via router
+
 
     webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
     body = await request.body()

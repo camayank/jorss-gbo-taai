@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/web/helpers/error_responses.py
+# hypothesis_version: 6.141.1
+
+[500, '.', '/', 'APP_ENVIRONMENT', 'An error occurred.', 'CALCULATION_ERROR', 'CONFLICT', 'DATABASE_ERROR', 'DATA_INCOMPLETE', 'DUPLICATE_ENTRY', 'Error timestamp', 'FORBIDDEN', 'INTERNAL_ERROR', 'INVALID_FORMAT', 'INVALID_INPUT', 'INVALID_STATE', 'Invalid value', 'MISSING_FIELD', 'NOT_FOUND', 'PROCESSING_ERROR', 'RATE_LIMITED', 'RESOURCE_NOT_FOUND', 'Resource', 'SERVICE_UNAVAILABLE', 'SESSION_NOT_FOUND', 'TIMEOUT', 'UNAUTHORIZED', 'VALIDATION_ERROR', '\\', 'code', 'database', 'details', 'dev', 'development', 'error', 'error_code', 'field', 'idle', 'key', 'loading', 'loc', 'local', 'message', 'msg', 'operation', 'password', 'progress', 'query', 'request_id', 'secret', 'sql', 'state', 'success', 'test', 'timestamp', 'token', 'type', 'validation_error']

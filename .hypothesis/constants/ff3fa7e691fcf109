@@ -1,0 +1,4 @@
+# file: /Users/rakeshanita/jorss-gbo-taai/src/core/services/oauth_service.py
+# hypothesis_version: 6.141.1
+
+[10.0, 30.0, 200, 600, 'APP_ENVIRONMENT', 'Authorization', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'MICROSOFT_CLIENT_ID', 'MICROSOFT_TENANT', 'OAUTH_CALLBACK_URL', 'REDIS_URL', 'State token expired', 'User.Read', 'access_token', 'access_type', 'authorization_code', 'client_id', 'client_secret', 'code', 'common', 'created_at', 'development', 'displayName', 'email', 'family_name', 'full_name', 'givenName', 'given_name', 'google', 'grant_type', 'id', 'is_new_user', 'locale', 'mail', 'microsoft', 'name', 'offline', 'openid', 'picture', 'preferredLanguage', 'prod', 'production', 'profile', 'prompt', 'provider', 'query', 'redirect_uri', 'refresh_token', 'response_mode', 'response_type', 'scope', 'select_account', 'staging', 'state', 'surname', 'user', 'userPrincipalName', 'user_id', 'user_type', 'value', 'verified_email']
