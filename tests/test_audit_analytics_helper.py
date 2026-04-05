@@ -240,3 +240,63 @@ def test_get_lead_conversion_funnel_with_assignments():
     assert result["magnet_leads"] == 10
     assert result["assigned_clients"] == 6
     assert result["conversion_rate"] == 60.0  # 6/10 * 100
+
+
+def test_get_recommendation_acceptance_rate_no_events():
+    """Test recommendation acceptance with no events."""
+    mock_service = type('MockService', (), {
+        'query': lambda *args, **kwargs: []
+    })()
+
+    helper = AuditAnalyticsHelper()
+    helper._audit_service = mock_service
+
+    result = helper.get_recommendation_acceptance_rate(tenant_id="test")
+
+    assert result["total_recommendations"] == 0
+    assert result["accepted_count"] == 0
+    assert result["acceptance_rate"] == 0
+
+
+def test_get_recommendation_acceptance_rate_with_changes():
+    """Test recommendation acceptance from field changes."""
+    from audit.unified import AuditEventType, AuditSource
+    from audit.unified.entry import UnifiedAuditEntry, ChangeRecord
+
+    # Create mock entries for field changes with recommendation source
+    entries = []
+
+    # 8 field changes from recommendations
+    for i in range(8):
+        change = ChangeRecord(
+            field_path=f"field_{i % 3}",
+            old_value=0,
+            new_value=100 * (i + 1),
+            change_reason=f"recommendation_{i}"
+        )
+        entry = UnifiedAuditEntry(
+            event_type=AuditEventType.TAX_DATA_FIELD_CHANGE,
+            session_id=f"session_{i}",
+            tenant_id="tenant_1",
+            user_id="user_1",
+            resource_type="tax_data",
+            resource_id=f"session_{i}",
+            action="change_field",
+            source=AuditSource.AI_CHATBOT,  # Represents recommendation acceptance
+            changes=[change],
+            metadata={"from_recommendation": True, "recommendation_id": f"rec_{i}"},
+        )
+        entries.append(entry)
+
+    mock_service = type('MockService', (), {
+        'query': lambda *args, **kwargs: entries
+    })()
+
+    helper = AuditAnalyticsHelper()
+    helper._audit_service = mock_service
+
+    result = helper.get_recommendation_acceptance_rate(tenant_id="tenant_1")
+
+    assert result["total_recommendations"] == 8
+    assert result["accepted_count"] == 8
+    assert result["acceptance_rate"] == 100.0
