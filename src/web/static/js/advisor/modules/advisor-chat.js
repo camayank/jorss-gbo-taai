@@ -36,6 +36,29 @@ import {
   showShimmerLoading, hideShimmerLoading, triggerConfetti, updateJourneyStepperForHybrid, addManyOptionsClass
 } from './advisor-display.js';
 
+// ======================== ICON UTILITY ========================
+/**
+ * Generate inline SVG icon (Heroicons style)
+ * @param {string} name - Icon name ('chart-bar' or 'light-bulb')
+ * @param {object} options - {size: 'sm|md|lg', class: '', title: '', ariaLabel: ''}
+ */
+function createIcon(name, options = {}) {
+  const { size = 'md', className = '', title = '', ariaLabel = '' } = options;
+  const sizes = { sm: 16, md: 20, lg: 24 };
+  const px = sizes[size] || 20;
+
+  const icons = {
+    'chart-bar': 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
+    'light-bulb': 'M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18'
+  };
+
+  const path = icons[name];
+  if (!path) return '';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="${px}" height="${px}" class="icon-svg ${className}" ${title ? `title="${title}"` : ''} ${ariaLabel ? `aria-label="${ariaLabel}"` : ''} style="display:inline;vertical-align:middle;margin-right:6px;"><path d="${path}"/></svg>`;
+  return svg;
+}
+
 // ======================== FALLBACK RESPONSES ========================
 
 export const FallbackResponses = {
@@ -1146,7 +1169,7 @@ export async function processAIResponse(userMessage) {
           resultsLink = document.createElement('a');
           resultsLink.id = 'results-link';
           resultsLink.style.cssText = 'display:block;text-align:center;padding:12px 24px;margin:12px auto;background:#0B1D3A;color:#C9A84C;border-radius:8px;font-weight:700;text-decoration:none;max-width:300px;border:2px solid #C9A84C;';
-          resultsLink.textContent = '📊 View Your Tax Analysis →';
+          resultsLink.innerHTML = createIcon('chart-bar', { size: 'md', className: 'results-icon', ariaLabel: 'View tax analysis' }) + 'View Your Tax Analysis →';
           var msgs = document.getElementById('messages');
           if (msgs) msgs.parentNode.insertBefore(resultsLink, msgs.nextSibling);
         }
@@ -1262,7 +1285,7 @@ export async function processAIResponse(userMessage) {
 
     // Append "why we're asking" hint for user education
     if (data.question_hint) {
-      aiResponse += `<div class="question-hint" style="margin-top:8px;padding:8px 12px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;border-radius:0 4px 4px 0;font-size:0.8rem;color:#6b5a30;line-height:1.5;">💡 ${escapeHtml(data.question_hint)}</div>`;
+      aiResponse += `<div class="question-hint" style="margin-top:8px;padding:8px 12px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;border-radius:0 4px 4px 0;font-size:0.8rem;color:#6b5a30;line-height:1.5;">${createIcon('light-bulb', { size: 'sm', className: 'question-hint-icon', ariaLabel: 'Tip' })} ${escapeHtml(data.question_hint)}</div>`;
     }
 
     if (data.response_type === 'ai_response') {
