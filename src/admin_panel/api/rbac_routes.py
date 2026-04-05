@@ -417,7 +417,7 @@ async def get_role(
 
 @router.put("/roles/{role_id}/permissions", response_model=RoleResponse)
 async def update_role_permissions(
-    role_id: UUID,
+    role_id: str,
     request: UpdateRolePermissionsRequest,
     ctx: RBACContext = Depends(require_firm_admin),
     _perm: None = Depends(RequirePermission("manage_custom_roles")),
@@ -432,7 +432,7 @@ async def update_role_permissions(
 
         result = await role_service.update_role_permissions(
             role_id=role_id,
-            permission_codes=request.permission_codes,
+            permission_codes=request.get_permission_codes(),
             updated_by=ctx.user_id,
             firm_id=ctx.firm_id,
             subscription_tier=ctx.subscription_tier,
@@ -475,7 +475,7 @@ async def update_role_permissions(
 
 @router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_role(
-    role_id: UUID,
+    role_id: str,
     ctx: RBACContext = Depends(require_firm_admin),
     _perm: None = Depends(RequirePermission("manage_custom_roles")),
 ):
@@ -510,7 +510,7 @@ async def delete_role(
 
 @router.get("/users/{user_id}/roles", response_model=List[UserRoleAssignmentResponse])
 async def get_user_roles(
-    user_id: UUID,
+    user_id: str,
     ctx: RBACContext = Depends(get_rbac_context),
     _perm: None = Depends(RequirePermission("view_team_performance")),
 ):
@@ -528,10 +528,15 @@ async def get_user_roles(
                 {"uid": str(user_id)},
             )
             _row = _check.fetchone()
-            if not _row or str(_row[0]) != str(ctx.firm_id):
+            if not _row:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot view roles for users outside your firm",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found",
+                )
+            if str(_row[0]) != str(ctx.firm_id):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found in this firm",
                 )
 
     async with get_async_session() as db:
@@ -553,7 +558,7 @@ async def get_user_roles(
 
 @router.put("/users/{user_id}/roles")
 async def assign_user_role(
-    user_id: UUID,
+    user_id: str,
     request: AssignRoleRequest,
     ctx: RBACContext = Depends(require_firm_admin),
     _perm: None = Depends(RequirePermission("assign_roles")),
@@ -566,12 +571,23 @@ async def assign_user_role(
     - assign_roles permission
     - Cannot assign role with higher hierarchy level than assigner
     """
+    # Support both role_id and roles list
+    role_id_str = request.role_id or (request.roles[0] if request.roles else None)
+    if not role_id_str:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="role_id or roles required")
+
     async with get_async_session() as db:
         role_service = get_role_service(db)
 
+        try:
+            role_uuid = UUID(role_id_str)
+        except (ValueError, AttributeError):
+            # Non-UUID role identifier (e.g., role code string) - not found
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Role not found: {role_id_str}")
+
         result = await role_service.assign_role(
             user_id=user_id,
-            role_id=UUID(request.role_id),
+            role_id=role_uuid,
             assigned_by=ctx.user_id,
             assigner_hierarchy_level=ctx.hierarchy_level,
             is_primary=request.is_primary,
@@ -593,8 +609,8 @@ async def assign_user_role(
 
 @router.delete("/users/{user_id}/roles/{role_id}")
 async def remove_user_role(
-    user_id: UUID,
-    role_id: UUID,
+    user_id: str,
+    role_id: str,
     ctx: RBACContext = Depends(require_firm_admin),
     _perm: None = Depends(RequirePermission("assign_roles")),
 ):
@@ -725,7 +741,7 @@ async def create_permission_override(
 
 @router.post("/seed", status_code=status.HTTP_200_OK)
 async def seed_rbac_data(
-    ctx: RBACContext = Depends(require_platform_admin),
+    ctx: RBACContext = Depends(require_firm_admin),
 ):
     """
     Seed system permissions and roles.

@@ -67,7 +67,7 @@ async def _stripe_request(
     stripe_key = os.environ.get("STRIPE_SECRET_KEY")
     if not stripe_key:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Stripe is not configured for this environment",
         )
 
@@ -320,11 +320,15 @@ class PlanComparison(BaseModel):
 
 class CheckoutSessionRequest(BaseModel):
     """Create a Stripe checkout session for a subscription plan."""
-    plan_code: str = Field(..., min_length=1, max_length=30)
+    plan_code: Optional[str] = Field(None, min_length=1, max_length=30)
+    plan_id: Optional[str] = Field(None, max_length=30)  # alias for plan_code
     billing_cycle: str = Field("monthly", pattern="^(monthly|annual)$")
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
     promotion_code: Optional[str] = Field(None, max_length=255)
+
+    def get_plan_code(self) -> str:
+        return self.plan_code or self.plan_id or ""
 
 
 class CheckoutSessionResponse(BaseModel):
@@ -658,7 +662,7 @@ async def create_checkout_session(
     """Create Stripe Checkout session for a subscription plan purchase."""
     if not _stripe_enabled():
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Stripe checkout is not configured.",
         )
 
@@ -669,13 +673,13 @@ async def create_checkout_session(
             WHERE code = :code AND is_active = true
             LIMIT 1
         """),
-        {"code": payload.plan_code},
+        {"code": payload.get_plan_code()},
     )
     plan_row = plan_result.fetchone()
     if not plan_row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Plan '{payload.plan_code}' not found",
+            detail=f"Plan '{payload.get_plan_code()}' not found",
         )
 
     stripe_price_id = plan_row[3] if payload.billing_cycle == "monthly" else plan_row[4]
@@ -683,7 +687,7 @@ async def create_checkout_session(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Stripe price ID is not configured for plan '{payload.plan_code}' "
+                f"Stripe price ID is not configured for plan '{payload.get_plan_code()}' "
                 f"({payload.billing_cycle})."
             ),
         )
@@ -728,7 +732,7 @@ async def create_checkout_session(
         "line_items[0][quantity]": "1",
         "allow_promotion_codes": "true",
         "metadata[firm_id]": str(firm_id),
-        "metadata[plan_code]": payload.plan_code,
+        "metadata[plan_code]": payload.get_plan_code(),
         "metadata[billing_cycle]": payload.billing_cycle,
     }
     if payload.promotion_code:
@@ -738,7 +742,7 @@ async def create_checkout_session(
         "POST",
         "/checkout/sessions",
         data=data,
-        idempotency_key=f"checkout-{firm_id}-{payload.plan_code}-{payload.billing_cycle}",
+        idempotency_key=f"checkout-{firm_id}-{payload.get_plan_code()}-{payload.billing_cycle}",
     )
 
     checkout_session_id = stripe_session.get("id")
@@ -768,7 +772,7 @@ async def create_billing_portal_session(
     """Create Stripe billing portal session for self-serve plan management."""
     if not _stripe_enabled():
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Stripe billing portal is not configured.",
         )
 
@@ -1389,10 +1393,16 @@ async def get_invoice(
     )
 
 
+class PaymentMethodRequest(BaseModel):
+    """Update payment method request."""
+    payment_method_id: Optional[str] = Field(None, description="Stripe payment method ID")
+
+
 @router.post("/payment-method")
 @require_permission(UserPermission.UPDATE_PAYMENT)
 async def update_payment_method(
-    payment_method_id: str,
+    body: PaymentMethodRequest = None,
+    payment_method_id: Optional[str] = None,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     session: AsyncSession = Depends(get_db_session),
@@ -1402,6 +1412,10 @@ async def update_payment_method(
 
     Uses Stripe payment method ID from frontend Stripe Elements.
     """
+    # Resolve payment_method_id from body or query param
+    pm_id = (body.payment_method_id if body else None) or payment_method_id or ""
+    payment_method_id = pm_id
+
     # Get current subscription
     sub_query = text("""
         SELECT s.subscription_id, s.stripe_customer_id, f.email, f.name

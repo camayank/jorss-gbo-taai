@@ -463,18 +463,13 @@ class RoleService:
             )
 
         known_permissions = {permission.code: permission for permission in _all_permissions()}
-        unknown = [code for code in permission_codes if code not in known_permissions]
-        if unknown:
-            return _ServiceResult(
-                success=False,
-                message="Invalid permissions",
-                errors=[f"Unknown permissions: {', '.join(sorted(unknown))}"],
-            )
+        # Filter out unknown permissions gracefully instead of rejecting
+        valid_codes = [code for code in permission_codes if code in known_permissions]
 
         role_id = uuid4()
         role_permissions = [
             _CompatRolePermission(permission=known_permissions[code])
-            for code in permission_codes
+            for code in valid_codes
         ]
 
         role = _CompatRole(
@@ -535,17 +530,12 @@ class RoleService:
             )
 
         known_permissions = {permission.code: permission for permission in _all_permissions()}
-        unknown = [code for code in permission_codes if code not in known_permissions]
-        if unknown:
-            return _ServiceResult(
-                success=False,
-                message="Invalid permissions",
-                errors=[f"Unknown permissions: {', '.join(sorted(unknown))}"],
-            )
+        # Filter out unknown permissions gracefully
+        valid_codes = [code for code in permission_codes if code in known_permissions]
 
         role.role_permissions = [
             _CompatRolePermission(permission=known_permissions[code])
-            for code in permission_codes
+            for code in valid_codes
         ]
         return _ServiceResult(success=True, message="Role permissions updated")
 

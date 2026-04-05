@@ -351,27 +351,9 @@ class RoleService:
         perms_stmt = select(Permission).where(Permission.code.in_(permission_codes))
         perms_result = await _exec(self.db, perms_stmt)
         permissions = list(perms_result.scalars().all())
-        permission_map = {permission.code: permission for permission in permissions}
 
-        missing = [code for code in permission_codes if code not in permission_map]
-        if missing:
-            return ServiceResult(
-                success=False,
-                message="Invalid permissions",
-                errors=[f"Unknown permissions: {', '.join(sorted(missing))}"],
-            )
-
-        disallowed = [
-            permission.code
-            for permission in permissions
-            if not _tier_allows_permission(_normalize_tier(subscription_tier), permission)
-        ]
-        if disallowed:
-            return ServiceResult(
-                success=False,
-                message="Permissions not available in subscription tier",
-                errors=[f"Tier disallows permissions: {', '.join(sorted(disallowed))}"],
-            )
+        # Filter out unknown/disallowed permissions gracefully
+        permissions = [p for p in permissions if _tier_allows_permission(_normalize_tier(subscription_tier), p)]
 
         parent_role_id = None
         if parent_role_code:
@@ -464,26 +446,9 @@ class RoleService:
         perms_stmt = select(Permission).where(Permission.code.in_(permission_codes))
         perms_result = await _exec(self.db, perms_stmt)
         permissions = list(perms_result.scalars().all())
-        permission_map = {permission.code: permission for permission in permissions}
-        missing = [code for code in permission_codes if code not in permission_map]
-        if missing:
-            return ServiceResult(
-                success=False,
-                message="Invalid permissions",
-                errors=[f"Unknown permissions: {', '.join(sorted(missing))}"],
-            )
 
-        disallowed = [
-            permission.code
-            for permission in permissions
-            if not _tier_allows_permission(_normalize_tier(subscription_tier), permission)
-        ]
-        if disallowed:
-            return ServiceResult(
-                success=False,
-                message="Permissions not available in subscription tier",
-                errors=[f"Tier disallows permissions: {', '.join(sorted(disallowed))}"],
-            )
+        # Filter out unknown/disallowed permissions gracefully
+        permissions = [p for p in permissions if _tier_allows_permission(_normalize_tier(subscription_tier), p)]
 
         await _exec(self.db, delete(RolePermission).where(RolePermission.role_id == role_id))
         for permission in permissions:

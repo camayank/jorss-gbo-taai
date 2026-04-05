@@ -96,15 +96,31 @@ class ClientDetails(BaseModel):
 
 class AssignmentRequest(BaseModel):
     """Request to assign clients."""
-    client_ids: List[str]
-    user_id: str
+    client_ids: Optional[List[str]] = None
+    client_id: Optional[str] = None  # singular alias
+    user_id: Optional[str] = None
+    cpa_id: Optional[str] = None  # alias for user_id
     notify: bool = True
+
+    def get_client_ids(self) -> List[str]:
+        if self.client_ids:
+            return self.client_ids
+        if self.client_id:
+            return [self.client_id]
+        return []
+
+    def get_user_id(self) -> str:
+        return self.user_id or self.cpa_id or ""
 
 
 class BulkStatusRequest(BaseModel):
     """Request to update status in bulk."""
     client_ids: List[str]
-    new_status: str
+    new_status: Optional[str] = None
+    status: Optional[str] = None  # alias for new_status
+
+    def get_status(self) -> str:
+        return self.new_status or self.status or ""
 
 
 # =============================================================================
@@ -345,7 +361,8 @@ async def assign_clients(
         SELECT user_id, first_name, last_name FROM users
         WHERE user_id = :user_id AND firm_id = :firm_id AND is_active = true
     """)
-    user_result = await session.execute(user_check, {"user_id": request.user_id, "firm_id": firm_id})
+    target_user_id = request.get_user_id()
+    user_result = await session.execute(user_check, {"user_id": target_user_id, "firm_id": firm_id})
     target_user = user_result.fetchone()
 
     if not target_user:
@@ -358,7 +375,7 @@ async def assign_clients(
     now = datetime.now(timezone.utc).isoformat()
     assigned_count = 0
 
-    for client_id in request.client_ids:
+    for client_id in request.get_client_ids():
         update_query = text("""
             UPDATE clients SET
                 preparer_id = :preparer_id,
@@ -369,7 +386,7 @@ async def assign_clients(
         result = await session.execute(update_query, {
             "client_id": client_id,
             "firm_id": firm_id,
-            "preparer_id": request.user_id,
+            "preparer_id": target_user_id,
             "assigned_at": now,
             "updated_at": now,
         })
@@ -377,36 +394,50 @@ async def assign_clients(
             assigned_count += 1
 
     await session.commit()
-    logger.info(f"Assigned {assigned_count} clients to {request.user_id} by {user.email}")
+    logger.info(f"Assigned {assigned_count} clients to {target_user_id} by {user.email}")
 
     # FREEZE & FINISH: Email notifications deferred to Phase 2
     # Manual notification recommended for now
     notification_msg = None
     if request.notify:
         notification_msg = "Email notifications coming soon. Please notify the assignee manually."
-        logger.info(f"Notification requested but email service not available - manual notification needed for {request.user_id}")
+        logger.info(f"Notification requested but email service not available - manual notification needed for {target_user_id}")
 
     return {
         "status": "success",
         "assigned_count": assigned_count,
-        "assigned_to": request.user_id,
+        "assigned_to": target_user_id,
         "assigned_name": f"{target_user[1]} {target_user[2]}",
         "notification_sent": False,
         "notification_note": notification_msg or "No notification requested",
     }
 
 
+class ReassignRequest(BaseModel):
+    """Reassign client request."""
+    new_user_id: Optional[str] = None
+    new_cpa_id: Optional[str] = None  # alias
+    reason: Optional[str] = None
+
+    def get_user_id(self) -> str:
+        return self.new_user_id or self.new_cpa_id or ""
+
+
 @router.post("/clients/{client_id}/reassign")
 @require_permission(UserPermission.MANAGE_CLIENT)
 async def reassign_client(
     client_id: str,
-    new_user_id: str = Query(..., description="User ID to reassign to"),
+    body: ReassignRequest = None,
+    new_user_id: Optional[str] = Query(None, description="User ID to reassign to"),
     reason: Optional[str] = Query(None, description="Reason for reassignment"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     session: AsyncSession = Depends(get_db_session),
 ):
     """Reassign a client to a different team member."""
+    # Resolve new_user_id from body or query param
+    new_user_id = (body.get_user_id() if body else None) or new_user_id or ""
+
     # Get current assignment
     client_query = text("""
         SELECT c.preparer_id, p.first_name || ' ' || p.last_name as old_name
@@ -556,16 +587,28 @@ async def get_assignment_summary(
 # CLIENT STATUS ROUTES
 # =============================================================================
 
+class UpdateStatusRequest(BaseModel):
+    """Update client status request."""
+    new_status: Optional[str] = None
+    status: Optional[str] = None  # alias
+
+    def get_status(self) -> str:
+        return self.new_status or self.status or ""
+
+
 @router.patch("/clients/{client_id}/status")
 @require_permission(UserPermission.MANAGE_CLIENT)
 async def update_client_status(
     client_id: str,
-    new_status: str = Query(..., description="New status value"),
+    body: UpdateStatusRequest = None,
+    new_status: Optional[str] = Query(None, description="New status value"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     session: AsyncSession = Depends(get_db_session),
 ):
     """Update a client's status."""
+    # Resolve new_status from body or query param
+    new_status = (body.get_status() if body else None) or new_status or ""
     # Validate status
     try:
         ClientStatus(new_status)
@@ -620,9 +663,10 @@ async def bulk_update_status(
     session: AsyncSession = Depends(get_db_session),
 ):
     """Update status for multiple clients at once."""
+    bulk_status = request.get_status()
     # Validate status
     try:
-        ClientStatus(request.new_status)
+        ClientStatus(bulk_status)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -646,7 +690,7 @@ async def bulk_update_status(
         """)
         result = await session.execute(update_query, {
             "client_id": client_id,
-            "status": request.new_status,
+            "status": bulk_status,
             "updated_at": now,
             "firm_id": firm_id,
         })
@@ -654,25 +698,33 @@ async def bulk_update_status(
             updated_count += 1
 
     await session.commit()
-    logger.info(f"Bulk status update: {updated_count} clients set to {request.new_status} by {user.email}")
+    logger.info(f"Bulk status update: {updated_count} clients set to {bulk_status} by {user.email}")
 
     return {
         "status": "success",
         "updated_count": updated_count,
-        "new_status": request.new_status,
+        "new_status": bulk_status,
     }
+
+
+class UpdatePriorityRequest(BaseModel):
+    """Update client priority request."""
+    priority: Optional[str] = None
 
 
 @router.patch("/clients/{client_id}/priority")
 @require_permission(UserPermission.MANAGE_CLIENT)
 async def update_client_priority(
     client_id: str,
-    priority: str = Query(..., description="New priority level"),
+    body: UpdatePriorityRequest = None,
+    priority: Optional[str] = Query(None, description="New priority level"),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
     session: AsyncSession = Depends(get_db_session),
 ):
     """Update a client's priority level."""
+    # Resolve priority from body or query param
+    priority = (body.priority if body else None) or priority or ""
     # Validate priority
     try:
         ClientPriority(priority)
