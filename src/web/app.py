@@ -1008,6 +1008,23 @@ templates.env.globals.setdefault("sidebar_theme", "default")
 templates.env.globals.setdefault("logo_url", "")
 templates.env.globals.setdefault("user", {"role": "anonymous", "name": "Guest", "email": ""})
 
+# =============================================================================
+# PII MASKING MIDDLEWARE - COMPLIANCE REQUIREMENT
+# =============================================================================
+# SECURITY: Masks SSN/PII in CPA panel API responses based on user role.
+# - ADMIN/PARTNER roles: see full SSN
+# - STAFF/PREPARER roles: see masked SSN (***-**-LAST4)
+# - All SSN access is audit logged for GDPR + IRS Publication 4600 compliance
+
+try:
+    from cpa_panel.security.pii_masking import PIIMaskingMiddleware
+    app.add_middleware(PIIMaskingMiddleware)
+    logger.info("PII Masking Middleware registered - SSN redaction enabled")
+except ImportError as e:
+    logger.warning(f"PII Masking Middleware not available: {e}")
+except Exception as e:
+    logger.error(f"Failed to register PII Masking Middleware: {e}", exc_info=True)
+
 # Static files (for PWA manifest, icons, etc.)
 from fastapi.staticfiles import StaticFiles
 static_dir = os.path.join(os.path.dirname(__file__), "static")

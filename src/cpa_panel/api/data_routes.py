@@ -30,6 +30,7 @@ from .common import (
     log_api_event,
     get_tenant_id,
 )
+from cpa_panel.security.pii_masking import SSNSearchHasher
 
 logger = logging.getLogger(__name__)
 
@@ -699,4 +700,95 @@ async def get_clients_for_select(request: Request) -> Dict[str, Any]:
         return format_error_response("Database unavailable", ErrorCode.DB_CONNECTION_ERROR, request_id=request_id)
     except Exception as e:
         logger.error(f"Error getting clients for select: {e}", extra={"request_id": request_id})
+        return format_error_response(str(e), ErrorCode.INTERNAL_ERROR, request_id=request_id)
+
+
+# =============================================================================
+# PII-SAFE ENDPOINTS: SSN Search
+# =============================================================================
+
+@router.post("/data/search-by-ssn")
+async def search_clients_by_ssn(
+    request: Request,
+    ssn: str = Query(..., description="Full SSN to search for (format: 123-45-6789)"),
+) -> Dict[str, Any]:
+    """
+    Search for clients by SSN without exposing full SSN in response.
+
+    SECURITY: Accepts full SSN input, hashes for lookup, never returns full SSN.
+    - User provides full SSN for lookup
+    - System hashes it for database query
+    - Response contains client info but NOT the full SSN
+    - All accesses are audit logged
+
+    Query params:
+    - ssn: Full SSN (required, format: 123-45-6789 or 123456789)
+
+    Returns: Client(s) matching SSN with SSN masked
+    """
+    request_id = generate_request_id()
+    start_time = time.time()
+
+    # Validate SSN format
+    is_valid, error_msg = SSNSearchHasher.validate_ssn_format(ssn)
+    if not is_valid:
+        return format_error_response(error_msg or "Invalid SSN format", ErrorCode.VALIDATION_ERROR, request_id=request_id)
+
+    # Get tenant_id for multi-tenant isolation
+    tenant_id = get_tenant_id(request)
+
+    try:
+        # Hash SSN for lookup (never store plaintext)
+        ssn_hash = SSNSearchHasher.hash_ssn(ssn)
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Build query with tenant isolation
+            where_clauses = ["ssn_hash = ?"]
+            params = [ssn_hash]
+
+            # Add tenant filter
+            if tenant_id and tenant_id != "default":
+                where_clauses.append("(tenant_id = ? OR firm_id = ?)")
+                params.extend([tenant_id, tenant_id])
+
+            where_sql = " AND ".join(where_clauses)
+
+            # Query taxpayer table by SSN hash
+            cursor.execute(
+                f"SELECT * FROM taxpayers WHERE {where_sql}",
+                params
+            )
+            rows = cursor.fetchall()
+
+            clients = []
+            for row in rows:
+                client = row_to_dict(row)
+                # Immediately remove sensitive fields from response
+                # SSN fields are already hashed in DB, but redact them anyway
+                sensitive_fields = ["ssn_encrypted", "ssn_hash", "ssn", "itin"]
+                for field in sensitive_fields:
+                    client.pop(field, None)
+
+                clients.append(client)
+
+        duration_ms = (time.time() - start_time) * 1000
+        log_api_event(
+            "SSN_SEARCH",
+            f"Found {len(clients)} client(s) by SSN",
+            request_id=request_id,
+            duration_ms=duration_ms
+        )
+
+        return format_success_response({
+            "clients": clients,
+            "count": len(clients),
+            "note": "SSN hash used for lookup - full SSN never returned",
+        }, request_id=request_id)
+
+    except FileNotFoundError:
+        return format_error_response("Database unavailable", ErrorCode.DB_CONNECTION_ERROR, request_id=request_id)
+    except Exception as e:
+        logger.error(f"Error searching clients by SSN: {e}", extra={"request_id": request_id})
         return format_error_response(str(e), ErrorCode.INTERNAL_ERROR, request_id=request_id)
