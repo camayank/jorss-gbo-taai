@@ -119,10 +119,23 @@ def configure_middleware(app: FastAPI) -> dict:
             raise RuntimeError(f"CRITICAL: Security headers middleware failed to load: {e}")
         logger.warning(f"Security headers middleware failed: {e}")
 
-    # 2. Rate Limiting — handled by web.middleware.setup_middleware() via
-    # web.rate_limiter.RedisRateLimitMiddleware (sliding-window, Redis + fallback).
-    # Do NOT register a second rate limiter here; dual registration causes every
-    # request to be counted against two independent limit stores.
+    # 2. Rate Limiting — tiered, per-endpoint, Redis-backed (MKW-70)
+    # Limits: anonymous=20/min, free=100/min, premium=1000/min, cpa_firm=10000/min
+    # Per-endpoint: AI chat=10/min, uploads=5/min, calculations=60/min
+    try:
+        from web.rate_limiter import RedisRateLimitMiddleware
+        app.add_middleware(
+            RedisRateLimitMiddleware,
+            # Defaults used only when tier cannot be resolved; tier table wins.
+            requests_per_minute=100,
+            requests_per_hour=2_000,
+            enable_cloudwatch=_is_production,
+        )
+        logger.info("Tiered Redis rate limiter enabled (MKW-70)")
+    except Exception as e:
+        if _is_production:
+            raise RuntimeError(f"CRITICAL: Rate limiting middleware failed to load: {e}")
+        logger.warning(f"Rate limiting middleware not available: {e}")
 
     # 3. Request Validation (size limits, content type)
     try:

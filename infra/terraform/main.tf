@@ -712,3 +712,155 @@ resource "aws_cloudwatch_metric_alarm" "worker_task_count_low" {
     ClusterName = aws_ecs_cluster.main.name
   }
 }
+
+# ===========================================================================
+# WAF v2 — L7 DDoS + rate-based protection  (MKW-70)
+# ===========================================================================
+resource "aws_wafv2_web_acl" "main" {
+  name        = "${local.prefix}-waf"
+  scope       = "REGIONAL"
+  description = "L7 DDoS + rate-based protection for the ALB"
+
+  default_action {
+    allow {}
+  }
+
+  # Rule 1: AWS Managed — Common Rule Set (SQLi, XSS, path traversal, etc.)
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 10
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.prefix}-waf-common"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 2: AWS Managed — Known Bad Inputs (log4j, SSRF, etc.)
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 20
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.prefix}-waf-bad-inputs"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 3: IP-level rate limit — 2 000 req / 5 min per IP
+  # Provides L7 DDoS protection before requests reach the application.
+  rule {
+    name     = "IpRateLimitRule"
+    priority = 30
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000 # requests per 5-minute window
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.prefix}-waf-ip-rate-limit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${local.prefix}-waf"
+    sampled_requests_enabled   = true
+  }
+
+  tags = { Name = "${local.prefix}-waf" }
+}
+
+# Associate WAF ACL with the ALB
+resource "aws_wafv2_web_acl_association" "main" {
+  resource_arn = aws_lb.main.arn
+  web_acl_arn  = aws_wafv2_web_acl.main.arn
+}
+
+# CloudWatch alarm: WAF blocked requests spike (possible DDoS)
+resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
+  alarm_name          = "${local.prefix}-waf-blocked-spike"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "BlockedRequests"
+  namespace           = "AWS/WAFV2"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 500
+  alarm_description   = "WAF blocked >500 requests in 5 min — possible DDoS"
+  alarm_actions       = [aws_sns_topic.critical_alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    WebACL = aws_wafv2_web_acl.main.name
+    Region = var.aws_region
+    Rule   = "ALL"
+  }
+}
+
+# CloudWatch alarm: ALB 429 (rate limit) spike from app-layer limiter
+resource "aws_cloudwatch_metric_alarm" "alb_429_spike" {
+  alarm_name          = "${local.prefix}-alb-429-spike"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "HTTPCode_Target_4XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 200
+  alarm_description   = "More than 200 4xx responses in 5 min — may indicate rate-limit abuse"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = aws_lb.main.arn_suffix
+    TargetGroup  = aws_lb_target_group.app.arn_suffix
+  }
+}
+
+# CloudWatch log metric filter — capture rate_limit_exceeded events from app logs
+resource "aws_cloudwatch_log_metric_filter" "rate_limit_exceeded" {
+  name           = "${local.prefix}-rate-limit-exceeded"
+  log_group_name = aws_cloudwatch_log_group.app.name
+  pattern        = "{ $.event = \"rate_limit_exceeded\" }"
+
+  metric_transformation {
+    name          = "RateLimitExceeded"
+    namespace     = "TaxAdvisor/RateLimit"
+    value         = "1"
+    default_value = "0"
+  }
+}
