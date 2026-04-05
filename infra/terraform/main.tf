@@ -208,6 +208,19 @@ resource "aws_cloudwatch_log_group" "app" {
   retention_in_days = 14
 }
 
+# Metric filter to track errors in application logs
+resource "aws_cloudwatch_log_metric_filter" "app_errors" {
+  name           = "${local.prefix}-error-metric-filter"
+  log_group_name = aws_cloudwatch_log_group.app.name
+  filter_pattern = "[ERROR] || [CRITICAL] || [Exception] || 500 || 502 || 503"
+  metric_transformation {
+    name      = "Error"
+    namespace = "LogMetrics"
+    value     = "1"
+    default_value = 0
+  }
+}
+
 resource "aws_iam_role" "ecs_task_execution" {
   name = "${local.prefix}-ecs-task-exec"
   assume_role_policy = jsonencode({
@@ -419,4 +432,173 @@ resource "aws_s3_bucket_public_access_block" "documents" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# ===========================================================================
+# CloudWatch Alarms & Monitoring
+# ===========================================================================
+
+# SNS topic for alerts
+resource "aws_sns_topic" "alerts" {
+  name = "${local.prefix}-alerts"
+  tags = { Name = "${local.prefix}-alerts" }
+}
+
+# SNS topic for critical alerts
+resource "aws_sns_topic" "critical_alerts" {
+  name = "${local.prefix}-critical-alerts"
+  tags = { Name = "${local.prefix}-critical-alerts" }
+}
+
+# Alarm: ECS CPU High
+resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
+  alarm_name          = "${local.prefix}-ecs-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "Alert when ECS cluster CPU exceeds 80% for 10 minutes"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.app.name
+  }
+}
+
+# Alarm: ECS Memory High
+resource "aws_cloudwatch_metric_alarm" "ecs_memory_high" {
+  alarm_name          = "${local.prefix}-ecs-memory-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "MemoryUtilization"
+  namespace           = "AWS/ECS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 85
+  alarm_description   = "Alert when ECS memory exceeds 85% for 10 minutes"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.app.name
+  }
+}
+
+# Alarm: RDS CPU High
+resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
+  alarm_name          = "${local.prefix}-rds-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 75
+  alarm_description   = "Alert when RDS CPU exceeds 75%"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.id
+  }
+}
+
+# Alarm: RDS Low Free Storage
+resource "aws_cloudwatch_metric_alarm" "rds_free_storage_low" {
+  alarm_name          = "${local.prefix}-rds-free-storage-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "FreeStorageSpace"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 2147483648 # 2GB in bytes
+  alarm_description   = "Alert when RDS free storage drops below 2GB"
+  alarm_actions       = [aws_sns_topic.critical_alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.id
+  }
+}
+
+# Alarm: RDS Read Replica Lag
+resource "aws_cloudwatch_metric_alarm" "rds_replica_lag" {
+  count               = var.environment == "production" ? 1 : 0
+  alarm_name          = "${local.prefix}-rds-replica-lag"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ReplicaLag"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 1000 # milliseconds
+  alarm_description   = "Alert when RDS read replica lag exceeds 1 second"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres_replica_usw2[0].id
+  }
+}
+
+# Alarm: ALB Target Unhealthy
+resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_hosts" {
+  alarm_name          = "${local.prefix}-alb-unhealthy-hosts"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 1
+  alarm_description   = "Alert when ALB has unhealthy targets"
+  alarm_actions       = [aws_sns_topic.critical_alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    TargetGroup  = aws_lb_target_group.app.arn_suffix
+    LoadBalancer = aws_lb.main.arn_suffix
+  }
+}
+
+# Alarm: ALB Response Time High
+resource "aws_cloudwatch_metric_alarm" "alb_response_time_high" {
+  alarm_name          = "${local.prefix}-alb-response-time-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "TargetResponseTime"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 2 # seconds
+  alarm_description   = "Alert when ALB response time exceeds 2 seconds"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    TargetGroup  = aws_lb_target_group.app.arn_suffix
+    LoadBalancer = aws_lb.main.arn_suffix
+  }
+}
+
+# Alarm: CloudWatch Log Errors High
+resource "aws_cloudwatch_metric_alarm" "app_errors_high" {
+  alarm_name          = "${local.prefix}-app-errors-high"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Error"
+  namespace           = "LogMetrics"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 10
+  alarm_description   = "Alert when error count in application logs is >= 10 per 5 minutes"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  treat_missing_data  = "notBreaching"
 }
