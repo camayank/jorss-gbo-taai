@@ -180,21 +180,30 @@ class OAuthService:
         """Store an OAuth state token in Redis (TTL 10 min) or in-memory fallback."""
         r = await self._get_redis()
         if r is not None:
-            # Serialize datetime for JSON storage
-            serializable = {
-                "provider": data["provider"],
-                "created_at": data["created_at"].isoformat(),
-                "redirect_uri": data.get("redirect_uri"),
-            }
-            await r.setex(
-                f"oauth_state:{state}",
-                _OAUTH_STATE_TTL,
-                json.dumps(serializable),
-            )
-        else:
-            # Development fallback — in-memory with lock
-            async with self._state_lock:
-                self._state_tokens[state] = data
+            try:
+                # Serialize datetime for JSON storage
+                serializable = {
+                    "provider": data["provider"],
+                    "created_at": data["created_at"].isoformat(),
+                    "redirect_uri": data.get("redirect_uri"),
+                }
+                await r.setex(
+                    f"oauth_state:{state}",
+                    _OAUTH_STATE_TTL,
+                    json.dumps(serializable),
+                )
+                return
+            except RuntimeError as exc:
+                # Redis connection bound to a closed event loop — reset and fall back
+                logger.warning("Redis connection stale (event loop closed) — resetting: %s", exc)
+                self._redis = None
+            except Exception as exc:
+                logger.warning("Redis setex failed — falling back to in-memory: %s", exc)
+                self._redis = None
+
+        # Development fallback — in-memory with lock
+        async with self._state_lock:
+            self._state_tokens[state] = data
 
     async def _pop_state_token(self, state: str) -> Optional[Dict[str, Any]]:
         """Retrieve and delete an OAuth state token (atomic pop)."""

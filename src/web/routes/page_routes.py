@@ -165,6 +165,14 @@ def landing_page(request: Request):
     return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
 
 
+@router.get("/pricing", response_class=HTMLResponse)
+def pricing_page(request: Request):
+    """Pricing page - Display all pricing tiers (Free, Premium, CPA White-Label)."""
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("pricing.html", {"request": request, "branding": branding})
+
+
 @router.get("/settings/profile", response_class=HTMLResponse)
 def user_profile_page(request: Request):
     """User Profile Page - View and edit profile settings."""
