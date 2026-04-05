@@ -6,12 +6,14 @@ terraform {
       version = "~> 5.0"
     }
   }
-  # Uncomment and configure backend for team use:
-  # backend "s3" {
-  #   bucket = "jorss-gbo-tf-state"
-  #   key    = "infra/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+
+  backend "s3" {
+    bucket         = "jorss-gbo-dev-tf-state"
+    key            = "infra/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "jorss-gbo-dev-tf-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {

@@ -90,6 +90,32 @@ jobs:
           path: coverage.xml
           retention-days: 14
 
+  infrastructure:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.6.0"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive infra/terraform/
+        continue-on-error: true
+
+      - name: Terraform Init (local state for validation)
+        run: |
+          cd infra/terraform
+          terraform init -backend=false
+
+      - name: Terraform Validate
+        run: |
+          cd infra/terraform
+          terraform validate
+
   frontend:
     name: Frontend Lint + Tests + Build
     runs-on: ubuntu-latest
@@ -124,7 +150,7 @@ jobs:
 
   deploy:
     name: Deploy to Render
-    needs: [backend, frontend]
+    needs: [backend, frontend, infrastructure]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -166,7 +192,7 @@ jobs:
 
   deploy-staging:
     name: Deploy to AWS ECS Staging
-    needs: [backend, frontend]
+    needs: [backend, frontend, infrastructure]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: staging
