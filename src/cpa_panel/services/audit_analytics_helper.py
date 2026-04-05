@@ -196,8 +196,82 @@ class AuditAnalyticsHelper:
         Returns:
             ReturnProcessingMetric with aggregated statistics
         """
-        # TODO: Implement in Task 3
-        pass
+        from audit.unified.event_types import AuditEventType
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        # Query for SUBMIT events
+        submit_events = self.audit_service.query(
+            event_type=AuditEventType.TAX_RETURN_SUBMIT,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        # Query for ACCEPTED events
+        accept_events = self.audit_service.query(
+            event_type=AuditEventType.TAX_RETURN_ACCEPTED,
+            tenant_id=tenant_id,
+            start_date=start,
+            end_date=end,
+            limit=1000,
+        )
+
+        if not submit_events:
+            return ReturnProcessingMetric(
+                total_returns=0,
+                avg_processing_days=0,
+                submitted_count=0,
+                accepted_count=0,
+                acceptance_rate=0,
+                latest_acceptance_date=None,
+            )
+
+        # Index accepted events by return_id for quick lookup
+        accepted_by_return = {}
+        latest_acceptance = None
+
+        for event in accept_events:
+            return_id = event.return_id or event.resource_id or event.session_id
+            if return_id:
+                accepted_by_return[return_id] = event
+                if not latest_acceptance or event.timestamp > latest_acceptance:
+                    latest_acceptance = event.timestamp
+
+        # Calculate metrics
+        processing_times = []
+        accepted_count = 0
+
+        for event in submit_events:
+            return_id = event.return_id or event.resource_id or event.session_id
+
+            if return_id in accepted_by_return:
+                accept_event = accepted_by_return[return_id]
+                # Calculate days between submit and acceptance
+                days_diff = (accept_event.timestamp - event.timestamp).days
+                processing_times.append(max(0, days_diff))  # Handle negative (shouldn't happen)
+                accepted_count += 1
+
+        avg_processing_days = (
+            sum(processing_times) / len(processing_times)
+            if processing_times else 0
+        )
+
+        acceptance_rate = (
+            (accepted_count / len(submit_events) * 100)
+            if submit_events else 0
+        )
+
+        return ReturnProcessingMetric(
+            total_returns=len(submit_events),
+            avg_processing_days=round(avg_processing_days, 1),
+            submitted_count=len(submit_events),
+            accepted_count=accepted_count,
+            acceptance_rate=round(acceptance_rate, 1),
+            latest_acceptance_date=latest_acceptance,
+        )
 
     def get_lead_conversion_funnel(
         self,
