@@ -109,3 +109,30 @@ def authenticated_client():
 
     client.request = request_with_csrf
     return client
+
+
+# =============================================================================
+# DATABASE FIXTURES FOR TESTING
+# =============================================================================
+
+
+@pytest.fixture
+async def db_session():
+    """Provide an async database session for tests that need real DB access."""
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from config.database import DatabaseSettings
+
+    # Get database configuration
+    db_settings = DatabaseSettings()
+    db_url = db_settings.async_url
+
+    engine = create_async_engine(db_url, echo=False)
+    async_session_factory = sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+
+    async with async_session_factory() as session:
+        yield session
+
+    await engine.dispose()
